@@ -23,7 +23,7 @@ const citiesData: SearchCity[] = searchCitiesData as SearchCity[];
 const POIContainer = ({ onPOIsUpdate }: POIContainerProps) => {
     const navigate = useNavigate();
     const routerLocation = useRouterLocation();
-    const { currentCity, updateLocation } = useLocation();
+    const { currentCity, coordinates, updateLocation } = useLocation();
     const { user, loading: authLoading } = useAuthStore();
     const fetchInProgressRef = useRef(false);
     const [isEditing, setIsEditing] = useState(false);
@@ -236,6 +236,7 @@ const POIContainer = ({ onPOIsUpdate }: POIContainerProps) => {
         setLoading
     ]);
 
+    //Filtering logic
     const filteredItems = useMemo(() => {
         return currentItems.filter(poi => {
             const matchesName = poi.name.toLowerCase().includes(nameFilter.toLowerCase());
@@ -249,6 +250,17 @@ const POIContainer = ({ onPOIsUpdate }: POIContainerProps) => {
     }, [filteredItems, onPOIsUpdate]);
 
     const showPagination = filteredItems.length > 0;
+    
+    //Create trip button navigation
+    const handleCreateTrip = () => {
+        navigate('/createtrip', {
+          state: { 
+            city: currentCity,
+            lat: coordinates.lat,
+            lng: coordinates.lng
+          }
+        });
+      };
 
     return (
         <div className="h-full w-full bg-white p-6 rounded-lg overflow-y-auto">
@@ -271,6 +283,12 @@ const POIContainer = ({ onPOIsUpdate }: POIContainerProps) => {
                         className="p-1 hover:bg-gray-100 rounded-full transition-colors"
                     >
                         <Pen className="w-4 h-4 text-gray-500 hover:text-gray-700" />
+                    </button>
+                    <button 
+                        onClick={handleCreateTrip}
+                        className="bg-blue-600 ml-auto hover:bg-blue-700 text-white font-medium px-3 rounded-lg transition-colors"
+                    >
+                        Create trip
                     </button>
                 </div>
             )}

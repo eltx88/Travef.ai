@@ -3,8 +3,8 @@ import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { useCarouselAnimation, cardVariants } from '@/animations/cards.tsx';
-import { SearchCity } from '../Types/InterfaceTypes';
-import CitySearch from './CitySearchBar';
+import { SearchCity } from '../../Types/InterfaceTypes';
+import CitySearch from '../CitySearchBar';
 import citiesAnimationData from "@/data/cities.json";
 
 interface CityImage {
@@ -15,13 +15,15 @@ interface CityImage {
   country: string;
 }
 
-const SearchFunction: React.FC = () => {
+const Searchbar: React.FC = () => {
   const navigate = useNavigate();
   const carousel = useRef<HTMLDivElement>(null);
   const controls = useCarouselAnimation(carousel);
 
   const handleCitySubmit = (city: SearchCity): void => {
+    console.log(city.country,city.lat,city.lng);
       navigate(`/poi`, {
+        
           state: {
               city: city.name,
               lat: city.lat,
@@ -73,9 +75,7 @@ const SearchFunction: React.FC = () => {
                                   name: city.city,
                                   country: city.country,
                                   lat: city.lat.toString(),
-                                  lng: city.lng.toString(),
-                                  admin1: '',  // If you have these in your data, add them
-                                  admin2: ''   // If you have these in your data, add them
+                                  lng: city.lng.toString()
                               })}
                           >
                               <CardContent className="p-0">
@@ -93,4 +93,4 @@ const SearchFunction: React.FC = () => {
   );
 };
 
-export default SearchFunction;
+export default Searchbar;

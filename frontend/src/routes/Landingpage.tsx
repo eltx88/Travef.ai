@@ -1,6 +1,6 @@
 import AnimatedMountains from "@/animations/mountains.tsx";
 import { motion } from 'framer-motion';
-import DiagramPopup from "@/components/Learnmore";
+import LearnMore from "@/components/LearnMore";
 import LoginPopup from "@/components/Forms/LoginForm";
 import SignupPopup from "@/components/Forms/SignupForm";
 import { Outlet } from "react-router-dom";
@@ -38,7 +38,7 @@ function LandingPage() {
           >
             Planning your dream holiday? At Travef.ai, we simplify travel by helping you create personalized itineraries tailored to your preferences.
           </motion.p>
-          <DiagramPopup />
+          <LearnMore />
         </div>
       </main>
       <div className="absolute inset-0 z-0">

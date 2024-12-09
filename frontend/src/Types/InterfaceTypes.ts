@@ -1,9 +1,13 @@
+import { DateRange } from "react-day-picker";
+
+//Used by POI Card
 export type POIType = "attraction" | "restaurant" | "hotel" ;
 
 export interface Coordinates {
     lat: number;
     lng: number;
 }
+
 
 export interface POI {
   id: string;
@@ -34,11 +38,23 @@ export interface UserHistoryPoint {
   CreatedDT: Date;
   Status: boolean;
 }
+
+//Used for City Search Bar
 export interface SearchCity {
   name: string;
   country: string;
   lat: string;
   lng: string;
-  admin1: string;
-  admin2: string;
+}
+
+//Used to store data for Trip Creation after carousel submission
+export interface TripData {
+  city: string;
+  dateRange: {
+    from: Date | undefined;
+    to: Date | undefined;
+  } | null;
+  monthlyDays: number;
+  interests: Set<string>;
+  customInterests: Set<string>;
 }
