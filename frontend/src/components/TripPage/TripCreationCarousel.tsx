@@ -35,27 +35,34 @@ export default function TripCreationCarousel({ onComplete, initialData }: TripCr
   const [current, setCurrent] = useState(0);
   const [validCity, setValidCity] = useState(!!location.state?.city);
   const [count, setCount] = useState(0);
-  const [customInterestInput, setCustomInterestInput] = useState('');
   const [tripData, setTripData] = useState<TripData>(() => {
     if (initialData) {
       return initialData;
     }
     return {
       city: location.state?.city || '',
+      coordinates: {
+        lat: location.state?.lat || 0,
+        lng: location.state?.lng || 0
+      },
       dateRange: null,
       monthlyDays: 0,
       interests: new Set<string>(),
-      customInterests: new Set<string>()
+      customInterests: new Set<string>(),
+      foodPreferences: new Set<string>(),
+      customFoodPreferences: new Set<string>()
     };
   });
   const [showInterestDialog, setShowInterestDialog] = useState(false);
-  const [newInterest, setNewInterest] = useState('');
   const [dialogInput, setDialogInput] = useState('');
-  const predefinedInterests = [
-    'Historic Attractions', 'Great Food', 'Hidden Gems', 'Football Culture',
-    'Historic Architecture', 'Live Music', 'Craft Beer and Ale', 'Art Galleries',
-    'British Cuisine', 'Shopping', 'Adventure and Sports', 'Arts & Theatre'
-  ];
+  const [showFoodDialog, setShowFoodDialog] = useState(false);
+  const [foodDialogInput, setFoodDialogInput] = useState(''); 
+  const predefinedInterests = ['Museum', 'Park', 'Theatre', 'Aquarium',
+                              'Shopping Malls', 'Theme Park', 'Art Gallery', 'National Parks',
+                                'Viewpoints', 'Gardens', 'Zoo', 'UNESCO'];
+  const predefinedFoodInterests = ["Italian", "Chinese", "Japanese", "Indian",
+                                    "Thai", "Mexican", "Mediterranean", "French", "Korean",
+                                     "Vietnamese", "Greek", "Burger" ];         
 
   useEffect(() => {
     if (!api) return;
@@ -71,9 +78,13 @@ export default function TripCreationCarousel({ onComplete, initialData }: TripCr
   }, [api, initialStep]);
 
   const handleCitySelect = (city: SearchCity) => {
-    setTripData({...tripData, city: city.name});
+    setTripData({...tripData,
+                 city: city.name,
+                 coordinates: {
+                  lat: Number(city.lat),
+                  lng: Number(city.lng)
+                }});
     setValidCity(true);
-    // Auto advance to next slide after city selection
     if (api) {
       setTimeout(() => api.scrollNext(), 300);
     }
@@ -114,6 +125,27 @@ export default function TripCreationCarousel({ onComplete, initialData }: TripCr
     setTripData({...tripData, interests: newInterests});
   };
 
+  const openCustomFoodDialog = () => {
+    const currentFoodPreferences = Array.from(tripData.customFoodPreferences || []).join(', ');
+    setFoodDialogInput(currentFoodPreferences);
+    setShowFoodDialog(true);
+  };
+  
+  const addCustomFoodPreferences = () => {
+    if (foodDialogInput) {
+      const preferences = foodDialogInput
+        .split(',')
+        .map(pref => pref.trim())
+        .filter(pref => pref.length > 0);
+  
+      setTripData({
+        ...tripData,
+        customFoodPreferences: new Set(preferences)
+      });
+      setShowFoodDialog(false);
+    }
+  };
+
   const addCustomInterests = () => {
     if (dialogInput) {
       const interests = dialogInput
@@ -136,7 +168,6 @@ export default function TripCreationCarousel({ onComplete, initialData }: TripCr
       ...tripData,
       customInterests: new Set()
     });
-    setCustomInterestInput('');
   };
 
   const openCustomInterestDialog = () => {
@@ -228,66 +259,147 @@ export default function TripCreationCarousel({ onComplete, initialData }: TripCr
                 </p>
               </div>
             </CarouselItem>
-
-            {/* Interests Selection */}
+            {/* Food Preferences Selection */}
             <CarouselItem>
-              <div className="space-y-4">
-                <h2 className="text-4xl font-bold text-center">Tell us what you're interested in</h2>
-                <p className="text-xl text-gray-600 text-center">Select all that apply.</p>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                  {predefinedInterests.map((interest) => (
+              <div className="space-y-4 px-8">
+                <h2 className="text-4xl font-bold text-center">What food would you like to try?</h2>
+                <p className="text-xl text-gray-600 text-center">Select your preferred cuisines (optional)</p>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                  {predefinedFoodInterests.map((cuisine) => (
                     <Button
-                      key={interest}
-                      variant={tripData.interests.has(interest) ? "default" : "outline"}
-                      onClick={() => toggleInterest(interest)}
+                      key={cuisine}
+                      variant={tripData.foodPreferences?.has(cuisine) ? "default" : "outline"}
+                      onClick={() => {
+                        const newPreferences = new Set(tripData.foodPreferences);
+                        newPreferences.has(cuisine) 
+                          ? newPreferences.delete(cuisine) 
+                          : newPreferences.add(cuisine);
+                        setTripData({...tripData, foodPreferences: newPreferences});
+                      }}
                       className={cn(
                         "whitespace-nowrap transition-colors",
-                        tripData.interests.has(interest) ? 
+                        tripData.foodPreferences?.has(cuisine) ? 
                         "bg-blue-600 text-white hover:bg-blue-700" : 
                         "bg-white text-blue-600 hover:bg-blue-50"
                       )}
                     >
-                      {interest}
+                      {cuisine}
                     </Button>
                   ))}
-                  {tripData.customInterests.size > 0 ? (
-                  <Button
-                    variant="outline"
-                    className="flex items-center justify-between gap-2 bg-green-50 hover:bg-green-100"
-                    onClick={openCustomInterestDialog}
-                  >
-                    <span>Custom Interests Added</span>
+                  {tripData.customFoodPreferences?.size > 0 ? (
+                    <div className="flex items-center justify-between gap-2 w-full">
+                      <Button
+                        variant="outline"
+                        className="flex-1 bg-blue-400 text-white hover:bg-blue-100"
+                        onClick={openCustomFoodDialog}
+                      >
+                        Custom Cuisines Added
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 w-6 p-0 hover:bg-red-200"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setTripData({...tripData, customFoodPreferences: new Set()});
+                        }}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ) : (
                     <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-6 w-6 p-0 hover:bg-green-200"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        clearCustomInterests(e);
-                      }}
+                      variant="outline"
+                      onClick={openCustomFoodDialog}
+                      className="flex items-center gap-2"
                     >
-                      <X className="h-4 w-4" />
+                      + Add cuisines
                     </Button>
+                  )}
+                </div>
+                <div className="flex justify-between mt-6">
+                  <Button
+                    variant="ghost"
+                    onClick={() => {
+                      setTripData({...tripData, foodPreferences: new Set(), customFoodPreferences: new Set()});
+                      if (api) api.scrollNext();
+                    }}
+                    className="text-gray-500 hover:text-gray-700"
+                  >
+                    Skip this step
                   </Button>
-                ) : (
+                  <Button
+                    onClick={() => {
+                      if (api) api.scrollNext();
+                    }}
+                    className="bg-blue-600 text-white"
+                  >
+                    Continue
+                  </Button>
+                </div>
+              </div>
+            </CarouselItem>         
+            {/* Interests Selection */}
+            <CarouselItem>
+            <div className="space-y-4 px-8"> {/* Added px-8 for horizontal padding */}
+              <h2 className="text-4xl font-bold text-center">Tell us what you're interested in</h2>
+              <p className="text-xl text-gray-600 text-center">Select all that apply.</p>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                {predefinedInterests.map((interest) => (
+                  <Button
+                    key={interest}
+                    variant={tripData.interests.has(interest) ? "default" : "outline"}
+                    onClick={() => toggleInterest(interest)}
+                    className={cn(
+                      "whitespace-nowrap transition-colors",
+                      tripData.interests.has(interest) ? 
+                      "bg-blue-600 text-white hover:bg-blue-700" : 
+                      "bg-white text-blue-600 hover:bg-blue-50"
+                    )}
+                  >
+                    {interest}
+                  </Button>
+                ))}
+                {tripData.customInterests.size > 0 ? (
+                <div className="flex items-center justify-between gap-2 w-full">
                   <Button
                     variant="outline"
+                    className="flex-1 px-8 bg-blue-400 text-white hover:bg-blue-100"
                     onClick={openCustomInterestDialog}
-                    className="flex items-center gap-2"
                   >
-                    + Add interests
+                    Custom Interests Added
                   </Button>
-                )}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 w-6 p-0 hover:bg-red-300"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      clearCustomInterests(e);
+                    }}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
                 </div>
-                {current === count - 1 && (
-                  <div className="flex justify-end mt-4">
-                    <Button onClick={() => onComplete(tripData)}>
-                      Create Trip
-                    </Button>
-                  </div>
-                )}
+              ) : (
+                <Button
+                  variant="outline"
+                  onClick={openCustomInterestDialog}
+                  className="flex items-center gap-2"
+                >
+                  + Add interests
+                </Button>
+              )}
               </div>
-            </CarouselItem>
+              {current === count - 1 && (
+                <div className="flex justify-end mt-4">
+                  <Button onClick={() => onComplete(tripData)}>
+                    Create Trip
+                  </Button>
+                </div>
+              )}
+            </div>
+          </CarouselItem>
           </CarouselContent>
           {current > 0 && (
             <CarouselPrevious 
@@ -302,7 +414,7 @@ export default function TripCreationCarousel({ onComplete, initialData }: TripCr
             />
           )}
         </Carousel>
-
+        
         <Dialog open={showInterestDialog} onOpenChange={setShowInterestDialog}>
           <DialogContent className="bg-white">
             <DialogHeader>
@@ -319,6 +431,28 @@ export default function TripCreationCarousel({ onComplete, initialData }: TripCr
             />
             <DialogFooter>
               <Button className="hover:text-white hover:bg-blue-600" onClick={addCustomInterests}>
+                Add
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={showFoodDialog} onOpenChange={setShowFoodDialog}>
+          <DialogContent className="bg-white">
+            <DialogHeader>
+              <DialogTitle>Add custom cuisines</DialogTitle>
+              <DialogDescription className="text-sm text-gray-500">
+                Add multiple cuisines separated by commas
+              </DialogDescription>
+            </DialogHeader>
+            <Input
+              value={foodDialogInput}
+              onChange={(e) => setFoodDialogInput(e.target.value)}
+              placeholder="e.g., Brazilian, Cuban, Persian"
+              className="mb-4"
+            />
+            <DialogFooter>
+              <Button className="hover:text-white hover:bg-blue-600" onClick={addCustomFoodPreferences}>
                 Add
               </Button>
             </DialogFooter>

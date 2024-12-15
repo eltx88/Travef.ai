@@ -1,0 +1,29 @@
+{
+    "accommodation": {
+      "label": "Places to Stay",
+      "description": "Place to stay or live",
+      "subcategories": {
+        "hotel": {
+          "label": "Hotels"
+        },
+        "hut": {
+          "label": "Huts"
+        },
+        "apartment": {
+          "label": "Apartments"
+        },
+        "chalet": {
+          "label": "Chalets"
+        },
+        "guest_house": {
+          "label": "Guest Houses"
+        },
+        "hostel": {
+          "label": "Hostels"
+        },
+        "motel": {
+          "label": "Motels"
+        }
+      }
+    }
+}

@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
+import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Calendar, CalendarClock, PenLine } from "lucide-react";
 import type { TripData } from '@/Types/InterfaceTypes';
-
 interface TripDetailsProps {
   tripData: TripData;
   onEdit?: () => void;
@@ -11,15 +11,19 @@ interface TripDetailsProps {
 
 export function TripDetails({ tripData, onEdit }: TripDetailsProps) {
   const [isLoading, setIsLoading] = useState(false);
+  const navigate = useNavigate();
 
   const handleSave = async () => {
     setIsLoading(true);
     try {
-      console.log('Saving trip:', tripData);
-      // MAKE API CALLS with data obtained from tripData;
+      console.log('Trip:', tripData);
+      navigate('/custom-trip', { 
+        state: { tripData },
+        replace: true 
+      });
+      setIsLoading(false);
     } catch (error) {
       console.error('Error saving trip:', error);
-    } finally {
       setIsLoading(false);
     }
   };
@@ -70,14 +74,14 @@ export function TripDetails({ tripData, onEdit }: TripDetailsProps) {
 
         {/* Interests */}
         <div className="space-y-2">
-      <h3 className="font-semibold">Interests</h3>
-      <div className="flex flex-wrap gap-2">
-        {Array.from(tripData.interests).map((interest) => (
-          <span key={interest} className="px-3 py-1 bg-blue-100 rounded-full text-sm">
-            {interest}
-          </span>
-        ))}
-      </div>
+          <h3 className="font-semibold">Interests</h3>
+          <div className="flex flex-wrap gap-2">
+            {Array.from(tripData.interests).map((interest) => (
+              <span key={interest} className="px-3 py-1 bg-blue-100 rounded-full text-sm">
+                {interest}
+              </span>
+            ))}
+        </div>
       {tripData.customInterests.size > 0 && (
         <div className="mt-2">
           <h4 className="text-sm font-medium text-gray-500 mb-2">Custom Interests</h4>
@@ -90,6 +94,33 @@ export function TripDetails({ tripData, onEdit }: TripDetailsProps) {
           </div>
         </div>
       )}
+      {/* Food Preferences */}
+      {tripData.foodPreferences.size > 0 && (
+        <div className="mt-4">
+          <h3 className="font-semibold">Food Preferences</h3>
+          <div className="flex flex-wrap gap-2">
+            {Array.from(tripData.foodPreferences).map((food) => (
+              <span key={food} className="px-3 py-1 bg-blue-100 rounded-full text-sm">
+                {food}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+      {tripData.customFoodPreferences.size > 0 && (
+        <div className="mt-2">
+        <h4 className="text-sm font-medium text-gray-500 mb-2">Custom Food Preferences</h4>
+        <div className="flex flex-wrap gap-2">
+          {Array.from(tripData.customFoodPreferences).map((interest) => (
+            <span key={interest} className="px-3 py-1 bg-green-100 rounded-full text-sm">
+              {interest}
+            </span>
+          ))}
+        </div>
+      </div>
+    )}
+
+
     </div>
 
         {/* Actions */}

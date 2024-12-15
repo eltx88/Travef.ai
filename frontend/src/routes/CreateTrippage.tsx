@@ -1,3 +1,4 @@
+//Navigated from the POI Container Create Trip Button(location provided) or the Trip.tsx + button in the homepage (location not provided)
 import { NavigationMenuBar } from "@/components/NavigationMenuBar";
 import { useState } from 'react';
 import TripCreationCarousel from '@/components/TripPage/TripCreationCarousel';

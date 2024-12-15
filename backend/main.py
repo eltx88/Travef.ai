@@ -6,6 +6,7 @@ from routes.pointofinterest_route import router as poi_router
 from routes.userhistory_route import router as userhistory_router
 from routes.geoapify_route import router as geoapify_router
 from config.firebase_init import initialize_firebase
+from routes.groq_route import router as groq_router
 
 # Initialize Firebase Admin
 initialize_firebase()
@@ -32,6 +33,7 @@ async def root():
 app.include_router(poi_router)
 app.include_router(userhistory_router)
 app.include_router(geoapify_router)
+app.include_router(groq_router)
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)

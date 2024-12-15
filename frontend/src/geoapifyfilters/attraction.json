@@ -1,0 +1,241 @@
+{
+  "commercial": {
+    "supermarket": {
+      "values": ["supermarket", "grocery store", "food market", "grocery"]
+    },
+    "marketplace": {
+      "values": ["marketplace", "open market", "bazaar", "flea market"]
+    },
+    "shopping_mall": {
+      "values": ["shopping mall", "mall", "shopping center", "plaza"]
+    },
+    "department_store": {
+      "values": ["department store", "retail store", "large store"]
+    },
+    "electronics": {
+      "values": ["electronics store", "tech shop", "gadget store"]
+    },
+    "hobby": {
+      "model": {
+        "values": ["model shop", "scale models", "miniatures"]
+      },
+      "anime": {
+        "values": ["anime shop", "manga store", "otaku shop"]
+      },
+      "collecting": {
+        "values": ["collector shop", "antiques", "memorabilia"]
+      },
+      "games": {
+        "values": ["game store", "board games", "video games"]
+      },
+      "brewing": {
+        "values": ["home brewing", "brew supply", "beer making"]
+      },
+      "photo": {
+        "values": ["photography shop", "camera store", "photo studio"]
+      },
+      "music": {
+        "values": ["music store", "instrument shop", "record shop"]
+      },
+      "sewing_and_knitting": {
+        "values": ["sewing store", "knitting shop", "fabric store"]
+      }
+    },
+    "books": {},
+    "gift_and_souvenir": {},
+    "stationery": {},
+    "newsagent": {},
+    "clothing": {
+      "shoes": {},
+      "clothes": {},
+      "underwear": {},
+      "sport": {},
+      "men": {},
+      "women": {},
+      "kids": {},
+      "accessories": {}
+    },
+    "bag": {},
+    "baby_goods": {},
+    "florist": {},
+    "chemist": {},
+    "health_and_beauty": {
+      "pharmacy": {}
+    },
+    "toy_and_game": {},
+    "pet": {},
+    "food_and_drink": {
+      "fruit_and_vegetable": {},
+      "farm": {},
+      "confectionery": {},
+      "chocolate": {},
+      "butcher": {},
+      "cheese_and_dairy": {},
+      "drinks": {},
+      "coffee_and_tea": {}
+    },
+    "convenience": {},
+    "discount_store": {},
+    "smoking": {},
+    "second_hand": {},
+    "gas": {},
+    "weapons": {},
+    "pyrotechnics": {},
+    "energy": {},
+    "wedding": {},
+    "jewelry": {},
+    "watches": {},
+    "antiques": {},
+    "video_and_music": {},
+    "trade": {},
+    "kiosk": {}
+  },
+  "entertainment": {
+    "culture": {
+      "theatre": {},
+      "arts_centre": {
+        "values": ["art", "arts", "cultural centre", "cultural center", "arts center", "arts centre"]
+      },
+      "gallery": {
+        "values": ["art", "art gallery", "art galleries", "gallery", "galleries"]
+      }
+    },
+    "zoo": {
+      "values": ["zoo", "wildlife park", "animal park"]
+    },
+    "aquarium": {
+      "values": ["aquarium", "marine park", "underwater zoo"]
+    },
+    "planetarium": {},
+    "museum": {},
+    "cinema": {},
+    "amusement_arcade": {},
+    "escape_game": {},
+    "miniature_golf": {},
+    "bowling_alley": {},
+    "flying_fox": {},
+    "theme_park": {
+      "values": ["theme park", "amusement park", "fun park", "themepark", "amusementpark"]
+    },
+    "water_park": {
+      "values": ["water park", "waterpark", "aqua park", "aquapark"]
+    },
+    "activity_park": {
+      "values": ["activity park", "adventure park", "sports park", "recreation park"]
+    }
+  },
+  "heritage": {
+    "unesco": {}
+  },
+  "leisure": {
+    "picnic": {
+      "picnic_site": {},
+      "picnic_table": {},
+      "bbq": {}
+    },
+    "playground": {},
+    "spa": {
+      "public_bath": {},
+      "sauna": {}
+    },
+    "park": {
+      "garden": {
+      }
+    }
+  },
+  "natural": {
+    "forest": {
+          "values": ["forest", "woods", "hiking", "grove"]
+        },
+    "water": {
+      "spring": {},
+      "reef": {},
+      "hot_spring": {},
+      "geyser": {},
+      "sea": {}
+    },
+    "mountain": {
+      "peak": {},
+      "glacier": {},
+      "cliff": {},
+      "rock": {},
+      "cave_entrance": {}
+    },
+    "sand": {
+      "dune": {}
+    },
+    "protected_area": {}
+  },
+  "national_park": {
+    "values": ["national park", "state park", "nature reserve", "nature"]
+  },
+  "pet": {
+    "shop": {},
+    "veterinary": {},
+    "service": {},
+    "dog_park": {
+      "values": ["dog park", "dog run", "pet park", "off-leash park", "dog exercise area"]
+    }
+  },
+  "production": {
+    "factory": {},
+    "winery": {},
+    "brewery": {},
+    "cheese": {},
+    "pottery": {}
+  },
+  "tourism": {
+        "information": {
+            "office": {},
+            "map": {},
+            "ranger_station": {}
+        },
+        "attraction": {
+            "artwork": {
+                        "values": ["artwork", "public art", "art installation", "sculpture", "art", "arts"]
+            },
+            "viewpoint": {
+                          "values": ["scenic"]
+            },
+            "fountain": {},
+            "clock": {}
+        },
+        "sights": {
+            "place_of_worship": {
+                "church": {},
+                "chapel": {},
+                "cathedral": {},
+                "mosque": {},
+                "synagogue": {},
+                "temple": {},
+                "shrine": {}
+            },
+            "monastery": {},
+            "city_hall": {},
+            "conference_centre": {},
+            "lighthouse": {},
+            "windmill": {},
+            "tower": {},
+            "battlefield": {},
+            "fort": {},
+            "castle": {},
+            "ruines": {},
+            "archaeological_site": {},
+            "city_gate": {},
+            "bridge": {},
+            "memorial": {
+                "aircraft": {},
+                "locomotive": {},
+                "railway_car": {},
+                "ship": {},
+                "tank": {},
+                "tomb": {},
+                "monument": {},
+                "wayside_cross": {},
+                "boundary_stone": {},
+                "pillory": {},
+                "milestone": {}
+            }
+        }
+    }
+}

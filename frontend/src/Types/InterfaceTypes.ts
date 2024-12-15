@@ -1,5 +1,3 @@
-import { DateRange } from "react-day-picker";
-
 //Used by POI Card
 export type POIType = "attraction" | "restaurant" | "hotel" ;
 
@@ -50,6 +48,7 @@ export interface SearchCity {
 //Used to store data for Trip Creation after carousel submission
 export interface TripData {
   city: string;
+  coordinates: Coordinates;
   dateRange: {
     from: Date | undefined;
     to: Date | undefined;
@@ -57,4 +56,6 @@ export interface TripData {
   monthlyDays: number;
   interests: Set<string>;
   customInterests: Set<string>;
+  foodPreferences: Set<string>;
+  customFoodPreferences: Set<string>;
 }
