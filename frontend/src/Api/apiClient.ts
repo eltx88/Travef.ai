@@ -6,6 +6,7 @@ interface ApiClientConfig {
 interface ExploreParams {
   city: string;
   category?: string;
+  type?: string;
   coordinates: { 
     lat: number; 
     lng: number;
@@ -55,16 +56,21 @@ class ApiClient {
   }
 
   async getSavedPOIDetails(ids: string[]) {
-    console.log('ids:', ids);
-    return this.fetchWithAuth(`/points/saved/details`, {
+    const response = await this.fetchWithAuth(`/points/saved/details`, {
       method: 'POST',
       body: JSON.stringify({ point_ids: ids }),
     });
+  
+    return response.map((poi: POI) => ({
+      ...poi,
+      type: `saved${poi.type}`
+    }));
   }
 
   async getExplorePOIs({
     city,
     category = 'accommodation',
+    type='hotel',
     coordinates,
     offset = 0,
     limit = 30
@@ -74,6 +80,7 @@ class ApiClient {
         latitude: coordinates.lat.toString(),
         longitude: coordinates.lng.toString(),
         category: category,
+        type: type.toString() ,
         offset: offset.toString(),
         limit: limit.toString()
     });

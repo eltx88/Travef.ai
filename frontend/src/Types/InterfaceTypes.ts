@@ -9,7 +9,7 @@ export interface Coordinates {
 
 export interface POI {
   id: string;
-  place_id?: string;
+  place_id: string;
   name: string;
   coordinates: Coordinates;
   address: string;
@@ -17,12 +17,14 @@ export interface POI {
   country?: string;
   duration?: number;
   type: POIType;
+  cuisine?: string[]; 
+  description?: string; 
   categories?: string[];
   wikidata_id?: string;
   website?: string;
   phone?: string;
   email?: string;
-  opening_hours?: Record<string, string>;
+  opening_hours?: string; 
   tags?: string[];
   price_level?: number;
   rating?: number;

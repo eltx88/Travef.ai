@@ -128,6 +128,7 @@ export const usePOIData = (user: any, currentCity: string): POIDataHookReturn =>
         const pois = await apiClient.getExplorePOIs({
             city: currentCity,
             category: categoryMapping[selectedCategory],
+            type: selectedCategory,
             coordinates: {
                 lat: debouncedCoordinates.lat,
                 lng: debouncedCoordinates.lng

@@ -1,137 +1,109 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
+//Called by the CustomTripPages.tsx
+import { useEffect, useState, useRef, useCallback } from 'react';
 import type { TripData, POI } from '@/Types/InterfaceTypes';
 import { CategoryMapper } from '@/components/TripPage/CategoryMapper';
-import { poiCacheService } from '@/components/hooks/poiCacheService';
+import { poiCacheService } from './poiCacheService';
 import ApiClient from '@/Api/apiClient';
 
-export const useTripPreferencesPOIData = (tripData: TripData, user: any) => {
-  const [points, setPoints] = useState<POI[]>([]);
+export const useTripPreferencesPOIData = (
+  tripData: TripData, 
+  user: any,
+  onPOIsUpdate: (pois: POI[]) => void
+) => {
   const [loading, setLoading] = useState(true);
-  const [failedCategories, setFailedCategories] = useState<{
-    food: boolean;
-    attraction: boolean;
-  }>({ food: false, attraction: false });
-
-  const fetchingRef = useRef<{
-    inProgress: boolean;
-    food: boolean;
-    attraction: boolean;
-  }>({
-    inProgress: false,
-    food: false,
-    attraction: false
-  });
-  
-  const retryCount = useRef<{ food: number; attraction: number }>({ food: 0, attraction: 0 });
-  const successfulResults = useRef<{
-    food: POI[];
-    attraction: POI[];
-  }>({ food: [], attraction: [] });
-  const MAX_RETRIES = 3;
-  
-  const apiClient = new ApiClient({
-    getIdToken: async () => {
-      if (!user) throw new Error('Not authenticated');
-      return user.getIdToken();
-    }
-  });
-
-  const fetchCategory = useCallback(async (
-    type: 'food' | 'attraction',
-    categories: string
-  ) => {
-    // Skip if already fetching this category
-    if (fetchingRef.current[type]) return successfulResults.current[type];
-    
-    const cacheKey = `explore_${type}_${tripData.city}_${categories}`;
-    const cachedData = poiCacheService.getValid(cacheKey, tripData.city);
-    
-    if (cachedData) {
-      successfulResults.current[type] = cachedData;
-      return cachedData;
-    }
-
-    try {
-      fetchingRef.current[type] = true;
-      const pois = await apiClient.getExplorePOIs({
-        city: tripData.city,
-        coordinates: tripData.coordinates,
-        category: categories,
-        limit: 30
-      });
-
-      const validPois = pois
-        .filter((poi: POI) => poi.name && poi.coordinates?.lat && poi.coordinates?.lng)
-        .map((poi: POI) => ({
-          ...poi,
-          type: type === 'food' ? 'restaurant' : 'attraction'
-        }));
-
-      poiCacheService.set(cacheKey, validPois, tripData.city);
-      successfulResults.current[type] = validPois;
-      setFailedCategories(prev => ({ ...prev, [type]: false }));
-      retryCount.current[type] = 0;
-      return validPois;
-    } catch (error) {
-      retryCount.current[type]++;
-      if (retryCount.current[type] >= MAX_RETRIES) {
-        setFailedCategories(prev => ({ ...prev, [type]: true }));
-      }
-      return [];
-    } finally {
-      fetchingRef.current[type] = false;
-    }
-  }, [tripData.city, tripData.coordinates, apiClient]);
-
-  const fetchPOIs = useCallback(async () => {
-    if (fetchingRef.current.inProgress) return;
-    
-    try {
-      fetchingRef.current.inProgress = true;
-      setLoading(true);
-
-      const categoryMapper = new CategoryMapper();
-      const { foodCategories, attractionCategories } = 
-        await categoryMapper.getCategoryMappings(tripData);
-
-      const results = await Promise.all([
-        foodCategories ? fetchCategory('food', foodCategories) : Promise.resolve([]),
-        attractionCategories ? fetchCategory('attraction', attractionCategories) : Promise.resolve([])
-      ]);
-
-      const uniquePOIs = Array.from(
-        new Map(results.flat().map(poi => [poi.place_id, poi])).values()
-      );
-      setPoints(uniquePOIs);
-    } finally {
-      fetchingRef.current.inProgress = false;
-      setLoading(false);
-    }
-  }, [tripData, fetchCategory]);
-
-  const retryFailed = useCallback(() => {
-    // Only reset retry counts for failed categories
-    Object.entries(failedCategories).forEach(([category, failed]) => {
-      if (failed) {
-        retryCount.current[category as 'food' | 'attraction'] = 0;
-        successfulResults.current[category as 'food' | 'attraction'] = [];
-      }
-    });
-    fetchPOIs();
-  }, [fetchPOIs, failedCategories]);
+  const [error, setError] = useState(false);
+  const [retryCounter, setRetryCounter] = useState(0);  // Add this
+  const fetchInProgressRef = useRef(false);
+  const previousPOIsRef = useRef<string>('');
 
   useEffect(() => {
-    // Reset everything when tripData changes
-    retryCount.current = { food: 0, attraction: 0 };
-    successfulResults.current = { food: [], attraction: [] };
-    fetchingRef.current = { inProgress: false, food: false, attraction: false };
-    fetchPOIs();
-  }, [tripData, user]);
+    const fetchPOIs = async () => {
+      if (!user || !tripData || fetchInProgressRef.current) return;
 
-  return { 
-    points,
-    loading,
-    failedCategories,
-    retryFailed
-  };
+      try {
+        fetchInProgressRef.current = true;
+        setLoading(true);
+        setError(false);
+
+        const categoryMapper = new CategoryMapper();
+        const { foodCategories, attractionCategories } = 
+          await categoryMapper.getCategoryMappings(tripData);
+
+        let foodPOIs: POI[] = [];
+        let attractionPOIs: POI[] = [];
+        let hasFetchError = false;
+
+        const apiClient = new ApiClient({
+          getIdToken: async () => user.getIdToken()
+        });
+
+        // Food POIs
+        if (foodCategories) {
+          try {
+            foodPOIs = await apiClient.getExplorePOIs({
+              city: tripData.city,
+              coordinates: tripData.coordinates,
+              category: foodCategories,
+              type: 'restaurant',
+              limit: 30
+            });
+          } catch (error) {
+            console.error('Error fetching food POIs:', error);
+            hasFetchError = true;
+          }
+        }
+
+        // Attraction POIs
+        if (attractionCategories) {
+          try {
+            attractionPOIs = await apiClient.getExplorePOIs({
+              city: tripData.city,
+              coordinates: tripData.coordinates,
+              category: attractionCategories,
+              type: 'attraction',
+              limit: 30
+            });
+          } catch (error) {
+            console.error('Error fetching attraction POIs:', error);
+            hasFetchError = true;
+          }
+        }
+
+        if (hasFetchError) {
+          throw new Error('Failed to fetch POIs');
+        }
+
+        const allPOIs = [...foodPOIs, ...attractionPOIs];
+        const poisString = JSON.stringify(allPOIs);
+        
+        if (previousPOIsRef.current !== poisString) {
+          onPOIsUpdate(allPOIs);
+          previousPOIsRef.current = poisString;
+        }
+        setError(false);
+      } catch (error) {
+        console.error('Error fetching POIs:', error);
+        setError(true);
+        onPOIsUpdate([]);
+      } finally {
+        setLoading(false);
+        fetchInProgressRef.current = false;
+      }
+    };
+
+    fetchPOIs();
+  }, [tripData?.city, user?.uid, retryCounter]); // Add retryCounter as dependency
+
+  const retry = useCallback(() => {
+    if (tripData) {
+      poiCacheService.clearCity(tripData.city);
+      fetchInProgressRef.current = false;
+      previousPOIsRef.current = '';
+      setRetryCounter(prev => prev + 1); // Increment retry counter to trigger re-fetch
+      setLoading(true);
+      setError(false);
+    }
+  }, [tripData?.city]);
+
+  return { loading, error, retry };
 };

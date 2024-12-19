@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogFooter, DialogTitle, DialogDescription, DialogHeader } from "@/components/ui/dialog";
 import CitySearch from '../CitySearchBar';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import type { SearchCity, TripData } from '@/Types/InterfaceTypes';
 import type { DateRange } from "react-day-picker";
 import { differenceInDays, addDays } from 'date-fns';
@@ -29,6 +29,7 @@ interface TripCreationCarouselProps {
 export default function TripCreationCarousel({ onComplete, initialData }: TripCreationCarouselProps) {
   //Determine if we have a location set , if not then start from step 0
   const location = useLocation();
+  const navigate = useNavigate();
   const initialStep = location.state?.city ? 1 : 0;
 
   const [api, setApi] = useState<CarouselApi>();
@@ -78,18 +79,31 @@ export default function TripCreationCarousel({ onComplete, initialData }: TripCr
   }, [api, initialStep]);
 
   const handleCitySelect = (city: SearchCity) => {
-    setTripData({...tripData,
-                 city: city.name,
-                 coordinates: {
-                  lat: Number(city.lat),
-                  lng: Number(city.lng)
-                }});
+    setTripData({
+      ...tripData,
+      city: city.name,
+      coordinates: {
+        lat: Number(city.lat),
+        lng: Number(city.lng)
+      }
+    });
     setValidCity(true);
+    // Update location state similar to SearchbarHome
+    navigate(location.pathname, {
+      state: { 
+        city: city.name,
+        lat: Number(city.lat),
+        lng: Number(city.lng),
+        initialized: true 
+      },
+      replace: true
+    });
+
     if (api) {
       setTimeout(() => api.scrollNext(), 300);
     }
   };
-
+  
   const handleDateSelect = (range: DateRange | undefined) => {
     if (!range?.from) return;
 

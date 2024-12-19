@@ -26,21 +26,62 @@ function MapContainer({ isResizing, pois }: MapContainerProps) {
         
         switch (type.toLowerCase()) {
             case 'hotel':
-                el.innerHTML = `<svg class="w-6 h-6 text-gray-800" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
-                                <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 4h12M6 4v16M6 4H5m13 0v16m0-16h1m-1 16H6m12 0h1M6 20H5M9 7h1v1H9V7Zm5 0h1v1h-1V7Zm-5 4h1v1H9v-1Zm5 0h1v1h-1v-1Zm-3 4h2a1 1 0 0 1 1 1v4h-4v-4a1 1 0 0 1 1-1Z"/>
-                                </svg>`;
+                el.innerHTML = `
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="#FF0000" stroke="#333" stroke-width="1.5" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M13.376 24h-2.752l-.282-.248C10 23.455 2 16.38 2 10a10 10 0 0 1 20 0c0 6.38-8 13.455-8.342 13.752z"/>
+                        <path fill="#FFFFFF" d="M18 14H6V7.382l2.255-1.127L9.382 4h5.236l1.127 2.255L18 7.382zM8 12h8V8.618l-1.745-.873L13.382 6h-2.764l-.873 1.745L8 8.618z"/>
+                        <path fill="#FFFFFF" d="M11 9h2v2h-2z"/>
+                    </svg>`;
                 break;
+
             case 'restaurant':
-                el.innerHTML = `<svg class="w-6 h-6 text-blue-800" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 24 24">
-                                <path d="M10 2a8 8 0 1 0 0 16 8 8 0 0 0 0-16Z"/>
-                                <path fill-rule="evenodd" d="M21.707 21.707a1 1 0 0 1-1.414 0l-3.5-3.5a1 1 0 0 1 1.414-1.414l3.5 3.5a1 1 0 0 1 0 1.414Z" clip-rule="evenodd"/>
-                                </svg>`;
+                el.innerHTML = `
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="#FF0000" stroke="#333" stroke-width="1.5" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M13.376 24h-2.752l-.282-.248C10 23.455 2 16.38 2 10a10 10 0 0 1 20 0c0 6.38-8 13.455-8.342 13.752z"/>
+                        <path fill="#FFFFFF" d="M16 12h-2v-1a2 2 0 0 0-4 0v1H8v-1a4 4 0 0 1 8 0z"/>
+                        <path fill="#FFFFFF" d="M7 11h10v2H7zM11 6h2v2h-2z"/>
+                    </svg>`;
                 break;
+
             case 'attraction':
-                el.innerHTML = `<svg class="w-6 h-6 text-red-800" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
-                                <path stroke="currentColor" stroke-linecap="round" stroke-width="2" d="M3 21h18M4 18h16M6 10v8m4-8v8m4-8v8m4-8v8M4 9.5v-.955a1 1 0 0 1 .458-.84l7-4.52a1 1 0 0 1 1.084 0l7 4.52a1 1 0 0 1 .458.84V9.5a.5.5 0 0 1-.5.5h-15a.5.5 0 0 1-.5-.5Z"/>
-                                </svg>`;
+                el.innerHTML = `
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="#FF0000" stroke="#333" stroke-width="1.5" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M13.376 24h-2.752l-.283-.248C10 23.455 2 16.38 2 10a10 10 0 0 1 20 0c0 6.38-8 13.455-8.341 13.752z"/>
+                        <path fill="#FFFFFF" d="M15 12H9V6h6zm-4-2h2V8h-2z"/>
+                        <path fill="#FFFFFF" d="M11 11h2v4h-2z"/>
+                        <path fill="#FFFFFF" d="M9 14h6v2H9z"/>
+                    </svg>`;
                 break;
+
+
+            case 'savedhotel':
+                el.innerHTML = `
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="#FFD700" stroke="#333" stroke-width="1.5" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M13.376 24h-2.752l-.282-.248C10 23.455 2 16.38 2 10a10 10 0 0 1 20 0c0 6.38-8 13.455-8.342 13.752z"/>
+                        <path fill="#FFFFFF" d="M18 14H6V7.382l2.255-1.127L9.382 4h5.236l1.127 2.255L18 7.382zM8 12h8V8.618l-1.745-.873L13.382 6h-2.764l-.873 1.745L8 8.618z"/>
+                        <path fill="#FFFFFF" d="M11 9h2v2h-2z"/>
+                    </svg>`;
+                break;
+            
+            case 'savedrestaurant':
+                el.innerHTML = `
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="#FFD700" stroke="#333" stroke-width="1.5" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M13.376 24h-2.752l-.282-.248C10 23.455 2 16.38 2 10a10 10 0 0 1 20 0c0 6.38-8 13.455-8.342 13.752z"/>
+                        <path fill="#FFFFFF" d="M16 12h-2v-1a2 2 0 0 0-4 0v1H8v-1a4 4 0 0 1 8 0z"/>
+                        <path fill="#FFFFFF" d="M7 11h10v2H7zM11 6h2v2h-2z"/>
+                    </svg>`;
+                break;
+            
+            case 'savedattraction':
+                el.innerHTML = `
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="#FFD700" stroke="#333" stroke-width="1.5" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M13.376 24h-2.752l-.283-.248C10 23.455 2 16.38 2 10a10 10 0 0 1 20 0c0 6.38-8 13.455-8.341 13.752z"/>
+                        <path fill="#FFFFFF" d="M15 12H9V6h6zm-4-2h2V8h-2z"/>
+                        <path fill="#FFFFFF" d="M11 11h2v4h-2z"/>
+                        <path fill="#FFFFFF" d="M9 14h6v2H9z"/>
+                    </svg>`;
+                break;
+
             default:
                 el.innerHTML = `<svg width="24" height="24" viewBox="0 0 24 24" fill="#6b7280">
                                 <circle cx="12" cy="12" r="10" />
@@ -79,7 +120,7 @@ function MapContainer({ isResizing, pois }: MapContainerProps) {
 
         // Add city center marker
         markerRef.current = new mapboxgl.Marker({
-            color: '#FF0000',
+            color: '#2832c2',
             draggable: false
         })
             .setLngLat([coordinates.lng, coordinates.lat])

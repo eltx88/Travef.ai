@@ -34,6 +34,7 @@ const POICard = ({
       });
       onCardClick?.({
         id,
+        place_id: id,
         name,
         address,
         city,
@@ -71,7 +72,7 @@ const POICard = ({
         </div>
         <POISaveButton
           isSaved={isSaved}
-          onSave={() => onSave(id, !isSaved)}  // No need to pass event
+          onSave={() => onSave(id, !isSaved)}
           onUnsave={() => onUnsave(id, !isSaved)}
           name={name}
         />
