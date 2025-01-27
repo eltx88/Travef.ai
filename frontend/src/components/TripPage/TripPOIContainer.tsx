@@ -6,18 +6,21 @@ import TripPOICard from './TripPOICard';
 
 interface TripPOIContainerProps {
   tripData: TripData;
-  points: POI[];
+  pois: POI[]; //passed from customtrippage.tsx
+  savedpois: POI[];
 }
 
 const ITEMS_PER_PAGE = 6;
 
-const TripPOIContainer = ({ tripData, points }: TripPOIContainerProps) => {
+const TripPOIContainer = ({ tripData, pois, savedpois }: TripPOIContainerProps) => {
   const [currentAttractionPage, setCurrentAttractionPage] = useState(0);
   const [currentFoodPage, setCurrentFoodPage] = useState(0);
   const [selectedPOIs, setSelectedPOIs] = useState<Set<string>>(new Set());
 
-  const attractionPOIs = points.filter(poi => poi.type === 'attraction');
-  const foodPOIs = points.filter(poi => poi.type === 'restaurant');
+  const attractionPOIs = pois.filter(poi => poi.type === 'attraction');
+  const foodPOIs = pois.filter(poi => poi.type === 'restaurant');
+  const savedAttractPOIs = savedpois.filter(poi => poi.type === 'attraction');
+  const savedFoodPOIs = savedpois.filter(poi => poi.type === 'restaurant');
 
   const handlePOISelect = (poi: POI) => {
     const newSelected = new Set(selectedPOIs);
@@ -29,10 +32,10 @@ const TripPOIContainer = ({ tripData, points }: TripPOIContainerProps) => {
     setSelectedPOIs(newSelected);
   };
 
+  //TO DO :: work on this function
   const handleSubmit = () => {
-    const selectedPOIsList = points.filter(poi => selectedPOIs.has(poi.place_id));
+    const selectedPOIsList = pois.filter(poi => selectedPOIs.has(poi.place_id));
     console.log('Selected POIs:', selectedPOIsList);
-    // TODO: Navigate to next page with selected POIs
   };
 
   const POIGrid = ({ items, currentPage, category }: { 
@@ -48,12 +51,10 @@ const TripPOIContainer = ({ tripData, points }: TripPOIContainerProps) => {
     const hasNext = currentPage < totalPages - 1;
     const hasPrev = currentPage > 0;
 
+    if (items.length === 0) return null;
+
     return (
-      <div className="relative my-4">
-        <h3 className="text-xl font-semibold mb-4">
-          {category === 'food' ? 'Restaurant suggestions for you' : 'Attractions for you'}
-        </h3>
-        
+      <div className="relative">
         <div className="relative">
           <Button
             onClick={() => setPage(prev => Math.max(0, prev - 1))}
@@ -95,8 +96,8 @@ const TripPOIContainer = ({ tripData, points }: TripPOIContainerProps) => {
   };
 
   return (
-    <div className="h-full w-full bg-white p-6 rounded-lg overflow-y-auto">
-      <div className="sticky top-0 bg-white pt-2 pb-4 border-b z-10">
+    <div className="h-full w-full bg-white rounded-lg overflow-y-auto"> {/* Removed p-6 from here */}
+      <div className="sticky top-0 bg-white px-6 py-4 border-b z-10"> {/* Added px-6 here */}
         <h2 className="text-2xl font-semibold">{tripData.city}</h2>
         {tripData.dateRange && (
           <div className="flex items-center gap-2 text-gray-600 mt-2">
@@ -106,23 +107,55 @@ const TripPOIContainer = ({ tripData, points }: TripPOIContainerProps) => {
             </span>
           </div>
         )}
-      </div>
+    </div>
 
-      <div className="mt-4">
-        <POIGrid 
-          items={attractionPOIs} 
-          currentPage={currentAttractionPage}
-          category="attraction"
-        />
+      <div className="mt-4 px-6">
+        {attractionPOIs.length > 0 && (
+          <div className="mb-8">
+            <h3 className="text-xl font-semibold mb-4">Attractions</h3>
+            <POIGrid 
+              items={attractionPOIs} 
+              currentPage={currentAttractionPage}
+              category="attraction"
+            />
+            {/* Add saved attractions display */}
+            {savedAttractPOIs.length > 0 && (
+              <div className="mt-8">
+                <h4 className="text-lg font-medium mb-4 text-gray-600">Saved Attractions</h4>
+                <POIGrid 
+                  items={savedAttractPOIs} 
+                  currentPage={currentAttractionPage}
+                  category="attraction"
+                />
+              </div>
+            )}
+          </div>
+        )}
         
-        <POIGrid 
-          items={foodPOIs} 
-          currentPage={currentFoodPage}
-          category="food"
-        />
+        {foodPOIs.length > 0 && (
+          <div className="mb-8">
+            <h3 className="text-xl font-semibold mb-4">Restaurants</h3>
+            <POIGrid 
+              items={foodPOIs} 
+              currentPage={currentFoodPage}
+              category="food"
+            />
+          </div>
+        )}
+
+        {savedFoodPOIs.length > 0 && (
+          <div className="mt-8">
+            <h4 className="text-lg font-medium mb-4 text-gray-600">Saved Restaurants</h4>
+            <POIGrid 
+              items={savedFoodPOIs} 
+              currentPage={currentFoodPage}
+              category="food"
+            />
+          </div>
+        )}
       </div>
 
-      <div className="sticky bottom-0 bg-white pt-4 border-t mt-8">
+      <div className="sticky bottom-0 pt-2 mt-8 z-50">
         <Button 
           className="w-full bg-blue-600 hover:bg-blue-700 text-white"
           disabled={selectedPOIs.size === 0}

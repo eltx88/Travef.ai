@@ -5,7 +5,7 @@ import { useLocation } from '@/contexts/LocationContext';
 import type { SearchCity, POI, POIType } from '@/Types/InterfaceTypes';
 import { usePOIData } from '@/components/hooks/usePOIData';
 import searchCitiesData from 'cities.json';
-import POITabs from '@/components/POI/POITabs';
+import POITabs from '@/components/POIpage/POITabs';
 import CitySearch from '../CitySearchBar';
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, Pen } from 'lucide-react';

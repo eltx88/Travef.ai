@@ -63,7 +63,7 @@ class ApiClient {
   
     return response.map((poi: POI) => ({
       ...poi,
-      type: `saved${poi.type}`
+      type: `${poi.type}`
     }));
   }
 

@@ -19,10 +19,18 @@ function CustomTripPageContent() {
   const [isResizing, setIsResizing] = useState(false);
   const [displayedPOIs, setDisplayedPOIs] = useState<POI[]>([]);
   const resizeTimeoutRef = useRef<NodeJS.Timeout>();
+  const [savedPOIs, setSavedPOIs] = useState<POI[]>([]);
 
-  const { loading, error, retry } = useTripPreferencesPOIData(tripData, user, (pois) => {
-    setDisplayedPOIs(pois);
-  });
+  const { loading, error, retry } = useTripPreferencesPOIData(
+    tripData, 
+    user, 
+    (pois) => {
+      setDisplayedPOIs(pois);
+    },
+    (savedPois) => {
+      setSavedPOIs(savedPois);
+    }
+  );
 
   const startResizing = useCallback((mouseDownEvent: React.MouseEvent) => {
     mouseDownEvent.preventDefault();
@@ -78,10 +86,8 @@ function CustomTripPageContent() {
 
   return (
     <main id="main-container" className="flex flex-grow p-4 relative">
-      <div className="relative" style={{ width: `${containerWidth}%` }}>
-        <div className="h-full overflow-y-auto">
-          <TripPOIContainer tripData={tripData} points={displayedPOIs} />
-        </div>
+      <div className="relative" style={{ width: `${containerWidth}%`,height: 'calc(100vh - 140px)', position: 'sticky', top: '1rem'}}>
+          <TripPOIContainer tripData={tripData} pois={displayedPOIs} savedpois={savedPOIs} />
       </div>
 
       <div
@@ -106,7 +112,7 @@ function CustomTripPageContent() {
           transition: isResizing ? 'none' : 'width 0.2s ease-out'
         }}
       >
-        <MapContainer isResizing={isResizing} pois={displayedPOIs} />
+        <MapContainer isResizing={isResizing} pois={displayedPOIs} savedPois={savedPOIs} />
       </div>
     </main>
   );

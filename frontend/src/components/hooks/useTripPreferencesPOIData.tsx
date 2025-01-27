@@ -1,6 +1,6 @@
-//Called by the CustomTripPages.tsx
+//Called by the CustomTripPages.tsx using a callback function which then passes the data to TripPOIContainer.tsx for it to display
 import { useEffect, useState, useRef, useCallback } from 'react';
-import type { TripData, POI } from '@/Types/InterfaceTypes';
+import type { TripData, POI, UserHistoryPoint  } from '@/Types/InterfaceTypes';
 import { CategoryMapper } from '@/components/TripPage/CategoryMapper';
 import { poiCacheService } from './poiCacheService';
 import ApiClient from '@/Api/apiClient';
@@ -8,13 +8,24 @@ import ApiClient from '@/Api/apiClient';
 export const useTripPreferencesPOIData = (
   tripData: TripData, 
   user: any,
-  onPOIsUpdate: (pois: POI[]) => void
+  onPOIsUpdate: (pois: POI[]) => void,
+  onSavedPOIsUpdate: (savedPois: POI[]) => void
+
 ) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
-  const [retryCounter, setRetryCounter] = useState(0);  // Add this
+  const [retryCounter, setRetryCounter] = useState(0);
+  const previousSavedPOIsRef = useRef<string>('');
   const fetchInProgressRef = useRef(false);
   const previousPOIsRef = useRef<string>('');
+
+  //Filter function to remove duplicates
+  const filterUniquePOIs = (explorePOIs: POI[], savedPOIs: POI[]): POI[] => {
+    const savedPlaceIds = new Set(savedPOIs.map(poi => poi.place_id));
+    
+    // Filter out any POIs that exist in saved POIs
+    return explorePOIs.filter(poi => !savedPlaceIds.has(poi.place_id));
+  };
 
   useEffect(() => {
     const fetchPOIs = async () => {
@@ -25,6 +36,34 @@ export const useTripPreferencesPOIData = (
         setLoading(true);
         setError(false);
 
+        const apiClient = new ApiClient({
+                  getIdToken: async () => user.getIdToken()
+                });
+        
+        // First fetch saved POIs
+        let savedPoisData: POI[] = [];
+        try {
+          const savedPoiRefs = await apiClient.getSavedPOIs(tripData.city);          
+          const poiIds = savedPoiRefs.map((poi: UserHistoryPoint) => poi.pointID);
+          
+          if (poiIds.length > 0) {
+            const poisWithDetails = await apiClient.getSavedPOIDetails(poiIds);
+            const savedPoisString = JSON.stringify(poisWithDetails);
+
+            if (previousSavedPOIsRef.current !== savedPoisString) {
+               onSavedPOIsUpdate(poisWithDetails);
+               previousSavedPOIsRef.current = savedPoisString;
+               savedPoisData = poisWithDetails;
+             }
+           } else {
+             onSavedPOIsUpdate([]);
+           }
+         } catch (error) {
+           console.error('Error fetching saved POIs:', error);
+           onSavedPOIsUpdate([]);
+         }
+
+        // Then Fetch Explore POIs(suggestions) based on trip preferences
         const categoryMapper = new CategoryMapper();
         const { foodCategories, attractionCategories } = 
           await categoryMapper.getCategoryMappings(tripData);
@@ -33,36 +72,37 @@ export const useTripPreferencesPOIData = (
         let attractionPOIs: POI[] = [];
         let hasFetchError = false;
 
-        const apiClient = new ApiClient({
-          getIdToken: async () => user.getIdToken()
-        });
-
         // Food POIs
         if (foodCategories) {
           try {
-            foodPOIs = await apiClient.getExplorePOIs({
+            const fetchedFoodPOIs = await apiClient.getExplorePOIs({
               city: tripData.city,
               coordinates: tripData.coordinates,
               category: foodCategories,
               type: 'restaurant',
               limit: 30
             });
+            
+            foodPOIs = filterUniquePOIs(fetchedFoodPOIs, savedPoisData);
+            
           } catch (error) {
             console.error('Error fetching food POIs:', error);
             hasFetchError = true;
           }
         }
 
-        // Attraction POIs
         if (attractionCategories) {
           try {
-            attractionPOIs = await apiClient.getExplorePOIs({
+            const fetchedAttractionPOIs = await apiClient.getExplorePOIs({
               city: tripData.city,
               coordinates: tripData.coordinates,
               category: attractionCategories,
               type: 'attraction',
               limit: 30
             });
+
+            attractionPOIs = filterUniquePOIs(fetchedAttractionPOIs, savedPoisData);
+            
           } catch (error) {
             console.error('Error fetching attraction POIs:', error);
             hasFetchError = true;
@@ -92,7 +132,7 @@ export const useTripPreferencesPOIData = (
     };
 
     fetchPOIs();
-  }, [tripData?.city, user?.uid, retryCounter]); // Add retryCounter as dependency
+  }, [tripData?.city, user?.uid, retryCounter]);
 
   const retry = useCallback(() => {
     if (tripData) {
