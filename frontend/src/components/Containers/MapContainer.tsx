@@ -12,7 +12,7 @@ interface MapContainerProps {
     savedPois: POI[];
 }
 
-function MapContainer({ isResizing, pois }: MapContainerProps) {
+function MapContainer({ isResizing, pois, savedPois }: MapContainerProps) {
     const mapContainer = useRef<HTMLDivElement | null>(null);
     const map = useRef<mapboxgl.Map | null>(null);
     const markerRef = useRef<mapboxgl.Marker | null>(null);
@@ -20,7 +20,7 @@ function MapContainer({ isResizing, pois }: MapContainerProps) {
     const { coordinates } = useLocation();
     const [mapLoaded, setMapLoaded] = useState(false);
 
-    // Memoize createCustomMarker
+    // Regular POI markers (red)
     const createCustomMarker = useCallback((type: string) => {
         const el = document.createElement('div');
         el.className = 'custom-marker';
@@ -54,8 +54,22 @@ function MapContainer({ isResizing, pois }: MapContainerProps) {
                     </svg>`;
                 break;
 
+            default:
+                el.innerHTML = `<svg width="24" height="24" viewBox="0 0 24 24" fill="#6b7280">
+                                <circle cx="12" cy="12" r="10" />
+                                </svg>`;
+        }
+        
+        return el;
+    }, []);
 
-            case 'savedhotel':
+    // Saved POI markers (gold)
+    const createSavedCustomMarker = useCallback((type: string) => {
+        const el = document.createElement('div');
+        el.className = 'custom-marker';
+        
+        switch (type.toLowerCase()) {
+            case 'hotel':
                 el.innerHTML = `
                     <svg width="32" height="32" viewBox="0 0 24 24" fill="#FFD700" stroke="#333" stroke-width="1.5" xmlns="http://www.w3.org/2000/svg">
                         <path d="M13.376 24h-2.752l-.282-.248C10 23.455 2 16.38 2 10a10 10 0 0 1 20 0c0 6.38-8 13.455-8.342 13.752z"/>
@@ -64,7 +78,7 @@ function MapContainer({ isResizing, pois }: MapContainerProps) {
                     </svg>`;
                 break;
             
-            case 'savedrestaurant':
+            case 'restaurant':
                 el.innerHTML = `
                     <svg width="32" height="32" viewBox="0 0 24 24" fill="#FFD700" stroke="#333" stroke-width="1.5" xmlns="http://www.w3.org/2000/svg">
                         <path d="M13.376 24h-2.752l-.282-.248C10 23.455 2 16.38 2 10a10 10 0 0 1 20 0c0 6.38-8 13.455-8.342 13.752z"/>
@@ -73,7 +87,7 @@ function MapContainer({ isResizing, pois }: MapContainerProps) {
                     </svg>`;
                 break;
             
-            case 'savedattraction':
+            case 'attraction':
                 el.innerHTML = `
                     <svg width="32" height="32" viewBox="0 0 24 24" fill="#FFD700" stroke="#333" stroke-width="1.5" xmlns="http://www.w3.org/2000/svg">
                         <path d="M13.376 24h-2.752l-.283-.248C10 23.455 2 16.38 2 10a10 10 0 0 1 20 0c0 6.38-8 13.455-8.341 13.752z"/>
@@ -119,7 +133,6 @@ function MapContainer({ isResizing, pois }: MapContainerProps) {
             'top-right'
         );
 
-        // Add city center marker
         markerRef.current = new mapboxgl.Marker({
             color: '#2832c2',
             draggable: false
@@ -144,8 +157,7 @@ function MapContainer({ isResizing, pois }: MapContainerProps) {
         };
     }, []); 
 
-    // Memoize popup creation
-    const createPopup = useCallback((poi: POI) => {
+    const createPopup = useCallback((poi: POI, isSaved: boolean = false) => {
         return new mapboxgl.Popup({ offset: 25 })
             .setHTML(`
                 <div class="p-2">
@@ -153,6 +165,7 @@ function MapContainer({ isResizing, pois }: MapContainerProps) {
                     <p class="text-sm mt-1">${poi.address}</p>
                     <p class="text-sm text-gray-600 mt-1">${poi.type}</p>
                     ${poi.duration ? `<p class="text-sm mt-1">Duration: ${poi.duration} hours</p>` : ''}
+                    ${isSaved ? '<p class="text-sm text-yellow-600 mt-1">★ Saved</p>' : ''}
                 </div>
             `);
     }, []);
@@ -165,6 +178,7 @@ function MapContainer({ isResizing, pois }: MapContainerProps) {
         markersRef.current.forEach(marker => marker.remove());
         markersRef.current = [];
 
+        // Add regular POI markers
         pois.forEach(poi => {            
             if (poi.coordinates?.lat && poi.coordinates?.lng) {
                 try {
@@ -175,7 +189,6 @@ function MapContainer({ isResizing, pois }: MapContainerProps) {
                         .setLngLat([poi.coordinates.lng, poi.coordinates.lat])
                         .setPopup(createPopup(poi));
                     marker.addTo(map.current!);
-                    // Add click handler to marker element
                     marker.getElement().addEventListener('click', () => {
                         marker.togglePopup();
                     });
@@ -184,11 +197,31 @@ function MapContainer({ isResizing, pois }: MapContainerProps) {
                 } catch (err) {
                     console.error('Error adding marker:', err, poi);
                 }
-            } else {
-                console.warn('Invalid coordinates for POI:', poi.name);
             }
         });
-    }, [pois, mapLoaded, createCustomMarker, createPopup]);
+
+        // Add saved POI markers
+        savedPois.forEach(poi => {            
+            if (poi.coordinates?.lat && poi.coordinates?.lng) {
+                try {
+                    const markerElement = createSavedCustomMarker(poi.type);
+                    const marker = new mapboxgl.Marker({
+                        element: markerElement
+                    })
+                        .setLngLat([poi.coordinates.lng, poi.coordinates.lat])
+                        .setPopup(createPopup(poi, true));
+                    marker.addTo(map.current!);
+                    marker.getElement().addEventListener('click', () => {
+                        marker.togglePopup();
+                    });
+
+                    markersRef.current.push(marker);
+                } catch (err) {
+                    console.error('Error adding saved marker:', err, poi);
+                }
+            }
+        });
+    }, [pois, savedPois, mapLoaded, createCustomMarker, createSavedCustomMarker, createPopup]);
 
     // Update map when coordinates change
     useEffect(() => {

@@ -21,6 +21,7 @@ export interface POI {
   description?: string; 
   categories?: string[];
   wikidata_id?: string;
+  image_url?: string;
   website?: string;
   phone?: string;
   email?: string;
@@ -60,4 +61,21 @@ export interface TripData {
   customInterests: Set<string>;
   foodPreferences: Set<string>;
   customFoodPreferences: Set<string>;
+}
+
+export interface WikidataImageResponse {
+  wikidata_id: string;
+  image_url: string | null;
+}
+
+export interface ExploreParams {
+  city: string;
+  category?: string;
+  type?: string;
+  coordinates: { 
+    lat: number; 
+    lng: number;
+  };
+  offset?: number;
+  limit?: number;
 }

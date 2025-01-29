@@ -1,4 +1,4 @@
-//Used by usePOIData.tsx
+//Called by usePOIData and useTripPreferencesPOIData to cache POI data
 import type { POI, POIType } from '@/Types/InterfaceTypes';
 
 const CACHE_EXPIRY = 10 * 60 * 1000; // 10 minutes
@@ -27,7 +27,8 @@ export const poiCacheService = {
   clearCity: (city: string) => {
     try {
       Object.keys(localStorage).forEach(key => {
-        if (key.startsWith(`${CACHE_PREFIX}_`) && key.includes(city)) {
+        if (key.startsWith(`${CACHE_PREFIX}_`) && 
+            (key.includes(city) || key.includes(`trip_`))) {
           localStorage.removeItem(key);
         }
       });
@@ -44,26 +45,28 @@ export const poiCacheService = {
 
   getValid: (key: string, currentCity: string): POI[] | null => {
     try {
-        const cached = localStorage.getItem(`${CACHE_PREFIX}_${key}`);
-        if (!cached) return null;
+      const cached = localStorage.getItem(`${CACHE_PREFIX}_${key}`);
+      if (!cached) return null;
 
-        const cacheData: CacheData = JSON.parse(cached);
-        
-        if (Date.now() - cacheData.timestamp > CACHE_EXPIRY || 
-            cacheData.city !== currentCity) {
-            localStorage.removeItem(`${CACHE_PREFIX}_${key}`);
-            return null;
-        }
-        
-        return cacheData.data;
-    } catch (error) {
-        console.error('Cache retrieval error:', error);
+      const cacheData: CacheData = JSON.parse(cached);
+      
+      if (Date.now() - cacheData.timestamp > CACHE_EXPIRY || 
+          cacheData.city !== currentCity) {
+        localStorage.removeItem(`${CACHE_PREFIX}_${key}`);
         return null;
+      }
+      
+      return cacheData.data;
+    } catch (error) {
+      console.error('Cache retrieval error:', error);
+      return null;
     }
-},
+  },
 
   generateKey: {
     saved: (city: string) => `saved_${city}`,
-    explore: (category: POIType, city: string) => `explore_${category}_${city}`
+    explore: (category: POIType, city: string) => `explore_${category}_${city}`,
+    trip: (type: 'food' | 'attraction', city: string, preferences: string[]) => 
+      `trip_${type}_${city}_${preferences.sort().join('_')}`
   }
 };

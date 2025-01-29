@@ -1,9 +1,12 @@
+//Called from CreateTripPage.tsx
 import { useState } from 'react';
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Calendar, CalendarClock, PenLine } from "lucide-react";
 import type { TripData } from '@/Types/InterfaceTypes';
+import { useLocation } from '@/contexts/LocationContext';
+
 interface TripDetailsProps {
   tripData: TripData;
   onEdit?: () => void;
@@ -12,14 +15,26 @@ interface TripDetailsProps {
 export function TripDetails({ tripData, onEdit }: TripDetailsProps) {
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
-
+  const { updateLocation } = useLocation();
   const handleSave = async () => {
     setIsLoading(true);
     try {
+      updateLocation(
+        tripData.city,
+        tripData.coordinates.lng,
+        tripData.coordinates.lat
+      );
+
       console.log('Trip:', tripData);
       navigate('/custom-trip', { 
-        state: { tripData },
-        replace: true 
+        state: { 
+          tripData,
+          city: tripData.city,
+          lat: tripData.coordinates.lat,
+          lng: tripData.coordinates.lng,
+          initialized: true
+        },
+        replace: true
       });
       setIsLoading(false);
     } catch (error) {

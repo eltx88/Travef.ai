@@ -4,6 +4,7 @@ import { useState } from 'react';
 import TripCreationCarousel from '@/components/TripPage/TripCreationCarousel';
 import { TripDetails } from '@/components/TripPage/TripDetails';
 import type { TripData } from '@/Types/InterfaceTypes';
+import { LocationProvider } from '@/contexts/LocationContext';
 
 function CreateTripPage() {
   const [tripData, setTripData] = useState<TripData | null>(null);
@@ -11,7 +12,6 @@ function CreateTripPage() {
   const handleTripCreationComplete = (data: TripData) => {
     setTripData(data);
     setIsEditing(false);
-    // Here you can also make API calls to save the trip
   };
 
   const handleEdit = () => {
@@ -19,6 +19,7 @@ function CreateTripPage() {
   };
 
   return (
+    <LocationProvider>
     <div className="flex flex-col min-h-screen bg-gray-100">
       <NavigationMenuBar />
       
@@ -47,6 +48,7 @@ function CreateTripPage() {
         </div>
       </footer>
     </div>
+    </LocationProvider>
   );
 }
 
