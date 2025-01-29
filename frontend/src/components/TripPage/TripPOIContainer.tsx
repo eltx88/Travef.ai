@@ -133,8 +133,25 @@ const TripPOIContainer = ({ tripData, pois, savedpois }: TripPOIContainerProps) 
   const handleSubmit = () => {
     const allPOIs = [...pois, ...savedpois];
     const selectedPOIsList = allPOIs.filter(poi => selectedPOIs.has(poi.place_id));
-    console.log('Selected POIs:', selectedPOIs);
-    console.log('Selected POIs:', selectedPOIsList);
+  //TO DO :: ADD GPT API CALL HERE TO GENERATE ITINERARY AND NAVIGATE USING selectedPOIsList
+  };
+
+  //Select All Saved POI button logic
+  const getSavedPOIIds = (pois: POI[]): Set<string> => {
+    return new Set(pois.map(poi => poi.place_id));
+  };
+  
+  const handleSelectAllSavedCategory = (categoryPOIs: POI[]) => {
+  const categoryIds = getSavedPOIIds(categoryPOIs);
+  const areAllSelected = [...categoryIds].every(id => selectedPOIs.has(id));
+    
+  const newSelected = new Set(selectedPOIs);
+    if (areAllSelected) {
+      categoryIds.forEach(id => newSelected.delete(id));
+    } else {
+      categoryIds.forEach(id => newSelected.add(id));
+    }
+    setSelectedPOIs(newSelected);
   };
 
   return (
@@ -169,8 +186,26 @@ const TripPOIContainer = ({ tripData, pois, savedpois }: TripPOIContainerProps) 
 
         {/* Saved Attractions */}
         {savedAttractPOIs.length > 0 && (
-          <div className="mt-8">
-            <h4 className="text-lg font-medium mb-4 text-gray-600">Saved Attractions</h4>
+          <div className="mt-4">
+            <div className="inline-flex items-center gap-3 mb-6">
+              <h4 className="text-lg font-medium text-gray-600">Saved Attractions</h4>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleSelectAllSavedCategory(savedAttractPOIs)}
+                className={`
+                  transition-colors duration-200 h-8
+                  ${[...getSavedPOIIds(savedAttractPOIs)].every(id => selectedPOIs.has(id))
+                    ? 'border-red-500 text-red-600 hover:bg-red-50'
+                    : 'border-blue-500 text-blue-600 hover:bg-blue-50'
+                  }
+                `}
+              >
+                {[...getSavedPOIIds(savedAttractPOIs)].every(id => selectedPOIs.has(id))
+                  ? "Unselect All"
+                  : "Select All"}
+              </Button>
+            </div>
             <POIGrid 
               items={savedAttractPOIs} 
               currentPage={currentSavedAttractionPage}
@@ -201,7 +236,25 @@ const TripPOIContainer = ({ tripData, pois, savedpois }: TripPOIContainerProps) 
         {/* Saved Restaurants */}  
         {savedFoodPOIs.length > 0 && (
           <div className="mt-8">
-            <h4 className="text-lg font-medium mb-4 text-gray-600">Saved Restaurants</h4>
+          <div className="inline-flex items-center gap-3 mb-6">
+            <h4 className="text-lg font-medium text-gray-600">Saved Restaurants</h4>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleSelectAllSavedCategory(savedFoodPOIs)}
+              className={`
+                transition-colors duration-200 h-8
+                ${[...getSavedPOIIds(savedFoodPOIs)].every(id => selectedPOIs.has(id))
+                  ? 'border-red-500 text-red-600 hover:bg-red-50'
+                  : 'border-blue-500 text-blue-600 hover:bg-blue-50'
+                }
+              `}
+            >
+              {[...getSavedPOIIds(savedFoodPOIs)].every(id => selectedPOIs.has(id))
+                ? "Unselect All"
+                : "Select All"}
+            </Button>
+          </div>
             <POIGrid 
               items={savedFoodPOIs} 
               currentPage={currentSavedFoodPage}
