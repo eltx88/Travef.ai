@@ -1,5 +1,5 @@
 import { NavigationMenuBar } from "@/components/NavigationMenuBar";
-import POIContainer from "@/components/Containers/POIContainer";
+import POIContainer from "@/components/POIpage/POIContainer";
 import MapContainer from "@/components/Containers/MapContainer";
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { LocationProvider } from '@/contexts/LocationContext';
@@ -97,6 +97,7 @@ function PointOfInterest() {
         <MapContainer 
             isResizing={isResizing} 
             pois={displayedPOIs}
+            savedPois={[]}
         />
     ), [isResizing, displayedPOIs, handleMapCreate]);
 

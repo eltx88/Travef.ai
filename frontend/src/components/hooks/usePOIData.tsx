@@ -1,3 +1,4 @@
+//Used by POIContainer to return saved and explore POIs
 import { useState, useEffect, useCallback, useRef } from 'react';
 import type { POI, POIType, UserHistoryPoint } from '@/Types/InterfaceTypes';
 import { useLocation } from '@/contexts/LocationContext';
@@ -128,6 +129,7 @@ export const usePOIData = (user: any, currentCity: string): POIDataHookReturn =>
         const pois = await apiClient.getExplorePOIs({
             city: currentCity,
             category: categoryMapping[selectedCategory],
+            type: selectedCategory,
             coordinates: {
                 lat: debouncedCoordinates.lat,
                 lng: debouncedCoordinates.lng
@@ -170,7 +172,6 @@ const fetchSavedPOIs = useCallback(async (): Promise<POI[]> => {
   try {
     const savedPoiRefs = await apiClient.getSavedPOIs(currentCity);
     const poiIds = savedPoiRefs.map((poi: UserHistoryPoint) => poi.pointID);
-    console.log('Fetching saved refs:', savedPoiRefs); // Debug log
     if (poiIds.length === 0) {
       setSavedPois([]);
       setSavedPoiIds(new Set());

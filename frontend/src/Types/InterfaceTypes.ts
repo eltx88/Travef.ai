@@ -1,3 +1,4 @@
+//Used by POI Card
 export type POIType = "attraction" | "restaurant" | "hotel" ;
 
 export interface Coordinates {
@@ -5,9 +6,10 @@ export interface Coordinates {
     lng: number;
 }
 
+
 export interface POI {
   id: string;
-  place_id?: string;
+  place_id: string;
   name: string;
   coordinates: Coordinates;
   address: string;
@@ -15,12 +17,15 @@ export interface POI {
   country?: string;
   duration?: number;
   type: POIType;
+  cuisine?: string[]; 
+  description?: string; 
   categories?: string[];
   wikidata_id?: string;
+  image_url?: string;
   website?: string;
   phone?: string;
   email?: string;
-  opening_hours?: Record<string, string>;
+  opening_hours?: string; 
   tags?: string[];
   price_level?: number;
   rating?: number;
@@ -34,11 +39,43 @@ export interface UserHistoryPoint {
   CreatedDT: Date;
   Status: boolean;
 }
+
+//Used for City Search Bar
 export interface SearchCity {
   name: string;
   country: string;
   lat: string;
   lng: string;
-  admin1: string;
-  admin2: string;
+}
+
+//Used to store data for Trip Creation after carousel submission
+export interface TripData {
+  city: string;
+  coordinates: Coordinates;
+  dateRange: {
+    from: Date | undefined;
+    to: Date | undefined;
+  } | null;
+  monthlyDays: number;
+  interests: Set<string>;
+  customInterests: Set<string>;
+  foodPreferences: Set<string>;
+  customFoodPreferences: Set<string>;
+}
+
+export interface WikidataImageResponse {
+  wikidata_id: string;
+  image_url: string | null;
+}
+
+export interface ExploreParams {
+  city: string;
+  category?: string;
+  type?: string;
+  coordinates: { 
+    lat: number; 
+    lng: number;
+  };
+  offset?: number;
+  limit?: number;
 }

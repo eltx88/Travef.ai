@@ -1,9 +1,12 @@
+//Search bar function used in both Homepage and POI page to search for cities
 import React, { useState, useRef, useEffect } from 'react';
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Search } from "lucide-react";
-import searchCitiesData from 'cities.json';
 import { SearchCity } from "@/Types/InterfaceTypes";
+import cities from 'cities.json';
+
+const citiesData: SearchCity[] = cities as SearchCity[];
 
 interface CitySearchProps {
     initialValue: string;
@@ -13,8 +16,6 @@ interface CitySearchProps {
     showButton?: boolean;
     autoFocus?: boolean;
 }
-
-const citiesData: SearchCity[] = searchCitiesData as SearchCity[];
 
 const CitySearch: React.FC<CitySearchProps> = ({
     initialValue,
@@ -53,24 +54,45 @@ const CitySearch: React.FC<CitySearchProps> = ({
             'DE': 'Germany',
             'IT': 'Italy',
             'ES': 'Spain',
-            // Add more country codes and names as needed
+            'CA': 'Canada',
+            'AU': 'Australia',
+            'NZ': 'New Zealand',
+            'JP': 'Japan',
+            'CN': 'China',
+            'KR': 'South Korea',
+            'NL': 'Netherlands',
         };
         return countryNames[countryCode] || countryCode;
     };
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
         const value = e.target.value;
-        setSearchQuery(value);
+    setSearchQuery(value);
+    
+    if (value.length > 0) {
+        const filteredCities = citiesData
+            .filter((city) => 
+                city.name.toLowerCase().includes(value.toLowerCase())
+            )
+            .sort((a, b) => {
+                // Exact matches first
+                const aExact = a.name.toLowerCase() === value.toLowerCase();
+                const bExact = b.name.toLowerCase() === value.toLowerCase();
+                if (aExact && !bExact) return -1;
+                if (!aExact && bExact) return 1;
+                
+                // Starts with the search term next
+                const aStarts = a.name.toLowerCase().startsWith(value.toLowerCase());
+                const bStarts = b.name.toLowerCase().startsWith(value.toLowerCase());
+                if (aStarts && !bStarts) return -1;
+                if (!aStarts && bStarts) return 1;
+                
+                return a.name.localeCompare(b.name);
+            })
+            .slice(0, 5);
         
-        if (value.length > 0) {
-            const filteredCities = citiesData
-                .filter((city: SearchCity) => 
-                    city.name.toLowerCase().includes(value.toLowerCase())
-                )
-                .slice(0, 5);
-            
-            setSuggestions(filteredCities);
-            setShowSuggestions(true);
+        setSuggestions(filteredCities);
+        setShowSuggestions(true);
         } else {
             setSuggestions([]);
             setShowSuggestions(false);
@@ -80,6 +102,7 @@ const CitySearch: React.FC<CitySearchProps> = ({
     const handleCitySelect = (city: SearchCity): void => {
         setSearchQuery(city.name);
         setShowSuggestions(false);
+        onSubmit(city);
     };
 
     const handleSubmit = (): void => {

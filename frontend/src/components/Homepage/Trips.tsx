@@ -1,4 +1,4 @@
-import {useState, FC, useEffect} from "react";
+import {useState, FC} from "react";
 import { Select,
   SelectTrigger,
   SelectContent,
@@ -8,6 +8,7 @@ import { Select,
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useNavigate } from 'react-router-dom';
 
 interface Itinerary {
     id: number;
@@ -23,6 +24,7 @@ export const Itineraries: FC = () => {
     const [itineraries, setItineraries] = useState<Itinerary[]>([]);
     const [filterOption, setFilterOption] = useState<FilterOption>('date');
     const [scrollPosition, setScrollPosition] = useState(0);
+    const navigate = useNavigate();
 
     // Function to handle scrolling
     const scroll = (direction: 'left' | 'right') => {
@@ -41,21 +43,8 @@ export const Itineraries: FC = () => {
         }
     };
 
-    // useEffect(() => {
-    //     fetch('/api/itineraries')
-    //         .then((response) => response.json())
-    //         .then((data) => setItineraries(data));
-    // }, []);
-
     const addItinerary = (): void => {
-        const newItinerary: Itinerary = {
-            id: Date.now(),
-            image: '',
-            country: 'America',
-            days: 5,
-            date: new Date().toISOString().split('T')[0],
-        };
-        setItineraries([...itineraries, newItinerary]);
+        navigate('/createtrip');
     };
 
     const sortItineraries = (itineraries: Itinerary[]): Itinerary[] => {

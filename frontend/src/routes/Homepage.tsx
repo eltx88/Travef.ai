@@ -1,13 +1,13 @@
 import { NavigationMenuBar } from "@/components/NavigationMenuBar";
-import SearchFunction from "@/components/SearchFunction";
-import Itineraries from "@/components/Trips";
+import Searchbar from "@/components/Homepage/SearchbarHomepage";
+import Itineraries from "@/components/Homepage/Trips";
 function HomePage() {
   return (
     <div className="flex flex-col min-h-screen bg-gray-100">
       <NavigationMenuBar />
       
       <main className="top-60 flex flex-grow flex-col items-center justify-start relative p-4">
-          <SearchFunction />
+          <Searchbar />
           <div className="w-full mt-24">
             <Itineraries />
           </div>

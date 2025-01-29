@@ -14,6 +14,10 @@ async def get_places(
         "accommodation",
         description="Category of places. Options: accommodation, catering, tourism, entertainment"
     ),
+    type: str = Query(
+        "hotel",
+        description="Type of places. Options: hotel, attraction, restaurant"
+    ),                                                                                                  
     radius: int = Query(
         5000,
         ge=0,
@@ -42,6 +46,7 @@ async def get_places(
             lat=latitude,
             lng=longitude,
             category=category,
+            type=type,
             radius=radius,
             limit=limit
         )

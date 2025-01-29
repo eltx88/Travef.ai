@@ -82,7 +82,12 @@ export function NavigationMenuBar() {
                         </NavigationMenuItem>
 
                         <NavigationMenuItem>
-                            <NavigationMenuTrigger className="text-lg">Plan</NavigationMenuTrigger>
+                            <NavigationMenuTrigger 
+                                className="text-lg cursor-pointer"
+                                onClick={() => navigate('/createtrip')}
+                            >
+                                Plan  
+                            </NavigationMenuTrigger>
                             <NavigationMenuContent>
                                 <NavigationMenuLink>
                                 </NavigationMenuLink>

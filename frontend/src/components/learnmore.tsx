@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { X } from 'lucide-react';
 
-const DiagramPopup = () => (
+const LearnMore = () => (
   <Dialog>
     <DialogTrigger asChild>
       <Button className="bg-blue-600 hover:bg-blue-700 text-white text-lg px-8 py-2 mt-1 mb-40">
@@ -42,4 +42,4 @@ const DiagramPopup = () => (
   </Dialog>
 );
 
-export default DiagramPopup;
+export default LearnMore;

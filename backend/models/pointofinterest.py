@@ -35,18 +35,17 @@ class PointOfInterestResponse(BaseModel):
     city: str
     country: Optional[str] = None
     duration: Optional[int] = None
-    type: str
+    type: Optional[str] = None
     categories: Optional[List[str]] = []
+    cuisine: Optional[List[str]] = None
+    description: Optional[str] = None    
     wikidata_id: Optional[str] = None
     images: Optional[ImageMetadata] = None
     website: Optional[str] = None
     phone: Optional[str] = None
     email: Optional[str] = None
-    opening_hours: Optional[Dict[str, str]] = None
-    tags: Optional[List[str]] = []
-    price_level: Optional[int] = None
+    opening_hours: Optional[str] = None 
     rating: Optional[float] = None
-    accessibility_features: Optional[List[str]] = []
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
 
