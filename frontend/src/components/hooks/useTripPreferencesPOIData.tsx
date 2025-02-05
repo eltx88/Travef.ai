@@ -3,7 +3,7 @@ import { useEffect, useState, useRef, useCallback } from 'react';
 import type { TripData, POI, UserHistoryPoint } from '@/Types/InterfaceTypes';
 import { CategoryMapper } from '@/components/TripPage/CategoryMapper';
 import { poiCacheService } from './poiCacheService';
-import ApiClient from '@/Api/apiClient';
+import ApiClient from '@/Api/ApiClient';
 
 // Helper function to generate a unique cache key for trip preferences
 const generateTripPreferenceCacheKey = (tripData: TripData, type: 'food' | 'attraction') => {

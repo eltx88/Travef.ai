@@ -6,7 +6,6 @@ export interface Coordinates {
     lng: number;
 }
 
-
 export interface POI {
   id: string;
   place_id: string;
@@ -51,10 +50,11 @@ export interface SearchCity {
 //Used to store data for Trip Creation after carousel submission
 export interface TripData {
   city: string;
+  country: string;
   coordinates: Coordinates;
   dateRange: {
-    from: Date | undefined;
-    to: Date | undefined;
+    from: Date;
+    to: Date;
   } | null;
   monthlyDays: number;
   interests: Set<string>;
@@ -78,4 +78,15 @@ export interface ExploreParams {
   };
   offset?: number;
   limit?: number;
+}
+
+export interface ChatMessage {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+}
+
+export interface ChatRequest {
+  messages: ChatMessage[];
+  model?: string;
+  stream?: boolean;
 }

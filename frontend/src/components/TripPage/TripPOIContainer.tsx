@@ -1,13 +1,19 @@
+//Used in CustomTripPage.tsx
 import { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Calendar, ChevronLeft, ChevronRight } from "lucide-react";
 import type { POI, TripData } from '@/Types/InterfaceTypes';
 import TripPOICard from './TripPOICard';
+import { useNavigate } from 'react-router-dom';
+import { TripGenerationService } from './TripGenerationService';
+import { useAuthStore } from '@/firebase/firebase';
+import ApiClient from '@/Api/ApiClient';
 
 interface TripPOIContainerProps {
   tripData: TripData;
   pois: POI[];
   savedpois: POI[];
+  setIsGenerating: (loading: boolean) => void;
 }
 
 const ITEMS_PER_PAGE = 6;
@@ -107,7 +113,7 @@ const POIGrid = ({
   );
 };
 
-const TripPOIContainer = ({ tripData, pois, savedpois }: TripPOIContainerProps) => {
+const TripPOIContainer = ({ tripData, pois, savedpois, setIsGenerating }: TripPOIContainerProps) => {
   // Separate page states for explore and saved POIs
   const [currentExploreAttractionPage, setCurrentExploreAttractionPage] = useState(0);
   const [currentExploreFoodPage, setCurrentExploreFoodPage] = useState(0);
@@ -119,8 +125,9 @@ const TripPOIContainer = ({ tripData, pois, savedpois }: TripPOIContainerProps) 
   const foodPOIs = pois.filter(poi => poi.type === 'restaurant');
   const savedAttractPOIs = savedpois.filter(poi => poi.type === 'attraction');
   const savedFoodPOIs = savedpois.filter(poi => poi.type === 'restaurant');
+  const { user } = useAuthStore();
 
-  const handlePOISelect = (poi: POI) => {
+    const handlePOISelect = (poi: POI) => {
     const newSelected = new Set(selectedPOIs);
     if (newSelected.has(poi.place_id)) {
       newSelected.delete(poi.place_id);
@@ -130,11 +137,62 @@ const TripPOIContainer = ({ tripData, pois, savedpois }: TripPOIContainerProps) 
     setSelectedPOIs(newSelected);
   };
 
-  const handleSubmit = () => {
-    const allPOIs = [...pois, ...savedpois];
-    const selectedPOIsList = allPOIs.filter(poi => selectedPOIs.has(poi.place_id));
-  //TO DO :: ADD GPT API CALL HERE TO GENERATE ITINERARY AND NAVIGATE USING selectedPOIsList
-  };
+  //Navigate to edit page after submitting
+  const navigate = useNavigate();
+  const handleSubmit = async () => {
+    if (!user) return;
+
+    const allFoodPOIs = [...foodPOIs, ...savedFoodPOIs];
+    const allAttractionPOIs = [...attractionPOIs, ...savedAttractPOIs];
+    const shortenedFoodPOIs = allFoodPOIs
+    .filter(poi => selectedPOIs.has(poi.place_id))
+    .map(poi => ({
+      place_id: poi.place_id,
+      name: poi.name,
+      type: poi.type,
+      coordinates: {
+        lat: poi.coordinates.lat,
+        lng: poi.coordinates.lng
+      }
+    }));
+
+  const shortenedAttractionPOIs = allAttractionPOIs
+    .filter(poi => selectedPOIs.has(poi.place_id))
+    .map(poi => ({
+      place_id: poi.place_id,
+      name: poi.name,
+      type: poi.type,
+      coordinates: {
+        lat: poi.coordinates.lat,
+        lng: poi.coordinates.lng
+      }
+    }));
+
+    setIsGenerating(true);
+    try {
+      const apiClient = new ApiClient({
+        getIdToken: async () => user.getIdToken()
+      });
+      
+      const generationService = new TripGenerationService(apiClient);
+      const generatedTrip = await generationService.generateTrip(tripData, shortenedAttractionPOIs,shortenedFoodPOIs,);
+      //TODO generatedTrip has new suggested places, may want to call api here to match suggested to places api then only go to the new page
+      navigate('/edit-trip', {
+        state: {
+          attractionPOIs : allAttractionPOIs,
+          foodPOIs : allFoodPOIs,
+          tripData: tripData,
+          generatedItinerary: generatedTrip.itinerary,
+          isNewTrip: true
+        }
+      }
+    );
+    } catch (error) {
+      console.error('Failed to generate trip:', error);
+    } finally {
+      setIsGenerating(false);
+    }
+};
 
   //Select All Saved POI button logic
   const getSavedPOIIds = (pois: POI[]): Set<string> => {
@@ -269,13 +327,13 @@ const TripPOIContainer = ({ tripData, pois, savedpois }: TripPOIContainerProps) 
       </div>
 
       <div className="sticky bottom-0 pt-2 mt-8 z-50">
-        <Button 
-          className="w-full bg-blue-600 hover:bg-blue-700 text-white"
-          disabled={selectedPOIs.size === 0}
-          onClick={handleSubmit}
-        >
-          Create Itinerary with Selected Places ({selectedPOIs.size})
-        </Button>
+      <Button 
+        className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+        disabled={selectedPOIs.size < 3}
+        onClick={handleSubmit}
+      >
+        {selectedPOIs.size < 3 ? 'Select at least 3 places' : `Create Itinerary with Selected Places (${selectedPOIs.size})`}
+      </Button>
       </div>
     </div>
   );

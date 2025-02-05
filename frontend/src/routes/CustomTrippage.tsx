@@ -5,18 +5,29 @@ import { useTripPreferencesPOIData } from '@/components/hooks/useTripPreferences
 import type { TripData } from '@/Types/InterfaceTypes';
 import RetryButtonServerFail from "@/components/RetryButtonServerFail";
 import LoadingGlobe from "@/components/LoadingGlobe";
+import LoadingOverlay from "@/components/LoadingOverlay";
 import { useAuthStore } from "@/firebase/firebase";
 import TripPOIContainer from "@/components/TripPage/TripPOIContainer";
 import MapContainer from "@/components/Containers/MapContainer";
-import { LocationProvider, useLocation as useLocationContext } from '@/contexts/LocationContext';
-import {POI} from '@/Types/InterfaceTypes';
+import { LocationProvider } from '@/contexts/LocationContext';
+import { useNavigate } from 'react-router-dom';
+import { POI } from '@/Types/InterfaceTypes';
 
 function CustomTripPageContent() {
+  const navigate = useNavigate();
   const location = useLocation();
+  if (!location.state) {
+    useEffect(() => {
+      navigate('/home');
+    }, [navigate]);
+    return null;
+  }
+
   const tripData = location.state?.tripData as TripData;
   const { user } = useAuthStore();
   const [containerWidth, setContainerWidth] = useState(40);
   const [isResizing, setIsResizing] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
   const [displayedPOIs, setDisplayedPOIs] = useState<POI[]>([]);
   const resizeTimeoutRef = useRef<NodeJS.Timeout>();
   const [savedPOIs, setSavedPOIs] = useState<POI[]>([]);
@@ -86,8 +97,13 @@ function CustomTripPageContent() {
 
   return (
     <main id="main-container" className="flex flex-grow p-4 relative">
-      <div className="relative" style={{ width: `${containerWidth}%`,height: 'calc(100vh - 140px)', position: 'sticky', top: '1rem'}}>
-          <TripPOIContainer tripData={tripData} pois={displayedPOIs} savedpois={savedPOIs} />
+      <div className="relative" style={{ width: `${containerWidth}%`, height: 'calc(100vh - 140px)', position: 'sticky', top: '1rem'}}>
+        <TripPOIContainer 
+          tripData={tripData} 
+          pois={displayedPOIs} 
+          savedpois={savedPOIs} 
+          setIsGenerating={setIsGenerating}
+        />
       </div>
 
       <div
@@ -114,9 +130,11 @@ function CustomTripPageContent() {
       >
         <MapContainer isResizing={isResizing} pois={displayedPOIs} savedPois={savedPOIs} />
       </div>
+      {isGenerating && <LoadingOverlay />}
     </main>
   );
 }
+
 function CustomTripPage() {
   return (
     <LocationProvider>

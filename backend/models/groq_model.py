@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import List
+from typing import List, Optional
 from enum import Enum
 
 # "user": Messages from the human/end-user
@@ -16,9 +16,11 @@ class ChatMessage(BaseModel):
 
 class ChatRequest(BaseModel):
     messages: List[ChatMessage]
-    model: str = "llama3-8b-8192"
+    model: str = "llama-3.3-70b-versatile"
     stream: bool = False
 
 class ChatResponse(BaseModel):
     content: str
-    role: str = MessageRole.ASSISTANT
+    role: MessageRole = MessageRole.ASSISTANT
+    model: Optional[str] = None
+

@@ -1,20 +1,18 @@
-from groq import Groq
-import os
-from fastapi import HTTPException
-from models.groq_model import ChatRequest, ChatResponse, MessageRole
-import logging
-from .firebase_service import FirebaseService
-from typing import Generator, Union
-from sse_starlette.sse import ServerSentEvent
-import json
 import asyncio
+import os
+import json
+import logging
+from groq import Groq
+from fastapi import HTTPException
+from sse_starlette.sse import ServerSentEvent
+from typing import Generator, Union
+from models.groq_model import ChatRequest, ChatResponse, MessageRole
 
-class GroqService(FirebaseService):
+logger = logging.getLogger(__name__)
+
+class GroqService:
     def __init__(self):
-        super().__init__()
-        self.client = Groq(
-            api_key=os.environ.get("GROQ_API_KEY")
-        )
+        self.client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
 
     async def create_chat_completion(
         self, 
@@ -22,10 +20,7 @@ class GroqService(FirebaseService):
     ) -> Union[ChatResponse, Generator[ServerSentEvent, None, None]]:
         try:
             chat_completion = self.client.chat.completions.create(
-                messages=[{
-                    "role": msg.role,
-                    "content": msg.content
-                } for msg in request.messages],
+                messages=[{"role": msg.role, "content": msg.content} for msg in request.messages],
                 model=request.model,
                 stream=request.stream
             )
@@ -42,9 +37,9 @@ class GroqService(FirebaseService):
                                     }),
                                     event="message"
                                 )
-                            await asyncio.sleep(0)  # Allow other tasks to run
+                            await asyncio.sleep(0)
                     except Exception as e:
-                        logging.error(f"Streaming error: {str(e)}")
+                        logger.error(f"Streaming error: {str(e)}", exc_info=True)
                         yield ServerSentEvent(
                             data=json.dumps({"error": str(e)}),
                             event="error"
@@ -54,12 +49,15 @@ class GroqService(FirebaseService):
                 
                 return generate_events()
             else:
+                response_content = chat_completion.choices[0].message.content
+                logger.info(f"Groq API response: {response_content}")
                 return ChatResponse(
-                    content=chat_completion.choices[0].message.content,
-                    role=MessageRole.ASSISTANT
+                    content=response_content,
+                    role=MessageRole.ASSISTANT,
+                    model=request.model
                 )
         except Exception as e:
-            logging.error(f"Error processing chat completion: {str(e)}")
+            logger.error(f"Error processing chat completion: {str(e)}", exc_info=True)
             raise HTTPException(
                 status_code=500,
                 detail=f"Error processing chat completion: {str(e)}"
