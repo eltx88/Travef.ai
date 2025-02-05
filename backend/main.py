@@ -8,6 +8,8 @@ from routes.geoapify_route import router as geoapify_router
 from config.firebase_init import initialize_firebase
 from routes.groq_route import router as groq_router
 from routes.wikidata_route import router as wikidata_router
+from routes.tripgeneration_route import router as trip_router
+
 
 # Initialize Firebase Admin
 initialize_firebase()
@@ -35,7 +37,8 @@ app.include_router(poi_router)
 app.include_router(userhistory_router)
 app.include_router(geoapify_router)
 app.include_router(groq_router)
-app.include_router(wikidata_router)  # Add this line
+app.include_router(wikidata_router)
+app.include_router(trip_router)
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)

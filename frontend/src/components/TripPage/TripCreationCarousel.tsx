@@ -42,6 +42,7 @@ export default function TripCreationCarousel({ onComplete, initialData }: TripCr
     }
     return {
       city: location.state?.city || '',
+      country: location.state?.country || '',
       coordinates: {
         lat: location.state?.lat || 0,
         lng: location.state?.lng || 0
@@ -82,6 +83,7 @@ export default function TripCreationCarousel({ onComplete, initialData }: TripCr
     setTripData({
       ...tripData,
       city: city.name,
+      country: city.country,
       coordinates: {
         lat: Number(city.lat),
         lng: Number(city.lng)
@@ -92,6 +94,7 @@ export default function TripCreationCarousel({ onComplete, initialData }: TripCr
     navigate(location.pathname, {
       state: { 
         city: city.name,
+        country: city.country,
         lat: Number(city.lat),
         lng: Number(city.lng),
         initialized: true 
@@ -100,7 +103,9 @@ export default function TripCreationCarousel({ onComplete, initialData }: TripCr
     });
 
     if (api) {
-      setTimeout(() => api.scrollNext(), 300);
+      setTimeout(() => {
+        api.scrollTo(1);
+      }, 500);
     }
   };
   
@@ -264,12 +269,12 @@ export default function TripCreationCarousel({ onComplete, initialData }: TripCr
                   </div>
                 </div>
                 <p className="text-center mt-4">
-                  <button 
+                  {/* <button 
                     onClick={() => setTripData({...tripData, dateRange: { from: undefined, to: undefined }})}
                     className="text-blue-600 underline"
                   >
                     I don't know my dates yet
-                  </button>
+                  </button> */}
                 </p>
               </div>
             </CarouselItem>

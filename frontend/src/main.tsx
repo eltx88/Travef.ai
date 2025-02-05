@@ -7,6 +7,7 @@ import HomePage from './routes/Homepage.tsx'
 import PointOfInterest from './routes/PointOfInterespage.tsx'
 import CreateTrip from './routes/CreateTrippage.tsx'
 import CustomTrip from './routes/CustomTrippage.tsx'
+import EditTripPage from './routes/EditTripPage.tsx'
 import AuthRoute from './components/AuthRoute/AuthRoute.tsx'
 import './index.css'
 
@@ -51,6 +52,14 @@ const router = createBrowserRouter([
           </AuthRoute>
         ),
       },
+      {
+        path: '/edit-trip', 
+        element: (
+          <AuthRoute>
+            <EditTripPage/>
+          </AuthRoute>
+        ),
+      }
     ]
   },
 ]);

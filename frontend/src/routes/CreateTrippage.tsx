@@ -27,7 +27,7 @@ function CreateTripPage() {
         {!tripData || isEditing ? (
           <TripCreationCarousel 
             onComplete={handleTripCreationComplete} 
-            initialData={tripData} // Pass existing data
+            initialData={tripData}
           />
         ) : (
           <TripDetails 

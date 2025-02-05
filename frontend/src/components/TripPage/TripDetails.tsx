@@ -30,6 +30,7 @@ export function TripDetails({ tripData, onEdit }: TripDetailsProps) {
         state: { 
           tripData,
           city: tripData.city,
+          country: tripData.country,
           lat: tripData.coordinates.lat,
           lng: tripData.coordinates.lng,
           initialized: true

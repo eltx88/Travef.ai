@@ -1,7 +1,17 @@
-import type { POI, WikidataImageResponse, ExploreParams } from  '../Types/InterfaceTypes';
+import type { POI, WikidataImageResponse, ExploreParams, ChatMessage, ChatRequest } from  '../Types/InterfaceTypes';
 interface ApiClientConfig {
   getIdToken: () => Promise<string>;
 }
+
+const removeEmptyValues = <T extends Record<string, any>>(obj: T): Partial<T> => {
+  return Object.entries(obj).reduce((acc, [key, value]) => {
+    if (value !== null && value !== undefined) {
+      return { ...acc, [key]: value };
+    }
+    return acc;
+  }, {} as Partial<T>);
+};
+
 
 class ApiClient {
   private getIdToken: () => Promise<string>;
@@ -47,7 +57,7 @@ class ApiClient {
       body: JSON.stringify({ point_ids: ids }),
     });
   
-    return response.map((poi: POI) => ({
+    return response.map((poi: POI) =>({
       ...poi,
       type: `${poi.type}`
     }));
@@ -72,7 +82,7 @@ class ApiClient {
       });
       
       const pois = await this.fetchWithAuth(`/geoapify/places?${queryParams.toString()}`);
-
+      
       // Fetch images for POIs with wikidata_id
       const wikidataIds = pois
         .filter((poi:POI) => poi.wikidata_id)
@@ -86,7 +96,6 @@ class ApiClient {
           }
         });
       }
-
       return pois;
   }
 
@@ -137,13 +146,23 @@ async getWikidataImages(wikidata_ids: string[]): Promise<Record<string, string |
                 const response = await this.getWikidataImage(id);
                 results[id] = response.image_url;
             } catch (error) {
-                // console.log(`No wiki image found for ID ${id}, setting as null`);
                 results[id] = null;
             }
         })
     );
     
     return results;
+}
+async postTripGeneration(data: any): Promise<any> {
+  try {
+    return await this.fetchWithAuth('/trip/generate', {
+        method: 'POST',
+        body: JSON.stringify(data)
+    });
+} catch (error) {
+    console.error('API error:', error);
+    throw error;
+}
 }
 
 }
