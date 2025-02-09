@@ -13,9 +13,9 @@ export interface POI {
   coordinates: Coordinates;
   address: string;
   city: string;
-  country?: string;
-  duration?: number;
+  country: string;
   type: POIType;
+  rating?: number;
   cuisine?: string[]; 
   description?: string; 
   categories?: string[];
@@ -27,10 +27,15 @@ export interface POI {
   opening_hours?: string; 
   tags?: string[];
   price_level?: number;
-  rating?: number;
-  accessibility_features?: string[];
-  created_at?: string;
-  updated_at?: string;
+}
+
+//Extended POI for Itinerary Page
+export interface ItineraryPOI extends POI {
+  day?: string;
+  timeSlot?: string;
+  StartTime: string;
+  EndTime: string;
+  duration?: string;
 }
 
 export interface UserHistoryPoint {
@@ -55,7 +60,7 @@ export interface TripData {
   dateRange: {
     from: Date;
     to: Date;
-  } | null;
+  };
   monthlyDays: number;
   interests: Set<string>;
   customInterests: Set<string>;
@@ -80,6 +85,7 @@ export interface ExploreParams {
   limit?: number;
 }
 
+//Groq Query interfaces
 export interface ChatMessage {
   role: 'system' | 'user' | 'assistant';
   content: string;
@@ -89,4 +95,55 @@ export interface ChatRequest {
   messages: ChatMessage[];
   model?: string;
   stream?: boolean;
+}
+
+//Itinerary interfaces 
+export interface ItineraryPOIData {
+  name: string;
+  type: string;
+  duration: string;
+  StartTime: string;
+  EndTime: string;
+  coordinates: {
+    lat: number;
+    lng: number;
+  };
+}
+
+export interface ItineraryTimeSlot {
+  POI: {
+    [id: string]: ItineraryPOIData;
+  };
+}
+
+export interface ItineraryDay {
+  [timeOfDay: string]: ItineraryTimeSlot;
+}
+
+export interface RawItineraryData {
+  [key: string]: ItineraryDay | {
+    Attractions: Array<{ place_id: string; name: string }>;
+    Restaurants: Array<{ place_id: string; name: string }>;
+  };
+}
+
+export interface ProcessedPOI extends ItineraryPOIData {
+  id: string;
+  timeSlot: string;
+  address?: string;
+}
+
+export interface ProcessedTimeSlot {
+  timeSlot: string;
+  pois: ProcessedPOI[];
+}
+
+export interface ProcessedDay {
+  day: string;
+  timeSlots: ProcessedTimeSlot[];
+}
+
+export interface UnusedPOIs {
+  Attractions: Array<{ place_id: string; name: string }>;
+  Restaurants: Array<{ place_id: string; name: string }>;
 }

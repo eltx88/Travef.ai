@@ -179,8 +179,8 @@ const TripPOIContainer = ({ tripData, pois, savedpois, setIsGenerating }: TripPO
       //TODO generatedTrip has new suggested places, may want to call api here to match suggested to places api then only go to the new page
       navigate('/edit-trip', {
         state: {
-          attractionPOIs : allAttractionPOIs,
-          foodPOIs : allFoodPOIs,
+          attractionPOIs : allAttractionPOIs.filter(poi => selectedPOIs.has(poi.place_id)),
+          foodPOIs : allFoodPOIs.filter(poi => selectedPOIs.has(poi.place_id)),
           tripData: tripData,
           generatedItinerary: generatedTrip.itinerary,
           isNewTrip: true

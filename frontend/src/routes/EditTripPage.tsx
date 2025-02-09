@@ -1,14 +1,16 @@
 import { useLocation, useNavigate } from 'react-router-dom';
 import { NavigationMenuBar } from "@/components/NavigationMenuBar";
-import type { POI, TripData } from '@/Types/InterfaceTypes';
-import { useEffect } from 'react';
-import { Card } from '@/components/ui/card';
+import type { POI, TripData, ItineraryPOI } from '@/Types/InterfaceTypes';
+import { useEffect, useState, useCallback } from 'react';
+import ItineraryPoints from '@/components/EditTrippage/ItineraryPoints';
+import ItineraryView from '@/components/EditTrippage/ItineraryView';
+import { processItinerary } from '@/components/EditTrippage/ItineraryProcessing';
 
 interface LocationState {
   foodPOIs: POI[];
   attractionPOIs: POI[];
   tripData: TripData;
-  generatedItinerary?: string;
+  generatedItinerary: string;
   isNewTrip?: boolean;
 }
 
@@ -22,26 +24,46 @@ function EditTripPage() {
     }, [navigate]);
     return null;
   }
-
+  
   const { foodPOIs, attractionPOIs, generatedItinerary, tripData } = location.state as LocationState;
+  const [itineraryPOIs, setItineraryPOIs] = useState<ItineraryPOI[]>([]);
+  const [unusedPOIs, setUnusedPOIs] = useState<POI[]>([]);
+
+  // Initialize Itinerary POIs and Unused POIs
+  useEffect(() => {
+    if (generatedItinerary) {
+      const { ItineraryPOIs, unusedPOIs } = processItinerary(
+        generatedItinerary,
+        foodPOIs,
+        attractionPOIs
+      );
+      setItineraryPOIs(ItineraryPOIs);
+      setUnusedPOIs(unusedPOIs);
+    }
+  }, [generatedItinerary, foodPOIs, attractionPOIs]);
+
+  // Centralized function to update itinerary POIs
+  const updateItineraryPOIs = useCallback((updatedPOIs: ItineraryPOI[]) => {
+    setItineraryPOIs(updatedPOIs);
+  }, []);
 
   return (
-    <div className="flex flex-col min-h-screen bg-gray-100">
+    <div className="flex flex-col min-h-screen bg-blue-100">
       <NavigationMenuBar />
       
       <main className="flex-grow p-4">
         <div className="flex h-full gap-4">
-          {/* Left Container */}
-          <Card className="w-1/3 h-[calc(100vh-7rem)] overflow-y-auto bg-white p-6 rounded-lg">
-            <h2 className="text-2xl font-bold mb-4">Selected Places</h2>
-            {/* Add your left container content here */}
-          </Card>
-
-          {/* Right Container */}
-          <Card className="w-2/3 h-[calc(100vh-7rem)] overflow-y-auto bg-white p-6 rounded-lg">
-            <h2 className="text-2xl font-bold mb-4">Trip Itinerary</h2>
-            {/* <pre className="whitespace-pre-wrap">{generatedItinerary}</pre> */}
-          </Card>
+          <ItineraryPoints
+            tripData={tripData}
+            itineraryPOIs={itineraryPOIs}
+            unusedPOIs={unusedPOIs}
+            updateItineraryPOIs={updateItineraryPOIs}
+          />
+          <ItineraryView 
+            itineraryPOIs={itineraryPOIs}
+            tripData={tripData}
+            updateItineraryPOIs={updateItineraryPOIs}
+          />
         </div>
       </main>
 

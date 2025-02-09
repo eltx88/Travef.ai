@@ -138,7 +138,7 @@ const CitySearch: React.FC<CitySearchProps> = ({
                 {showButton && (
                     <Button 
                         onClick={handleSubmit}
-                        className="bg-blue-600 hover:bg-blue-700 text-white rounded-l-none px-4 h-12"
+                        className="bg-blue-900 hover:bg-blue-700 text-white rounded-l-none px-4 h-12"
                     >
                         <Search className="h-5 w-5" />
                     </Button>

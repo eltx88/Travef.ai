@@ -29,7 +29,7 @@ export function NavigationMenuBar() {
     };
 
     return(
-        <header className="relative z-10 flex items-center justify-between m-0 pt-0 px-7">
+        <header className="relative z-10 flex items-center justify-between m-0 pt-0 px-7 bg-slate-100">
             <div>
                 <a href="/" className="font-outfit font-bold text-2xl text-blue-600">Travefai</a>
             </div>

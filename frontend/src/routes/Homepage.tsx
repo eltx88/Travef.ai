@@ -3,12 +3,12 @@ import Searchbar from "@/components/Homepage/SearchbarHomepage";
 import Itineraries from "@/components/Homepage/Trips";
 function HomePage() {
   return (
-    <div className="flex flex-col min-h-screen bg-gray-100">
+    <div className="flex flex-col min-h-screen bg-blue-600">
       <NavigationMenuBar />
       
       <main className="top-60 flex flex-grow flex-col items-center justify-start relative p-4">
           <Searchbar />
-          <div className="w-full mt-24">
+          <div className="w-full mt-44 animate-fade-in-down opacity-0">
             <Itineraries />
           </div>
       </main>
