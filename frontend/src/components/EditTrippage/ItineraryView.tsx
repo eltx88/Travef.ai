@@ -42,10 +42,11 @@ const ItineraryView = ({
     return (
       <ItineraryDayContainer
         key={dayKey}
-        dayNumber={dayNumber}
+        dayNumber={dayNumber.toString()}
         pois={dayPOIs}
         tripData={tripData}
         onUpdatePOI={handlePOIUpdate}
+        // onReorderPOIs={(newOrder) => handleReorderPOIs(newOrder, dayKey)} // Pass reorder handler
       />
     );
   });

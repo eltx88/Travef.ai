@@ -18,16 +18,10 @@ const getDefaultImage = (type: string) => {
   return type === 'restaurant' ? DEFAULT_RESTAURANT_IMAGE : DEFAULT_ATTRACTION_IMAGE;
 };
 
-const ItineraryPOICard: FC<ItineraryPOICardProps> = ({ poi, onUpdate }) => {
+const ItineraryPOICard: FC<ItineraryPOICardProps> = ({ poi }) => {
   const openWebsite = (e: React.MouseEvent, url: string) => {
     e.preventDefault();
     window.open(url, "_blank");
-
-  const handleChange = (updatedFields: Partial<ItineraryPOI>) => {
-    if (onUpdate) {
-      onUpdate({ ...poi, ...updatedFields });
-    }
-  };
 }
 
   return (
