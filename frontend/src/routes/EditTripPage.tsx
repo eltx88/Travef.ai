@@ -27,7 +27,7 @@ function EditTripPage() {
   
   const { foodPOIs, attractionPOIs, generatedItinerary, tripData } = location.state as LocationState;
   const [itineraryPOIs, setItineraryPOIs] = useState<ItineraryPOI[]>([]);
-  const [unusedPOIs, setUnusedPOIs] = useState<POI[]>([]);
+  const [unusedPOIs, setUnusedPOIs] = useState<ItineraryPOI[]>([]);
 
   // Initialize Itinerary POIs and Unused POIs
   useEffect(() => {
@@ -41,7 +41,6 @@ function EditTripPage() {
       setUnusedPOIs(unusedPOIs);
     }
   }, [generatedItinerary, foodPOIs, attractionPOIs]);
-
   // Centralized function to update itinerary POIs
   const updateItineraryPOIs = useCallback((updatedPOIs: ItineraryPOI[]) => {
     setItineraryPOIs(updatedPOIs);

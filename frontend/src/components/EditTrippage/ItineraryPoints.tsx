@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import type { POI, TripData, ItineraryPOI } from '@/Types/InterfaceTypes';
+import type { TripData, ItineraryPOI } from '@/Types/InterfaceTypes';
 import { cn } from "@/lib/utils";
 import ItineraryPOICard from './ItineraryPOICard';
 import { Calendar } from 'lucide-react';
@@ -12,7 +12,7 @@ type TabType = 'itinerary' | 'saved' | 'search';
 interface ItineraryPointsProps {
   tripData: TripData;
   itineraryPOIs: ItineraryPOI[];
-  unusedPOIs: POI[];
+  unusedPOIs: ItineraryPOI[];
   updateItineraryPOIs: (updatedPOIs: ItineraryPOI[]) => void;
 }
 
@@ -25,7 +25,7 @@ const ItineraryPoints = ({
   const [activeTab, setActiveTab] = useState<TabType>('itinerary');
   const [filterDay, setFilterDay] = useState<string>('all'); 
   const [filterTimeSlot, setFilterTimeSlot] = useState<string>('all');
-  const dayOptions = Array.from({ length: tripData.monthlyDays }, (_, i) => `Day ${i + 1}`);
+  const dayOptions = Array.from({ length: tripData.monthlyDays }, (_, i) => i + 1);
 
   // Function to handle updates to itinerary POIs
   const handleUpdateItineraryPOI = (updatedPOI: ItineraryPOI) => {
@@ -38,7 +38,7 @@ const ItineraryPoints = ({
   // Render the Itinerary Tab content
   const renderItineraryContent = () => {
     const filteredPOIs = itineraryPOIs.filter(poi => {
-      const matchesDay = filterDay === 'all' || poi.day === filterDay;
+      const matchesDay = filterDay === 'all' || poi.day === Number(filterDay.replace(/\D/g, ''));
       const matchesTimeSlot = filterTimeSlot === 'all' || 
         poi.timeSlot?.toLowerCase() === filterTimeSlot.toLowerCase();
       return matchesDay && matchesTimeSlot;
@@ -58,7 +58,7 @@ const ItineraryPoints = ({
             <SelectContent className="z-[100] bg-white">
               <SelectItem value="all">All Days</SelectItem>
               {dayOptions.map((day) => (
-                <SelectItem key={day} value={day}>{day}</SelectItem>
+                <SelectItem key={day} value={day.toString()}>{`Day ${day}`}</SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -109,10 +109,10 @@ const ItineraryPoints = ({
               key={poi.id}
               poi={{
                 ...poi,
-                day: 'Saved',
+                day: poi.day,
                 timeSlot: 'Unused',
-                StartTime:'',
-                EndTime:''
+                StartTime:poi.StartTime,
+                EndTime:poi.EndTime
               }}
             />
           ))}
@@ -125,10 +125,10 @@ const ItineraryPoints = ({
               key={poi.id}
               poi={{
                 ...poi,
-                day: 'Saved',
+                day: poi.day,
                 timeSlot: 'Unused',
-                StartTime:'',
-                EndTime:''
+                StartTime:poi.StartTime,
+                EndTime:poi.EndTime
               }}
             />
           ))}

@@ -3,15 +3,23 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Phone, Mail, Clock, Info } from "lucide-react";
 import type { ItineraryPOI } from "@/Types/InterfaceTypes";
-import { FC } from "react";
+import { FC, useMemo } from "react";
 
 // TEMPORARY PLACEHOLDER IMAGES
-const DEFAULT_ATTRACTION_IMAGE = "https://fastly.picsum.photos/id/57/2448/3264.jpg?hmac=ewraXYesC6HuSEAJsg3Q80bXd1GyJTxekI05Xt9YjfQ";
+const DEFAULT_ATTRACTION_IMAGE = "https://fastly.picsum.photos/id/57/2448/3264/4336.jpg?hmac=iS-l9m6Vq7wE-m9x6n9_d72mN2_l72j-c99y9v9j9cI";
 const DEFAULT_RESTAURANT_IMAGE = "https://fastly.picsum.photos/id/431/5000/3334.jpg?hmac=T2rL_gBDyJYpcr1Xm8Kv7L6bhwvmZS8nKT5w3ok58kA";
 
 interface ItineraryPOICardProps {
   poi: ItineraryPOI;
   onUpdate?: (updatedPOI: ItineraryPOI) => void;
+}
+
+// Helper function to convert minutes to HH:MM
+function minutesToHHMM(minutes: number): string {
+  if (minutes === -1) return "-1"; // Handle -1 case
+  const hours = Math.floor(minutes / 60);
+  const mins = minutes % 60;
+  return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
 }
 
 const getDefaultImage = (type: string) => {
@@ -22,7 +30,10 @@ const ItineraryPOICard: FC<ItineraryPOICardProps> = ({ poi }) => {
   const openWebsite = (e: React.MouseEvent, url: string) => {
     e.preventDefault();
     window.open(url, "_blank");
-}
+  }
+
+  const displayStartTime = useMemo(() => minutesToHHMM(poi.StartTime), [poi.StartTime]);
+  const displayEndTime = useMemo(() => minutesToHHMM(poi.EndTime), [poi.EndTime]);
 
   return (
     <Card className="h-full bg-white shadow-md hover:shadow-lg transition-shadow cursor-pointer">
@@ -35,7 +46,7 @@ const ItineraryPOICard: FC<ItineraryPOICardProps> = ({ poi }) => {
             className="w-full h-full object-cover"
             onError={(e) => {
               const img = e.target as HTMLImageElement;
-              img.src = getDefaultImage(poi.type);
+              // img.src = getDefaultImage(poi.type);
             }}
           />
         </div>
@@ -44,9 +55,9 @@ const ItineraryPOICard: FC<ItineraryPOICardProps> = ({ poi }) => {
         <div className="flex flex-col flex-grow">
           {/* Day and Time Slot Tags */}
           <div className="flex gap-2 mb-2">
-            {poi.day && (
+            {poi.day !== -1 && (
               <span className="px-2 py-1 bg-blue-100 text-blue-800 text-sm rounded-full">
-                {poi.day}
+                Day {poi.day}
               </span>
             )}
             {poi.timeSlot && (
@@ -57,9 +68,9 @@ const ItineraryPOICard: FC<ItineraryPOICardProps> = ({ poi }) => {
           </div>
 
           {/* Time Slot Information */}
-          {poi.StartTime && poi.EndTime && (
+          {poi.StartTime !== -1 && poi.EndTime !== -1 && (
             <div className="text-sm text-gray-600 mb-2">
-              {poi.StartTime} - {poi.EndTime}
+              {displayStartTime} - {displayEndTime}
             </div>
           )}
 
@@ -100,18 +111,17 @@ const ItineraryPOICard: FC<ItineraryPOICardProps> = ({ poi }) => {
                 <DialogHeader>
                   <DialogTitle>{poi.name}</DialogTitle>
                 </DialogHeader>
-                
+
                 <div className="space-y-4 mt-4">
                   {poi.address && <h4>{poi.address}</h4>}
-                  
-                  {(poi.StartTime || poi.EndTime) && (
+
+                  {(poi.StartTime !== -1 && poi.EndTime !== -1) && (
                     <div className="flex items-start gap-2">
                       <Clock className="h-5 w-5 text-gray-500 mt-0.5" />
                       <div>
                         <h4 className="font-medium mb-1">Schedule</h4>
                         <p className="text-sm text-gray-600">
-                          {poi.StartTime} - {poi.EndTime}
-                          {/* {poi.duration} */}
+                          {displayStartTime} - {displayEndTime}
                         </p>
                       </div>
                     </div>

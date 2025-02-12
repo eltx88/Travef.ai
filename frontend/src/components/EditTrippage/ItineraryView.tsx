@@ -37,7 +37,7 @@ const ItineraryView = ({
   const dayContainers = Array.from({ length: tripData.monthlyDays }, (_, i) => {
     const dayNumber = i + 1;
     const dayKey = `Day ${dayNumber}`;
-    const dayPOIs = pois.filter((poi) => poi.day === dayKey);
+    const dayPOIs = pois.filter((poi) => poi.day === dayNumber);
 
     return (
       <ItineraryDayContainer
@@ -46,7 +46,6 @@ const ItineraryView = ({
         pois={dayPOIs}
         tripData={tripData}
         onUpdatePOI={handlePOIUpdate}
-        // onReorderPOIs={(newOrder) => handleReorderPOIs(newOrder, dayKey)} // Pass reorder handler
       />
     );
   });

@@ -28,35 +28,34 @@ const ItineraryDayContainer = ({
   const [gridPositions, setGridPositions] = useState<Map<string, { x: number, w: number }>>(
     new Map(pois.map(poi => [
       poi.id,
-      { 
+      {
         x: timeToGridPosition(poi.StartTime),
         w: getDurationInCells(poi.StartTime, poi.EndTime)
       }
     ]))
   );
 
-  // Convert time to grid position
-  function timeToGridPosition(time: string): number {
-    const [hours, minutes] = time.split(':').map(Number);
-    const hoursFromStart = hours - START_HOUR;
-    const cellsFromMinutes = Math.floor(minutes / 30);
+  function timeToGridPosition(time: number): number {
+    if (time === -1) return -1; // Handle the -1 case
+    const hoursFromStart = Math.floor(time / 60) - START_HOUR;
+    const cellsFromMinutes = Math.floor((time % 60) / 30);
     return (hoursFromStart * CELLS_PER_HOUR) + cellsFromMinutes;
   }
 
-  // Convert grid position to time
-  function gridPositionToTime(position: number): string {
-    const totalMinutes = (position * 30) + (START_HOUR * 60);
-    const hours = Math.floor(totalMinutes / 60);
-    const minutes = totalMinutes % 60;
-    return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+  function gridPositionToTime(position: number): number {
+      if (position === -1) return -1;
+      const totalMinutes = (position * 30) + (START_HOUR * 60);
+      return totalMinutes;
   }
 
-  // Calculate duration in grid cells
-  function getDurationInCells(startTime: string, endTime: string): number {
+
+  function getDurationInCells(startTime: number, endTime: number): number {
+    if (startTime === -1 || endTime === -1) return 0; // Handle -1 cases
     const startPosition = timeToGridPosition(startTime);
     const endPosition = timeToGridPosition(endTime);
-    return endPosition - startPosition;
+    return Math.max(0, endPosition - startPosition); // Ensure duration is not negative
   }
+
 
   // Check for time conflicts
   function hasTimeConflict(layout: ReactGridLayout.Layout[]): boolean {
@@ -77,21 +76,20 @@ const ItineraryDayContainer = ({
     return false;
   }
 
-  // Generate initial layout
   const layout = pois.map(poi => {
     const position = gridPositions.get(poi.id) || {
       x: timeToGridPosition(poi.StartTime),
       w: getDurationInCells(poi.StartTime, poi.EndTime)
     };
-    
+
     return {
       i: poi.id,
       x: position.x,
       y: 0,
       w: position.w,
       h: 1,
-      minW: 1, // Minimum 30 minutes
-      maxW: TOTAL_CELLS // Maximum whole day
+      minW: 1,
+      maxW: TOTAL_CELLS
     };
   });
 
@@ -105,28 +103,22 @@ const ItineraryDayContainer = ({
       const poi = pois.find(p => p.id === item.i);
       if (!poi) return;
 
-      // Update grid positions
       updatedGridPositions.set(item.i, { x: item.x, w: item.w });
 
-      // Calculate new times based on grid position
       const newStartTime = gridPositionToTime(item.x);
       const newEndTime = gridPositionToTime(item.x + item.w);
 
-      // Only update if position has changed
       const currentPosition = gridPositions.get(item.i);
-      if (!currentPosition || 
-          currentPosition.x !== item.x || 
-          currentPosition.w !== item.w) {
+      if (!currentPosition || currentPosition.x !== item.x || currentPosition.w !== item.w) {
         updatedPOIs.push({
           ...poi,
           StartTime: newStartTime,
           EndTime: newEndTime,
-          day: `Day ${dayNumber}` 
+          day: Number(dayNumber)
         });
       }
     });
 
-    // Update state and trigger updates
     setGridPositions(updatedGridPositions);
     updatedPOIs.forEach(poi => onUpdatePOI(poi));
   };
@@ -139,7 +131,7 @@ const ItineraryDayContainer = ({
     month: 'short', 
     day: 'numeric' 
   });
-
+  console.log(dayNumber,tripData.monthlyDays);
   return (
     <div className="relative mb-8 bg-white rounded-lg shadow-md p-6 border border-gray-300">
       <div className="flex justify-between items-center mb-6">
@@ -181,8 +173,8 @@ const ItineraryDayContainer = ({
         >
           {pois.map(poi => {
             const position = gridPositions.get(poi.id);
-            const displayStartTime = position ? gridPositionToTime(position.x) : poi.StartTime;
-            const displayEndTime = position ? gridPositionToTime(position.x + position.w) : poi.EndTime;
+            const displayStartTime =  poi.StartTime;
+            const displayEndTime =  poi.EndTime;
                 
             return (
               <div key={poi.id}>
@@ -197,7 +189,7 @@ const ItineraryDayContainer = ({
                     width: position?.w || 0,
                     startTime: displayStartTime,
                     endTime: displayEndTime,
-                    day: dayNumber
+                    day: Number(dayNumber)
                   }}
                 />
               </div>

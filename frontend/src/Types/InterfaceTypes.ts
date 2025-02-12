@@ -31,11 +31,11 @@ export interface POI {
 
 //Extended POI for Itinerary Page
 export interface ItineraryPOI extends POI {
-  day?: string;
-  timeSlot?: string;
-  StartTime: string;
-  EndTime: string;
-  duration?: string;
+  day: number;
+  timeSlot: string;
+  StartTime: number;
+  EndTime: number;
+  duration: number;
 }
 
 export interface UserHistoryPoint {

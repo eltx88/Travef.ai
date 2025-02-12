@@ -1,17 +1,37 @@
 import { ItineraryPOI, POI, POIType, UnusedPOIs, RawItineraryData, ItineraryDay, ItineraryTimeSlot, ItineraryPOIData } from '@/Types/InterfaceTypes';
 
+function timeStringToMinutes(timeString: string): number {
+  const [hours, minutes] = timeString.split(":").map(Number);
+
+  if (isNaN(hours) || isNaN(minutes) || hours < 0 || hours > 23 || minutes < 0 || minutes > 59) {
+      throw new Error("Invalid time format.  Must be HH:MM"); // Handle invalid input
+  }
+
+  return hours * 60 + minutes;
+}
+
+// Helper to create unused POI with numeric values
+const createUnusedPOI = (poi: POI): ItineraryPOI => ({
+  ...poi,
+  day: -1,
+  timeSlot: "unused",
+  StartTime: -1,
+  EndTime: -1,
+  duration: -1
+});
+
 export const processItinerary = (
   itineraryJson: string,
   foodPOIs: POI[],
   attractionPOIs: POI[]
 ): {
   ItineraryPOIs: ItineraryPOI[];
-  unusedPOIs: POI[];
+  unusedPOIs: ItineraryPOI[];
 } => {
   if (!itineraryJson) {
     return {
       ItineraryPOIs: [],
-      unusedPOIs: [...foodPOIs, ...attractionPOIs],
+      unusedPOIs: [...foodPOIs, ...attractionPOIs].map(createUnusedPOI)
     };
   }
   
@@ -23,38 +43,42 @@ export const processItinerary = (
     const itineraryData = JSON.parse(itineraryJson) as RawItineraryData;
     const itineraryPOIs: ItineraryPOI[] = [];
     const usedPOIIds = new Set<string>();
+    const unusedPOIs: ItineraryPOI[] = [];
 
     // Process each day in the itinerary
     Object.entries(itineraryData).forEach(([dayKey, dayValue]) => {
       // Skip the "Unused" section
       if (dayKey === 'Unused') return;
 
+      // Extract day number from "Day X" format
+      const dayNumber = parseInt(dayKey.split(' ')[1]);
       const dayData = dayValue as ItineraryDay;
 
       Object.entries(dayData).forEach(([timeSlot, timeSlotData]) => {
-        // Type assertion for time slot data
         const slotData = timeSlotData as ItineraryTimeSlot;
 
         Object.entries(slotData.POI).forEach(([poiId, poiData]) => {
-          // Type assertion for POI data
           const typedPoiData = poiData as ItineraryPOIData;
-          
           let itineraryPOI: ItineraryPOI;
           const basePOI = poiMap.get(poiId);
 
+          // Convert time strings to minutes
+          const startTimeMinutes = timeStringToMinutes(typedPoiData.StartTime);
+          const endTimeMinutes = timeStringToMinutes(typedPoiData.EndTime);
+          const durationMinutes = endTimeMinutes - startTimeMinutes;
+
           if (basePOI) {
-            // Known POI with valid place_id
             usedPOIIds.add(poiId);
             itineraryPOI = {
               ...basePOI,
-              day: dayKey,
+              day: dayNumber,
               timeSlot: timeSlot,
-              StartTime: typedPoiData.StartTime,
-              EndTime: typedPoiData.EndTime,
-              duration: typedPoiData.duration
+              StartTime: startTimeMinutes,
+              EndTime: endTimeMinutes,
+              duration: durationMinutes
             };
           } else {
-            // This is a suggested POI by Groq, minimal info
+            // Handle suggested POIs
             itineraryPOI = {
               id: poiId,
               place_id: poiId,
@@ -64,11 +88,11 @@ export const processItinerary = (
               city: '',
               country: '',
               type: typedPoiData.type as POIType,
-              day: dayKey,
+              day: dayNumber,
               timeSlot: timeSlot,
-              StartTime: typedPoiData.StartTime,
-              EndTime: typedPoiData.EndTime,
-              duration: typedPoiData.duration
+              StartTime: startTimeMinutes,
+              EndTime: endTimeMinutes,
+              duration: durationMinutes
             };
           }
 
@@ -78,33 +102,35 @@ export const processItinerary = (
     });
 
     // Process unused POIs
-    const unusedPOIs: POI[] = [];
-
-    // Add POIs marked as unused in the itinerary
     if ('Unused' in itineraryData) {
       const unusedData = itineraryData.Unused as UnusedPOIs;
-      
+
       // Process unused attractions
       unusedData.Attractions?.forEach(attraction => {
         const poi = poiMap.get(attraction.place_id);
-        if (poi) unusedPOIs.push(poi);
+        if (poi) unusedPOIs.push({
+          ...poi,
+          day: -1,
+          timeSlot: "unused",
+          StartTime: -1,
+          EndTime: -1,
+          duration: 0.5
+        });
       });
 
       // Process unused restaurants
       unusedData.Restaurants?.forEach(restaurant => {
         const poi = poiMap.get(restaurant.place_id);
-        if (poi) unusedPOIs.push(poi);
+        if (poi) unusedPOIs.push({
+          ...poi,
+          day: -1,
+          timeSlot: "unused",
+          StartTime: -1,
+          EndTime: -1,
+          duration: 0.5
+        });
       });
     }
-
-    // Add any POIs from original lists that weren't used
-    [...foodPOIs, ...attractionPOIs].forEach(poi => {
-      if (!usedPOIIds.has(poi.place_id) && 
-          !unusedPOIs.some(p => p.place_id === poi.place_id)) {
-        unusedPOIs.push(poi);
-      }
-    });
-
     return {
       ItineraryPOIs: itineraryPOIs,
       unusedPOIs: unusedPOIs,
@@ -113,7 +139,7 @@ export const processItinerary = (
     console.error('Error processing itinerary:', error);
     return {
       ItineraryPOIs: [],
-      unusedPOIs: [...foodPOIs, ...attractionPOIs],
+      unusedPOIs: []
     };
   }
 };
