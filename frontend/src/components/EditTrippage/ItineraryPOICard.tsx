@@ -3,7 +3,8 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Phone, Mail, Clock, Info } from "lucide-react";
 import type { ItineraryPOI } from "@/Types/InterfaceTypes";
-import { FC, useMemo } from "react";
+import { FC, useMemo, useState } from "react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 // TEMPORARY PLACEHOLDER IMAGES
 const DEFAULT_ATTRACTION_IMAGE = "https://fastly.picsum.photos/id/57/2448/3264/4336.jpg?hmac=iS-l9m6Vq7wE-m9x6n9_d72mN2_l72j-c99y9v9j9cI";
@@ -100,7 +101,7 @@ const ItineraryPOICard: FC<ItineraryPOICardProps> = ({ poi }) => {
                 <Button
                   variant="outline"
                   size="sm"
-                  className="w-full"
+                  className="w-full hover:bg-blue-200"
                   onClick={(e) => e.stopPropagation()}
                 >
                   <Info className="h-4 w-4 mr-2" />

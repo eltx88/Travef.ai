@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Card } from '@/components/ui/card';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import ItineraryDayContainer from './ItineraryDayContainer';
 import type { ItineraryPOI, TripData } from '@/Types/InterfaceTypes';
 
@@ -8,12 +7,14 @@ interface ItineraryViewProps {
   itineraryPOIs: ItineraryPOI[];
   tripData: TripData;
   updateItineraryPOIs?: (updatedPOIs: ItineraryPOI[]) => void;
+  deleteItineraryPOI?: (deletedPOI: ItineraryPOI) => void;
 }
 
 const ItineraryView = ({ 
   itineraryPOIs, 
-  tripData,
-  updateItineraryPOIs 
+  tripData, 
+  updateItineraryPOIs, 
+  deleteItineraryPOI 
 }: ItineraryViewProps) => {
   const [pois, setPois] = useState<ItineraryPOI[]>([]);
 
@@ -21,34 +22,21 @@ const ItineraryView = ({
     setPois(itineraryPOIs);
   }, [itineraryPOIs]);
 
-  // Handle POI updates
   const handlePOIUpdate = useCallback((updatedPOI: ItineraryPOI) => {
-    const newPOIs = itineraryPOIs.map(poi => 
+    const newPOIs = pois.map(poi => 
       poi.id === updatedPOI.id ? updatedPOI : poi
     );
     
-    // Only update through parent to maintain single source of truth
     if (updateItineraryPOIs) {
       updateItineraryPOIs(newPOIs);
     }
-  }, [itineraryPOIs, updateItineraryPOIs]);
+  }, [pois, updateItineraryPOIs]);
 
-  // Generate dynamic itinerary day containers
-  const dayContainers = Array.from({ length: tripData.monthlyDays }, (_, i) => {
-    const dayNumber = i + 1;
-    const dayKey = `Day ${dayNumber}`;
-    const dayPOIs = pois.filter((poi) => poi.day === dayNumber);
-
-    return (
-      <ItineraryDayContainer
-        key={dayKey}
-        dayNumber={dayNumber.toString()}
-        pois={dayPOIs}
-        tripData={tripData}
-        onUpdatePOI={handlePOIUpdate}
-      />
-    );
-  });
+  const handleDeletePOI = useCallback((deletedPOI: ItineraryPOI) => {
+    if (deleteItineraryPOI) {
+      deleteItineraryPOI(deletedPOI);
+    }
+  }, [deleteItineraryPOI]);
 
   return (
     <Card className="w-2/3 h-[calc(100vh-7rem)] overflow-hidden bg-white p-6 rounded-lg">
@@ -61,11 +49,16 @@ const ItineraryView = ({
         </div>
       </div>
 
-      <ScrollArea className="h-[calc(100vh-11rem)] rounded-md border">
-        <div className="overflow-auto">
-          {dayContainers}
+      <div className="h-[calc(100vh-11rem)] overflow-x-auto overflow-y-auto">
+        <div className="min-w-[1200px]">
+          <ItineraryDayContainer
+            pois={pois}
+            tripData={tripData}
+            onUpdatePOI={handlePOIUpdate}
+            onDeletePOI={handleDeletePOI}
+          />
         </div>
-      </ScrollArea>
+      </div>
     </Card>
   );
 };

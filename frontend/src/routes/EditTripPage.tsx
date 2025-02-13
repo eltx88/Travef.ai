@@ -5,6 +5,7 @@ import { useEffect, useState, useCallback } from 'react';
 import ItineraryPoints from '@/components/EditTrippage/ItineraryPoints';
 import ItineraryView from '@/components/EditTrippage/ItineraryView';
 import { processItinerary } from '@/components/EditTrippage/ItineraryProcessing';
+import { tripCacheService } from '@/components/hooks/tripCacheService';
 
 interface LocationState {
   foodPOIs: POI[];
@@ -12,6 +13,11 @@ interface LocationState {
   tripData: TripData;
   generatedItinerary: string;
   isNewTrip?: boolean;
+}
+
+interface ItineraryState {
+  itineraryPOIs: ItineraryPOI[];
+  unusedPOIs: ItineraryPOI[];
 }
 
 function EditTripPage() {
@@ -24,44 +30,77 @@ function EditTripPage() {
     }, [navigate]);
     return null;
   }
-  
-  const { foodPOIs, attractionPOIs, generatedItinerary, tripData } = location.state as LocationState;
-  const [itineraryPOIs, setItineraryPOIs] = useState<ItineraryPOI[]>([]);
-  const [unusedPOIs, setUnusedPOIs] = useState<ItineraryPOI[]>([]);
 
-  // Initialize Itinerary POIs and Unused POIs
-  useEffect(() => {
-    if (generatedItinerary) {
-      const { ItineraryPOIs, unusedPOIs } = processItinerary(
-        generatedItinerary,
-        foodPOIs,
-        attractionPOIs
-      );
-      setItineraryPOIs(ItineraryPOIs);
-      setUnusedPOIs(unusedPOIs);
+  const { foodPOIs, attractionPOIs, generatedItinerary, tripData } = location.state as LocationState;
+
+  const [itineraryState, setItineraryState] = useState<ItineraryState>(() => {
+    // Always try to fetch from cache first
+    const cached = tripCacheService.get(tripData.city);
+    if (cached) {
+      // console.log('Initializing from cache:', cached);
+      return {
+        itineraryPOIs: cached.itineraryPOIs,
+        unusedPOIs: cached.unusedPOIs
+      };
     }
-  }, [generatedItinerary, foodPOIs, attractionPOIs]);
-  // Centralized function to update itinerary POIs
+
+    // Process new itinerary if no cache is found
+    // console.log('Initializing from new itinerary');
+    const processed = processItinerary(generatedItinerary, foodPOIs, attractionPOIs);
+    return {
+      itineraryPOIs: processed.ItineraryPOIs,
+      unusedPOIs: processed.unusedPOIs
+    };
+  });
+
+  // Update cache whenever itineraryState changes
+  useEffect(() => {
+    tripCacheService.set(tripData.city, {
+      itineraryPOIs: itineraryState.itineraryPOIs,
+      unusedPOIs: itineraryState.unusedPOIs,
+      tripData
+    });
+  }, [itineraryState, tripData]);
+
+  // Update itinerary POIs (for drag and drop updates)
   const updateItineraryPOIs = useCallback((updatedPOIs: ItineraryPOI[]) => {
-    setItineraryPOIs(updatedPOIs);
+    setItineraryState(prevState => ({
+      ...prevState,
+      itineraryPOIs: updatedPOIs
+    }));
+  }, []);
+
+  // Handle POI deletion with atomic update
+  const deleteItineraryPOI = useCallback((deletedPOI: ItineraryPOI) => {
+    setItineraryState(prevState => ({
+      itineraryPOIs: prevState.itineraryPOIs.filter(poi => poi.id !== deletedPOI.id),
+      unusedPOIs: [...prevState.unusedPOIs, {
+        ...deletedPOI,
+        day: -1,
+        timeSlot: "unused",
+        StartTime: -1,
+        EndTime: -1,
+        duration: -1
+      }]
+    }));
   }, []);
 
   return (
     <div className="flex flex-col min-h-screen bg-blue-100">
       <NavigationMenuBar />
-      
+
       <main className="flex-grow p-4">
         <div className="flex h-full gap-4">
           <ItineraryPoints
             tripData={tripData}
-            itineraryPOIs={itineraryPOIs}
-            unusedPOIs={unusedPOIs}
-            updateItineraryPOIs={updateItineraryPOIs}
+            itineraryPOIs={itineraryState.itineraryPOIs}
+            unusedPOIs={itineraryState.unusedPOIs}
           />
-          <ItineraryView 
-            itineraryPOIs={itineraryPOIs}
+          <ItineraryView
+            itineraryPOIs={itineraryState.itineraryPOIs}
             tripData={tripData}
             updateItineraryPOIs={updateItineraryPOIs}
+            deleteItineraryPOI={deleteItineraryPOI}
           />
         </div>
       </main>

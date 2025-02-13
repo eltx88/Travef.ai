@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import type { TripData, ItineraryPOI } from '@/Types/InterfaceTypes';
@@ -13,129 +13,107 @@ interface ItineraryPointsProps {
   tripData: TripData;
   itineraryPOIs: ItineraryPOI[];
   unusedPOIs: ItineraryPOI[];
-  updateItineraryPOIs: (updatedPOIs: ItineraryPOI[]) => void;
 }
 
 const ItineraryPoints = ({ 
   tripData,
   itineraryPOIs,
   unusedPOIs,
-  updateItineraryPOIs
 }: ItineraryPointsProps) => {
   const [activeTab, setActiveTab] = useState<TabType>('itinerary');
   const [filterDay, setFilterDay] = useState<string>('all'); 
   const [filterTimeSlot, setFilterTimeSlot] = useState<string>('all');
-  const dayOptions = Array.from({ length: tripData.monthlyDays }, (_, i) => i + 1);
+  const savedAttractions = unusedPOIs.filter(poi => poi.type === 'attraction');
+  const savedRestaurants = unusedPOIs.filter(poi => poi.type !== 'attraction');
 
-  // Function to handle updates to itinerary POIs
-  const handleUpdateItineraryPOI = (updatedPOI: ItineraryPOI) => {
-    const updatedPOIs = itineraryPOIs.map(poi => 
-      poi.id === updatedPOI.id ? updatedPOI : poi
-    );
-    updateItineraryPOIs(updatedPOIs);
-  };
+  // Memoize day options to prevent unnecessary recalculations
+  const dayOptions = useMemo(() => 
+    Array.from({ length: tripData.monthlyDays }, (_, i) => i + 1),
+    [tripData.monthlyDays]
+  );
 
-  // Render the Itinerary Tab content
-  const renderItineraryContent = () => {
-    const filteredPOIs = itineraryPOIs.filter(poi => {
-      const matchesDay = filterDay === 'all' || poi.day === Number(filterDay.replace(/\D/g, ''));
+  // Filter itinerary POIs using memoization
+  const filteredItineraryPOIs = useMemo(() => {
+    return itineraryPOIs.filter(poi => {
+      const matchesDay = filterDay === 'all' || poi.day === Number(filterDay);
       const matchesTimeSlot = filterTimeSlot === 'all' || 
         poi.timeSlot?.toLowerCase() === filterTimeSlot.toLowerCase();
       return matchesDay && matchesTimeSlot;
     });
+  }, [itineraryPOIs, filterDay, filterTimeSlot]);
 
-    return (
-      <div className="space-y-4">
-        {/* Filter Dropdowns */}
-        <div className="flex gap-4 bg-white z-50">
-          <Select 
-            value={filterDay}
-            onValueChange={setFilterDay}
-          >
-            <SelectTrigger className="w-40 bg-white">
-              <SelectValue placeholder="Filter by Day" />
-            </SelectTrigger>
-            <SelectContent className="z-[100] bg-white">
-              <SelectItem value="all">All Days</SelectItem>
-              {dayOptions.map((day) => (
-                <SelectItem key={day} value={day.toString()}>{`Day ${day}`}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          <Select 
-            value={filterTimeSlot}
-            onValueChange={setFilterTimeSlot}
-          >
-            <SelectTrigger className="w-40">
-              <SelectValue placeholder="Filter by Time" />
-            </SelectTrigger>
-            <SelectContent className="z-[100] bg-white">
-              <SelectItem value="all">All Times</SelectItem>
-              <SelectItem value="morning">Morning</SelectItem>
-              <SelectItem value="afternoon">Afternoon</SelectItem>
-              <SelectItem value="evening">Evening</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        {/* POI Cards Grid */}
-        <div className="overflow-y-auto h-[calc(100vh-12rem)] z-10">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredPOIs.map((poi) => (
-              <ItineraryPOICard
-                key={poi.id}
-                poi={poi}
-                onUpdate={handleUpdateItineraryPOI}
-              />
+  const renderItineraryContent = () => (
+    <div className="space-y-4">
+      <div className="flex gap-4 bg-white z-50">
+        <Select 
+          value={filterDay}
+          onValueChange={setFilterDay}
+        >
+          <SelectTrigger className="w-40 bg-white">
+            <SelectValue placeholder="Filter by Day" />
+          </SelectTrigger>
+          <SelectContent className="z-[100] bg-white">
+            <SelectItem value="all">All Days</SelectItem>
+            {dayOptions.map((day) => (
+              <SelectItem key={day} value={day.toString()}>{`Day ${day}`}</SelectItem>
             ))}
-          </div>
-        </div>
+          </SelectContent>
+        </Select>
+
+        <Select 
+          value={filterTimeSlot}
+          onValueChange={setFilterTimeSlot}
+        >
+          <SelectTrigger className="w-40">
+            <SelectValue placeholder="Filter by Time" />
+          </SelectTrigger>
+          <SelectContent className="z-[100] bg-white">
+            <SelectItem value="all">All Times</SelectItem>
+            <SelectItem value="morning">Morning</SelectItem>
+            <SelectItem value="afternoon">Afternoon</SelectItem>
+            <SelectItem value="evening">Evening</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
-    );
-  };
 
-  // Render the Saved Tab content
-  const renderSavedContent = () => {
-    const savedAttractions = unusedPOIs.filter(poi => poi.type === 'attraction');
-    const savedRestaurants = unusedPOIs.filter(poi => poi.type === 'restaurant');
-
-    return (
-      <div className="space-y-4">
-        <h3 className="text-lg font-medium">Saved Attractions</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {savedAttractions.map((poi) => (
-            <ItineraryPOICard
-              key={poi.id}
-              poi={{
-                ...poi,
-                day: poi.day,
-                timeSlot: 'Unused',
-                StartTime:poi.StartTime,
-                EndTime:poi.EndTime
-              }}
-            />
-          ))}
-        </div>
-
-        <h3 className="text-lg font-medium">Saved Restaurants</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {savedRestaurants.map((poi) => (
-            <ItineraryPOICard
-              key={poi.id}
-              poi={{
-                ...poi,
-                day: poi.day,
-                timeSlot: 'Unused',
-                StartTime:poi.StartTime,
-                EndTime:poi.EndTime
-              }}
-            />
-          ))}
-        </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {filteredItineraryPOIs.map((poi) => (
+          <ItineraryPOICard
+            key={poi.id}
+            poi={poi}
+          />
+        ))}
       </div>
-    );
-  };
+    </div>
+  );
+
+  const renderSavedContent = () => (
+    <div className="space-y-4">
+      <h3 className="text-lg font-medium">
+        Saved Attractions
+      </h3>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {savedAttractions.map((poi) => (
+          <ItineraryPOICard
+            key={poi.id}
+            poi={poi}
+          />
+        ))}
+      </div>
+
+      <h3 className="text-lg font-medium">
+        Saved Restaurants
+      </h3>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {savedRestaurants.map((poi) => (
+          <ItineraryPOICard
+            key={poi.id}
+            poi={poi}
+          />  
+        ))}
+      </div>
+    </div>
+  );
 
   const renderTabContent = () => {
     switch (activeTab) {
@@ -151,7 +129,7 @@ const ItineraryPoints = ({
         );
     }
   };
-
+  console.log(unusedPOIs)
   return (
     <Card className="w-1/3 h-[calc(100vh-7rem)] overflow-hidden bg-white rounded-lg flex flex-col">
       <div className="sticky top-0 bg-white px-6 py-4 border-b z-10">
@@ -201,7 +179,7 @@ const ItineraryPoints = ({
                 "text-gray-600 hover:text-blue-700"
               )}
             >
-              Saved
+              Saved ({unusedPOIs.length})
             </TabsTrigger>
             <TabsTrigger 
               value="search"
@@ -221,19 +199,19 @@ const ItineraryPoints = ({
         <div className="flex-1 overflow-y-auto p-6">
           <TabsContent 
             value="itinerary" 
-            className="mt-0 h-full data-[state=inactive]:hidden transition-opacity duration-200"
+            className="mt-0 h-full data-[state=inactive]:hidden"
           >
             {renderTabContent()}
           </TabsContent>
           <TabsContent 
             value="saved" 
-            className="mt-0 h-full data-[state=inactive]:hidden transition-opacity duration-200"
+            className="mt-0 h-full data-[state=inactive]:hidden"
           >
             {renderTabContent()}
           </TabsContent>
           <TabsContent 
             value="search" 
-            className="mt-0 h-full data-[state=inactive]:hidden transition-opacity duration-200"
+            className="mt-0 h-full data-[state=inactive]:hidden"
           >
             {renderTabContent()}
           </TabsContent>
