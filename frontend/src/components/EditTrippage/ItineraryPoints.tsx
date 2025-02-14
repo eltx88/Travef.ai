@@ -13,12 +13,14 @@ interface ItineraryPointsProps {
   tripData: TripData;
   itineraryPOIs: ItineraryPOI[];
   unusedPOIs: ItineraryPOI[];
+  onAddToItinerary: (poi: ItineraryPOI, day: number) => void; // Pass onAddToItinerary as a prop
 }
 
 const ItineraryPoints = ({ 
   tripData,
   itineraryPOIs,
   unusedPOIs,
+  onAddToItinerary,
 }: ItineraryPointsProps) => {
   const [activeTab, setActiveTab] = useState<TabType>('itinerary');
   const [filterDay, setFilterDay] = useState<string>('all'); 
@@ -89,7 +91,7 @@ const ItineraryPoints = ({
 
   const renderSavedContent = () => (
     <div className="space-y-4">
-      <h3 className="text-lg font-medium">
+      <h3 className="text-lg font-medium sticky top-0 bg-white z-10 pb-2">
         Saved Attractions
       </h3>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -97,11 +99,13 @@ const ItineraryPoints = ({
           <ItineraryPOICard
             key={poi.id}
             poi={poi}
+            dayOptions={dayOptions}
+            onAddToItinerary={onAddToItinerary}
           />
         ))}
       </div>
 
-      <h3 className="text-lg font-medium">
+      <h3 className="text-lg font-medium sticky top-0 bg-white z-10 pb-2">
         Saved Restaurants
       </h3>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -109,7 +113,9 @@ const ItineraryPoints = ({
           <ItineraryPOICard
             key={poi.id}
             poi={poi}
-          />  
+            dayOptions={dayOptions}
+            onAddToItinerary={onAddToItinerary}
+          />
         ))}
       </div>
     </div>
@@ -129,16 +135,15 @@ const ItineraryPoints = ({
         );
     }
   };
-  console.log(unusedPOIs)
   return (
     <Card className="w-1/3 h-[calc(100vh-7rem)] overflow-hidden bg-white rounded-lg flex flex-col">
-      <div className="sticky top-0 bg-white px-6 py-4 border-b z-10">
+      <div className="sticky top-0 bg-white px-6 py-4 border-b z-20">
         <h2 className="text-2xl font-semibold">{tripData.city}</h2>
         {tripData.dateRange && (
           <div className="flex items-center gap-2 text-gray-600 mt-2">
             <Calendar className="w-4 h-4" />
             <span>
-              {tripData.dateRange.from?.toLocaleDateString()} - {tripData.dateRange.to?.toLocaleDateString()}
+              {tripData.dateRange.from?.toLocaleDateString("en-UK")} - {tripData.dateRange.to?.toLocaleDateString("en-UK")}
             </span>
           </div>
         )}
@@ -147,9 +152,9 @@ const ItineraryPoints = ({
       <Tabs 
         value={activeTab} 
         onValueChange={(value) => setActiveTab(value as TabType)}
-        className="flex-1 flex flex-col"
+        className="flex-1 flex flex-col overflow-hidden"
       >
-        <div className="px-6 pt-6">
+        <div className="px-6 pt-6 bg-white sticky top-0 z-10">
           <TabsList 
             className={cn(
               "h-12 w-full bg-gray-100 p-1",
@@ -196,25 +201,27 @@ const ItineraryPoints = ({
           </TabsList>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-6">
-          <TabsContent 
-            value="itinerary" 
-            className="mt-0 h-full data-[state=inactive]:hidden"
-          >
-            {renderTabContent()}
-          </TabsContent>
-          <TabsContent 
-            value="saved" 
-            className="mt-0 h-full data-[state=inactive]:hidden"
-          >
-            {renderTabContent()}
-          </TabsContent>
-          <TabsContent 
-            value="search" 
-            className="mt-0 h-full data-[state=inactive]:hidden"
-          >
-            {renderTabContent()}
-          </TabsContent>
+        <div className="flex-1 overflow-y-auto">
+          <div className="p-6">
+            <TabsContent 
+              value="itinerary" 
+              className="mt-0 data-[state=inactive]:hidden"
+            >
+              {renderTabContent()}
+            </TabsContent>
+            <TabsContent 
+              value="saved" 
+              className="mt-0 data-[state=inactive]:hidden"
+            >
+              {renderTabContent()}
+            </TabsContent>
+            <TabsContent 
+              value="search" 
+              className="mt-0 data-[state=inactive]:hidden"
+            >
+              {renderTabContent()}
+            </TabsContent>
+          </div>
         </div>
       </Tabs>
     </Card>

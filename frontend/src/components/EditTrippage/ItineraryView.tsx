@@ -39,7 +39,7 @@ const ItineraryView = ({
   }, [deleteItineraryPOI]);
 
   return (
-    <Card className="w-2/3 h-[calc(100vh-7rem)] overflow-hidden bg-white p-6 rounded-lg">
+    <Card className="w-full h-[calc(100vh-7rem)] overflow-hidden bg-white p-6 rounded-lg">
       <div className="flex justify-between items-center mb-4">
         <div>
           <h2 className="text-2xl font-bold">Trip Itinerary</h2>
@@ -49,8 +49,15 @@ const ItineraryView = ({
         </div>
       </div>
 
-      <div className="h-[calc(100vh-11rem)] overflow-x-auto overflow-y-auto">
-        <div className="min-w-[1200px]">
+      <div 
+        className="h-[calc(100vh-11rem)] overflow-x-scroll overflow-y-auto scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-100" 
+        style={{ 
+          WebkitOverflowScrolling: 'touch',
+          scrollbarWidth: 'auto',
+          msOverflowStyle: 'auto'
+        }}
+      >
+        <div className="min-w-max pb-8">
           <ItineraryDayContainer
             pois={pois}
             tripData={tripData}

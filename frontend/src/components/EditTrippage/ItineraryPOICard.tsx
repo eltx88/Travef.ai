@@ -5,6 +5,7 @@ import { Phone, Mail, Clock, Info } from "lucide-react";
 import type { ItineraryPOI } from "@/Types/InterfaceTypes";
 import { FC, useMemo, useState } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { HoverCard,HoverCardContent,HoverCardTrigger } from '@radix-ui/react-hover-card';
 
 // TEMPORARY PLACEHOLDER IMAGES
 const DEFAULT_ATTRACTION_IMAGE = "https://fastly.picsum.photos/id/57/2448/3264/4336.jpg?hmac=iS-l9m6Vq7wE-m9x6n9_d72mN2_l72j-c99y9v9j9cI";
@@ -12,12 +13,13 @@ const DEFAULT_RESTAURANT_IMAGE = "https://fastly.picsum.photos/id/431/5000/3334.
 
 interface ItineraryPOICardProps {
   poi: ItineraryPOI;
-  onUpdate?: (updatedPOI: ItineraryPOI) => void;
+  dayOptions?: number[];
+  onAddToItinerary?: (poi: ItineraryPOI, day: number) => void; 
 }
 
 // Helper function to convert minutes to HH:MM
 function minutesToHHMM(minutes: number): string {
-  if (minutes === -1) return "-1"; // Handle -1 case
+  if (minutes === -1) return "-1";
   const hours = Math.floor(minutes / 60);
   const mins = minutes % 60;
   return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
@@ -27,14 +29,23 @@ const getDefaultImage = (type: string) => {
   return type === 'restaurant' ? DEFAULT_RESTAURANT_IMAGE : DEFAULT_ATTRACTION_IMAGE;
 };
 
-const ItineraryPOICard: FC<ItineraryPOICardProps> = ({ poi }) => {
+const ItineraryPOICard: FC<ItineraryPOICardProps> = ({ poi, dayOptions, onAddToItinerary }) => {
+  const [selectedDay, setSelectedDay] = useState<number | null>(null);
+
   const openWebsite = (e: React.MouseEvent, url: string) => {
     e.preventDefault();
     window.open(url, "_blank");
-  }
+  };
 
   const displayStartTime = useMemo(() => minutesToHHMM(poi.StartTime), [poi.StartTime]);
   const displayEndTime = useMemo(() => minutesToHHMM(poi.EndTime), [poi.EndTime]);
+
+  const handleAddToItinerary = () => {
+    if (selectedDay !== null && onAddToItinerary) {
+      onAddToItinerary(poi, selectedDay);
+    }
+  };
+
 
   return (
     <Card className="h-full bg-white shadow-md hover:shadow-lg transition-shadow cursor-pointer">
@@ -93,7 +104,7 @@ const ItineraryPOICard: FC<ItineraryPOICardProps> = ({ poi }) => {
               )}
             </div>
           </div>
-
+          
           {/* More Details Dialog */}
           <div className="mt-auto">
             <Dialog>
@@ -101,7 +112,7 @@ const ItineraryPOICard: FC<ItineraryPOICardProps> = ({ poi }) => {
                 <Button
                   variant="outline"
                   size="sm"
-                  className="w-full hover:bg-blue-200"
+                  className="w-full hover:bg-blue-200 mt-2"
                   onClick={(e) => e.stopPropagation()}
                 >
                   <Info className="h-4 w-4 mr-2" />
@@ -206,10 +217,59 @@ const ItineraryPOICard: FC<ItineraryPOICardProps> = ({ poi }) => {
               </DialogContent>
             </Dialog>
           </div>
+
+           {/* Add to Itinerary Button (only shown in Saved tab) */}
+           {poi.day === -1 && dayOptions && onAddToItinerary && (
+            <div className="mt-2">
+              <HoverCard openDelay={0} closeDelay={200}>
+                <HoverCardTrigger asChild>
+                  <Button className="w-full h-10 bg-blue-600 hover:bg-blue-700 text-white">
+                    Add to Itinerary
+                  </Button>
+                </HoverCardTrigger>
+                <HoverCardContent 
+                  className="w-64 p-4 bg-white border border-gray-200 shadow-lg rounded-md z-[100]" 
+                  sideOffset={5}
+                >
+                  <div className="space-y-3">
+                    <Select 
+                      value={selectedDay?.toString() || ''} 
+                      onValueChange={(value) => setSelectedDay(Number(value))}
+                    >
+                      <SelectTrigger className="w-full bg-white border border-gray-200 cursor-pointer [&>*]:cursor-pointer">
+                        <SelectValue placeholder="Select a day" className="cursor-pointer [&>*]:cursor-pointer" />
+                      </SelectTrigger>
+                      <SelectContent 
+                        position="popper" 
+                        className="z-[101] bg-white border border-gray-200 cursor-pointer [&>*]:cursor-pointer"
+                      >
+                        {dayOptions.map((day) => (
+                          <SelectItem 
+                            key={day} 
+                            value={day.toString()} 
+                            className="cursor-pointer hover:bg-blue-50 [&>*]:cursor-pointer"
+                          >
+                            Day {day}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                      <Button 
+                        onClick={handleAddToItinerary}
+                        disabled={!selectedDay}
+                        className="w-full bg-blue-600 hover:bg-blue-700 text-white disabled:bg-blue-300"
+                      >
+                        Submit
+                      </Button>
+                    </div>
+                  </HoverCardContent>
+                </HoverCard>
+              </div>
+            )}
+
         </div>
       </CardContent>
     </Card>
   );
 };
-
 export default ItineraryPOICard;

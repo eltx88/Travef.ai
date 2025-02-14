@@ -24,10 +24,9 @@ const ItineraryDayContainer = ({
   const CELLS_PER_HOUR = 2;
   const TOTAL_CELLS = (END_HOUR - START_HOUR) * CELLS_PER_HOUR;
   const DAY_HEIGHT = 100;
-  const DAY_SPACING = 2; // Spacing between days
-  const DAY_LABEL_WIDTH = 120; // Increased width for day labels
+  const DAY_SPACING = 2; 
+  const DAY_LABEL_WIDTH = 120; 
 
-  // Your existing state and helper functions remain the same
   const [gridPositions, setGridPositions] = useState<Map<string, { x: number, y: number, w: number }>>(
     new Map(pois.map(poi => [
       poi.id,
@@ -39,7 +38,6 @@ const ItineraryDayContainer = ({
     ]))
   );
 
-  // Existing helper functions...
   function timeToGridPosition(time: number): number {
     if (time === -1) return -1;
     const hoursFromStart = Math.floor(time / 60) - START_HOUR;
@@ -127,29 +125,42 @@ const ItineraryDayContainer = ({
   };
 
   return (
-  <div className="relative mb-8 bg-white rounded-lg shadow-md p-6 border border-gray-300">
+  <div 
+    className="relative mb-8 bg-white rounded-lg shadow-md p-6 border border-gray-300" 
+    style={{ 
+      width: `${DAY_LABEL_WIDTH + (TOTAL_CELLS * CELL_SIZE) + 100}px`,
+      minWidth: `${DAY_LABEL_WIDTH + (TOTAL_CELLS * CELL_SIZE) + 100}px`
+    }}>
     <div className="flex">
-      {/* Day Labels Column */}
-      <div className="flex-none sticky left-0 bg-white" style={{ width: `${DAY_LABEL_WIDTH}px`, zIndex: 10 }}>
-        <div className="h-8" /> {/* Empty space to align with timeline header */}
+      {/* Day Labels Column*/}
+      <div className="flex-none bg-white" style={{ width: `${DAY_LABEL_WIDTH}px`, zIndex: 10 }}>
+        <div className="h-8" /> 
         <div className="flex flex-col">
-          {Array.from({ length: tripData.monthlyDays }).map((_, i) => (
-            <div
-              key={i}
-              className="flex flex-col justify-center px-4"
-              style={{ height: `${DAY_HEIGHT + (i < tripData.monthlyDays - 1 ? DAY_SPACING : 0)}px` }}
-            >
-              <div className="font-semibold">Day {i + 1}</div>
-              <div className="text-sm text-gray-500">Sat, 1 Feb</div>
-            </div>
-          ))}
+          {Array.from({ length: tripData.monthlyDays }).map((_, i) => {
+            const startDate = new Date(tripData.dateRange.from);
+            const currentDate = new Date(startDate);
+            currentDate.setDate(startDate.getDate() + i);
+            
+            return (
+              <div
+                key={i}
+                className="flex flex-col justify-center px-4"
+                style={{ height: `${DAY_HEIGHT + (i < tripData.monthlyDays - 1 ? DAY_SPACING : 0)}px` }}
+              >
+                <div className="font-semibold">Day {i + 1}</div>
+                <div className="text-sm text-gray-500">
+                  {currentDate.toLocaleDateString('en-UK', { weekday: 'short', day: 'numeric', month: 'short' })}
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
 
       {/* Main Grid Container */}
       <div className="flex-1">
         {/* Timeline Header */}
-        <div className="flex mb-2 sticky top-0 bg-white" style={{ zIndex: 5 }}>
+        <div className="flex mb-2 bg-white" style={{ zIndex: 5 }}>
           {Array.from({ length: END_HOUR - START_HOUR + 1 }).map((_, i) => (
             <div
               key={i}
@@ -168,12 +179,12 @@ const ItineraryDayContainer = ({
             {Array.from({ length: tripData.monthlyDays }).map((_, i) => (
               <div
                 key={i}
-                className="absolute w-full bg-gray-50 rounded-lg border border-gray-200"
+                className="absolute bg-gray-50 rounded-lg border border-gray-200"
                 style={{
                   height: `${DAY_HEIGHT -2}px`,
+                  width: `${TOTAL_CELLS * CELL_SIZE}px`, // Match timeline width
                   top: `${i * (DAY_HEIGHT + DAY_SPACING)}px`,
                   left: 0,
-                  right: 0
                 }}
               />
             ))}
@@ -198,9 +209,11 @@ const ItineraryDayContainer = ({
               resizeHandles={['e', 'w']}
               preventCollision
               compactType={null}
+              maxRows={tripData.monthlyDays}
             >
               {pois.map(poi => {
                 const position = gridPositions.get(poi.id);
+                if (poi.day > tripData.monthlyDays) return null;
                 return (
                   <div key={poi.id}>
                     <ItineraryDynamicPOI
@@ -236,7 +249,7 @@ const ItineraryDayContainer = ({
                 `,
                 backgroundSize: `${CELL_SIZE * 2}px 100%`,
                 zIndex: 1,
-                marginLeft: '-1px' // Adjust for border alignment
+                marginLeft: '-1px'
               }}
             />
           </div>
