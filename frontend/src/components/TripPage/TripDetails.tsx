@@ -33,6 +33,7 @@ export function TripDetails({ tripData, onEdit }: TripDetailsProps) {
           country: tripData.country,
           lat: tripData.coordinates.lat,
           lng: tripData.coordinates.lng,
+          createdDT: new Date(),
           initialized: true
         },
         replace: true
@@ -43,7 +44,7 @@ export function TripDetails({ tripData, onEdit }: TripDetailsProps) {
       setIsLoading(false);
     }
   };
-
+  console.log(tripData)
   return (
     <Card className="w-full max-w-3xl mx-auto">
       <CardHeader className="border-b">

@@ -47,12 +47,13 @@ export default function TripCreationCarousel({ onComplete, initialData }: TripCr
         lat: location.state?.lat || 0,
         lng: location.state?.lng || 0
       },
-      dateRange: null,
+      dateRange: undefined,
       monthlyDays: 0,
       interests: new Set<string>(),
       customInterests: new Set<string>(),
       foodPreferences: new Set<string>(),
-      customFoodPreferences: new Set<string>()
+      customFoodPreferences: new Set<string>(),
+      createdDT: new Date()
     };
   });
   const [showInterestDialog, setShowInterestDialog] = useState(false);
@@ -249,7 +250,7 @@ export default function TripCreationCarousel({ onComplete, initialData }: TripCr
                   <div className="flex gap-4 px-4">
                     <Calendar
                       mode="range"
-                      selected={tripData.dateRange || undefined}
+                      selected={tripData.dateRange ?? undefined}
                       onSelect={handleDateSelect}
                       disabled={(date) => 
                         tripData.dateRange?.from ? 

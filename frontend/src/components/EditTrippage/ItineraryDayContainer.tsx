@@ -137,7 +137,7 @@ const ItineraryDayContainer = ({
         <div className="h-8" /> 
         <div className="flex flex-col">
           {Array.from({ length: tripData.monthlyDays }).map((_, i) => {
-            const startDate = new Date(tripData.dateRange.from);
+            const startDate = new Date(tripData.dateRange?.from || new Date());
             const currentDate = new Date(startDate);
             currentDate.setDate(startDate.getDate() + i);
             

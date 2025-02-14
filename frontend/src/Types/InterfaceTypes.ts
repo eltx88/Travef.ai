@@ -58,14 +58,15 @@ export interface TripData {
   country: string;
   coordinates: Coordinates;
   dateRange: {
-    from: Date;
-    to: Date;
-  };
+    from: Date | undefined;
+    to: Date | undefined;
+  } | undefined;
   monthlyDays: number;
   interests: Set<string>;
   customInterests: Set<string>;
   foodPreferences: Set<string>;
   customFoodPreferences: Set<string>;
+  createdDT: Date;
 }
 
 export interface WikidataImageResponse {

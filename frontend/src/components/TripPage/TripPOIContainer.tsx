@@ -173,7 +173,7 @@ const TripPOIContainer = ({ tripData, pois, savedpois, setIsGenerating }: TripPO
       const apiClient = new ApiClient({
         getIdToken: async () => user.getIdToken()
       });
-      
+      console.log(tripData)
       const generationService = new TripGenerationService(apiClient);
       const generatedTrip = await generationService.generateTrip(tripData, shortenedAttractionPOIs,shortenedFoodPOIs,);
       //TODO generatedTrip has new suggested places, may want to call api here to match suggested to places api then only go to the new page
