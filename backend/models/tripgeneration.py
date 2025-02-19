@@ -20,6 +20,7 @@ class DateRange(BaseModel):
 class TripData(BaseModel):
     city: str
     country: str
+    coordinates: Coordinates
     date_range: Optional[DateRange] = None
     monthly_days: Optional[int] = None
     interests: List[str]

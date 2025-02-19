@@ -1,23 +1,25 @@
 from pydantic import BaseModel
-from typing import List, Optional
+from typing import List, Optional, Dict
+
+class Location(BaseModel):
+    latitude: float
+    longitude: float
 
 class Place(BaseModel):
     place_id: str
     name: str
-    vicinity: Optional[str]
-    opening_hours: Optional[dict]
+    formatted_address: Optional[str]
     types: List[str]
+    primary_type: Optional[str]
     rating: Optional[float]
     user_ratings_total: Optional[int]
-    photos: Optional[List[dict]]
-    geometry: Optional[dict]
+    photo_name: Optional[str]
+    location: Location
 
-class PlaceDetails(BaseModel):
-    place_id: str
-    name: str
-    formatted_address: Optional[str]
-    international_phone_number: Optional[str]
-    website: Optional[str]
-    rating: Optional[float]
-    reviews: Optional[List[dict]]
-    photos: Optional[List[dict]]
+class PlaceWithPhotoUrl(Place):
+    photo_url: Optional[str]
+
+    @classmethod
+    def from_place(cls, place: Place, photo_url: Optional[str] = None):
+        place_dict = place.model_dump()
+        return cls(**place_dict, photo_url=photo_url)
