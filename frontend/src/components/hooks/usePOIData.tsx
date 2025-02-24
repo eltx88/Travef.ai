@@ -5,7 +5,7 @@ import { useLocation } from '@/contexts/LocationContext';
 import { useDebounce } from './debounce';
 import { poiCacheService } from './poiCacheService';
 import { usePagination } from './usePagination';
-import ApiClient from '@/Api/ApiClient';
+import ApiClient from '@/Api/apiClient';
 const categoryMapping: Record<POIType, string> = {
     hotel: 'accommodation',
     restaurant: 'catering',

@@ -25,7 +25,6 @@ export function TripDetails({ tripData, onEdit }: TripDetailsProps) {
         tripData.coordinates.lat
       );
 
-      console.log('Trip:', tripData);
       navigate('/custom-trip', { 
         state: { 
           tripData,
@@ -44,7 +43,6 @@ export function TripDetails({ tripData, onEdit }: TripDetailsProps) {
       setIsLoading(false);
     }
   };
-  console.log(tripData)
   return (
     <Card className="w-full max-w-3xl mx-auto">
       <CardHeader className="border-b">
@@ -72,12 +70,12 @@ export function TripDetails({ tripData, onEdit }: TripDetailsProps) {
         <div className="space-y-2">
           <h3 className="text-lg font-semibold">When</h3>
           <div className="flex items-center gap-2">
-            {tripData.dateRange ? (
+            {tripData.fromDT && tripData.toDT ? (
               <>
                 <Calendar className="h-5 w-5 text-blue-500" />
                 <p>
-                  {tripData.dateRange.from?.toLocaleDateString("en-GB")} - {" "}
-                  {tripData.dateRange.to?.toLocaleDateString("en-GB")}
+                  {tripData.fromDT?.toLocaleDateString("en-GB")} - {" "}
+                  {tripData.toDT?.toLocaleDateString("en-GB")}
                 </p>
               </>
             ) : (

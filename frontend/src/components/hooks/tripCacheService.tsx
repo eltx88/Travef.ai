@@ -14,7 +14,6 @@ interface TripCacheData {
 // Helper function to generate cache key
 const generateCacheKey = (city: string, createdDT: Date, userId: string) => {
   const key = `${CACHE_PREFIX}_${userId}_${city}_${createdDT.toISOString()}`;
-  console.log('Generated Cache Key:', key); // Debugging: Log the cache key
   return key;
 };
 
@@ -23,7 +22,6 @@ export const tripCacheService = {
     try {
       const user = useAuthStore.getState().user;
       if (!user) {
-        console.error('User not found. Cannot set cache.'); // Debugging: Log if user is missing
         return;
       }
 
@@ -34,7 +32,6 @@ export const tripCacheService = {
         city,
       };
 
-      console.log('Saving to Cache:', cacheKey, cacheData); // Debugging: Log cache data being saved
       localStorage.setItem(cacheKey, JSON.stringify(cacheData));
     } catch (error) {
       console.error('Trip cache storage error:', error);
@@ -45,7 +42,6 @@ export const tripCacheService = {
     try {
       const user = useAuthStore.getState().user;
       if (!user) {
-        console.error('User not found. Cannot get cache.'); // Debugging: Log if user is missing
         return null;
       }
 
@@ -53,11 +49,9 @@ export const tripCacheService = {
       const cached = localStorage.getItem(cacheKey);
 
       if (!cached) {
-        console.log('Cache Miss:', cacheKey); // Debugging: Log cache miss
         return null;
       }
 
-      console.log('Cache Hit:', cacheKey, JSON.parse(cached)); // Debugging: Log cache hit and data
       return JSON.parse(cached) as TripCacheData;
     } catch (error) {
       console.error('Trip cache retrieval error:', error);
@@ -69,12 +63,10 @@ export const tripCacheService = {
     try {
       const user = useAuthStore.getState().user;
       if (!user) {
-        console.error('User not found. Cannot clear cache.'); // Debugging: Log if user is missing
         return;
       }
 
       const cacheKey = generateCacheKey(city, createdDT, user.uid);
-      console.log('Clearing Cache:', cacheKey); // Debugging: Log cache being cleared
       localStorage.removeItem(cacheKey);
     } catch (error) {
       console.error('Trip cache clearing error:', error);
@@ -83,7 +75,6 @@ export const tripCacheService = {
 
   clearAll: () => {
     try {
-      console.log('Clearing All Cache'); // Debugging: Log clearing all cache
       Object.keys(localStorage).forEach(key => {
         if (key.startsWith(CACHE_PREFIX)) {
           localStorage.removeItem(key);
@@ -98,12 +89,10 @@ export const tripCacheService = {
     try {
       const currentCache = tripCacheService.get(city, createdDT);
       if (!currentCache) {
-        console.error('Cache not found. Cannot update.'); // Debugging: Log if cache is missing
         return;
       }
 
       const updatedCache = updateFn(currentCache);
-      console.log('Updating Cache:', updatedCache); // Debugging: Log updated cache
       tripCacheService.set(city, updatedCache);
     } catch (error) {
       console.error('Trip cache update error:', error);

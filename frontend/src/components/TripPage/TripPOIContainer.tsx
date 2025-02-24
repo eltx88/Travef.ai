@@ -7,7 +7,7 @@ import TripPOICard from './TripPOICard';
 import { useNavigate } from 'react-router-dom';
 import { TripGenerationService } from './TripGenerationService';
 import { useAuthStore } from '@/firebase/firebase';
-import ApiClient from '@/Api/ApiClient';
+import ApiClient from '@/Api/apiClient';
 
 interface TripPOIContainerProps {
   tripData: TripData;
@@ -173,10 +173,9 @@ const TripPOIContainer = ({ tripData, pois, savedpois, setIsGenerating }: TripPO
       const apiClient = new ApiClient({
         getIdToken: async () => user.getIdToken()
       });
-      console.log(tripData)
       const generationService = new TripGenerationService(apiClient);
-      const generatedTrip = await generationService.generateTrip(tripData, shortenedAttractionPOIs,shortenedFoodPOIs,);
-      //TODO generatedTrip has new suggested places, may want to call api here to match suggested to places api then only go to the new page
+      const generatedTrip = await generationService.generateTrip(tripData, shortenedAttractionPOIs,shortenedFoodPOIs);
+      console.log(generatedTrip)
       navigate('/edit-trip', {
         state: {
           attractionPOIs : allAttractionPOIs.filter(poi => selectedPOIs.has(poi.place_id)),
@@ -185,8 +184,7 @@ const TripPOIContainer = ({ tripData, pois, savedpois, setIsGenerating }: TripPO
           generatedItinerary: generatedTrip.itinerary,
           isNewTrip: true
         }
-      }
-    );
+      });
     } catch (error) {
       console.error('Failed to generate trip:', error);
     } finally {
@@ -216,11 +214,11 @@ const TripPOIContainer = ({ tripData, pois, savedpois, setIsGenerating }: TripPO
     <div className="h-full w-full bg-white rounded-lg overflow-y-auto">
       <div className="sticky top-0 bg-white px-6 py-4 border-b z-10">
         <h2 className="text-2xl font-semibold">{tripData.city}</h2>
-        {tripData.dateRange && (
+        {tripData.fromDT && tripData.toDT && (
           <div className="flex items-center gap-2 text-gray-600 mt-2">
             <Calendar className="w-4 h-4" />
             <span>
-              {tripData.dateRange.from?.toLocaleDateString()} - {tripData.dateRange.to?.toLocaleDateString()}
+              {tripData.fromDT?.toLocaleDateString("en-GB")} - {tripData.toDT?.toLocaleDateString("en-GB")}
             </span>
           </div>
         )}

@@ -38,6 +38,17 @@ export interface ItineraryPOI extends POI {
   duration: number;
 }
 
+//Used for DB response
+export interface ItineraryPOIDB {
+  PointID: string;
+  place_id: string;
+  day: number;
+  timeSlot: string;
+  StartTime: number;
+  EndTime: number;
+  duration: number;
+}
+
 export interface UserHistoryPoint {
   pointID: string;
   CreatedDT: Date;
@@ -57,10 +68,8 @@ export interface TripData {
   city: string;
   country: string;
   coordinates: Coordinates;
-  dateRange: {
-    from: Date | undefined;
-    to: Date | undefined;
-  } | undefined;
+  fromDT: Date | undefined;
+  toDT: Date | undefined;
   monthlyDays: number;
   interests: Set<string>;
   customInterests: Set<string>;
@@ -147,4 +156,24 @@ export interface ProcessedDay {
 export interface UnusedPOIs {
   Attractions: Array<{ place_id: string; name: string }>;
   Restaurants: Array<{ place_id: string; name: string }>;
+}
+
+export interface FetchedTripDetails {
+  tripData?: {
+    city: string;
+    country: string;
+    coordinates: Coordinates;
+    fromDT: Date | undefined;
+    toDT: Date | undefined;  
+    monthlyDays: number;
+    interests: Set<string>;     
+    customInterests: Set<string>;
+    foodPreferences: Set<string>;
+    customFoodPreferences: Set<string>;
+    createdDT: Date;
+    lastModified: Date;
+    version: number;
+  };
+  itineraryPOIs?: ItineraryPOI[];
+  unusedPOIs?: ItineraryPOI[];
 }

@@ -73,10 +73,35 @@ class PointOfInterestService(FirebaseService):
             logging.error(f"Error checking coordinates: {str(e)}")
             raise HTTPException(status_code=500, detail=str(e))
     
+    async def find_by_place_id(self, place_id: str, city: str, country: str) -> Optional[str]:
+        try:
+            # Query using place_id, city and country
+            query = self.get_collection_ref(self.collection_name)\
+                .where('place_id', '==', place_id)\
+                .where('city', '==', city)\
+                .where('country', '==', country)
+            
+            docs = query.get()
+            return next((doc.id for doc in docs), None)
+
+        except Exception as e:
+            logging.error(f"Error checking place_id: {str(e)}")
+            raise HTTPException(status_code=500, detail=str(e))
+    
     async def create_or_get_point(self, point_data: PointOfInterestResponse) -> str:
         """Create new POI if it doesn't exist, or return existing ID"""
         try:
-        # Check if POI exists at these coordinates
+            # First check if POI exists with this place_id
+            existing_id = await self.find_by_place_id(
+                point_data.place_id,
+                point_data.city,
+                point_data.country
+            )
+            
+            if existing_id:
+                return existing_id
+
+            # If not found by place_id, check coordinates as fallback
             existing_id = await self.find_by_coordinates(
                 point_data.coordinates.lat,
                 point_data.coordinates.lng,

@@ -6,6 +6,9 @@ import ItineraryPoints from '@/components/EditTrippage/ItineraryPoints';
 import ItineraryView from '@/components/EditTrippage/ItineraryView';
 import { processItinerary } from '@/components/EditTrippage/ItineraryProcessing';
 import { tripCacheService } from '@/components/hooks/tripCacheService';
+import { toast } from 'react-hot-toast';
+import ApiClient from '@/Api/apiClient';
+import { useAuthStore } from '@/firebase/firebase';
 
 interface LocationState {
   foodPOIs: POI[];
@@ -23,6 +26,7 @@ interface ItineraryState {
 function EditTripPage() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { user } = useAuthStore();
 
   if (!location.state) {
     useEffect(() => {
@@ -37,14 +41,11 @@ function EditTripPage() {
   const [itineraryState, setItineraryState] = useState<ItineraryState>(() => {
     const cached = tripCacheService.get(tripData.city, tripData.createdDT);
     if (cached) {
-      console.log('Initializing from Cache:', cached); // Debugging: Log cache initialization
       return {
         itineraryPOIs: cached.itineraryPOIs,
         unusedPOIs: cached.unusedPOIs,
       };
     }
-
-    console.log('Initializing from New Itinerary'); // Debugging: Log new itinerary initialization
     const processed = processItinerary(generatedItinerary, foodPOIs, attractionPOIs);
     return {
       itineraryPOIs: processed.ItineraryPOIs,
@@ -54,14 +55,12 @@ function EditTripPage() {
 
   // Update cache whenever itineraryState changes
   useEffect(() => {
-    console.log('Updating Cache with State:', itineraryState); // Debugging: Log state update
     tripCacheService.set(tripData.city, {
       itineraryPOIs: itineraryState.itineraryPOIs,
       unusedPOIs: itineraryState.unusedPOIs,
       tripData,
     });
   }, [itineraryState, tripData]);
-
 
   // Update itinerary POIs (for drag and drop updates)
   const updateItineraryPOIs = useCallback((updatedPOIs: ItineraryPOI[]) => {
@@ -176,14 +175,73 @@ function EditTripPage() {
       }
     }
 
-    return null; // No free time slot found
+    return null;
   };
 
+  // Logic for saving the itinerary
+  const [isSaving, setIsSaving] = useState<boolean>(false);
+  const apiClient = new ApiClient({
+    getIdToken: async () => {
+        if (!user) throw new Error('Not authenticated');
+        return user.getIdToken();
+    }
+  });
+
+  const handleSaveItinerary = async () => {
+    try {
+      if (!user) {
+        toast.error("Please login to save your itinerary");
+        return;
+      }
+
+      if (!itineraryState.itineraryPOIs || !tripData) {
+        toast.error("Missing itinerary data");
+        return;
+      }
+
+      setIsSaving(true);
+      const savingToast = toast.loading("Saving your itinerary...");
+      await apiClient.createOrGetTrip(
+        user.uid,
+        tripData,
+        itineraryState.itineraryPOIs,
+        itineraryState.unusedPOIs
+      );
+
+      toast.dismiss(savingToast);
+      toast.success("Itinerary saved successfully!", {
+        duration: 3000,
+        position: 'bottom-right'
+      });
+    } catch (error) {
+      console.error("Error saving itinerary:", error);
+            if (error instanceof Error) {
+        if (error.message.includes('version')) {
+          toast.error(
+            "Someone else has updated this itinerary. Please refresh and try again.",
+            { duration: 5000 }
+          );
+        } else if (error.message.includes('network')) {
+          toast.error(
+            "Network error. Please check your connection and try again.",
+            { duration: 5000 }
+          );
+        } else {
+          toast.error("Failed to save itinerary. Please try again.");
+        }
+      } else {
+        toast.error("An unexpected error occurred. Please try again.");
+      }
+  
+    } finally {
+      setIsSaving(false);
+    }
+  };
   return (
     <div className="flex flex-col min-h-screen bg-blue-100">
       <NavigationMenuBar />
       <main className="flex-grow p-4">
-        <div className="flex h-full gap-4">
+        <div className="flex h-full gap-4">          
           <ItineraryPoints
             tripData={tripData}
             itineraryPOIs={itineraryState.itineraryPOIs}
@@ -195,6 +253,8 @@ function EditTripPage() {
             tripData={tripData}
             updateItineraryPOIs={updateItineraryPOIs}
             deleteItineraryPOI={deleteItineraryPOI}
+            saveItinerary={handleSaveItinerary}
+            isSaving={isSaving}
           />
         </div>
       </main>

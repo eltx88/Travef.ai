@@ -12,16 +12,12 @@ class POI(BaseModel):
     type: str
     coordinates: Coordinates
 
-class DateRange(BaseModel):
-    # Use Field with alias for the "from" field
-    from_date: datetime = Field(..., alias='from')
-    to: datetime
-
 class TripData(BaseModel):
     city: str
     country: str
     coordinates: Coordinates
-    date_range: Optional[DateRange] = None
+    fromDT: datetime
+    toDT: datetime
     monthly_days: Optional[int] = None
     interests: List[str]
     food_preferences: List[str]

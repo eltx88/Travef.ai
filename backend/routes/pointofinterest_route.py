@@ -26,7 +26,7 @@ async def create_or_get_point(
 ) -> str:
     """Create a new point of interest"""
     try:
-        point_data = PointOfInterestResponse(**request['poi_data'])  # Convert dict to model
+        point_data = PointOfInterestResponse(**request['poi_data'])
         logging.info(f"Creating POI with data: {point_data}")
         point_id = await poi_service.create_or_get_point(point_data)
         logging.info(f"Created/Found POI with ID: {point_id}")

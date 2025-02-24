@@ -16,6 +16,7 @@ const POICard = ({
   name, 
   address, 
   city,
+  country,
   type,
   coordinates,
   onSave,
@@ -38,6 +39,7 @@ const POICard = ({
         name,
         address,
         city,
+        country,
         coordinates,
         type,
       });         

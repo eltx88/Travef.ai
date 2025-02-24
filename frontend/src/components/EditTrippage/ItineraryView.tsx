@@ -8,13 +8,17 @@ interface ItineraryViewProps {
   tripData: TripData;
   updateItineraryPOIs?: (updatedPOIs: ItineraryPOI[]) => void;
   deleteItineraryPOI?: (deletedPOI: ItineraryPOI) => void;
+  saveItinerary?: () => void;
+  isSaving?: boolean;
 }
 
 const ItineraryView = ({ 
   itineraryPOIs, 
   tripData, 
   updateItineraryPOIs, 
-  deleteItineraryPOI 
+  deleteItineraryPOI,
+  saveItinerary,
+  isSaving
 }: ItineraryViewProps) => {
   const [pois, setPois] = useState<ItineraryPOI[]>([]);
 
@@ -64,6 +68,19 @@ const ItineraryView = ({
             onUpdatePOI={handlePOIUpdate}
             onDeletePOI={handleDeletePOI}
           />
+          <div className="sticky bottom-4 right-0 w-full flex justify-left mt-4">
+            <button 
+              className={`px-6 py-3 rounded-lg shadow-lg transition-colors duration-200 flex items-center gap-2
+                ${isSaving 
+                  ? 'bg-gray-400 cursor-not-allowed' 
+                  : 'bg-blue-600 hover:bg-blue-700'} 
+                text-white`}
+              onClick={saveItinerary}
+              disabled={isSaving}
+            >
+              <span>{isSaving ? 'Saving...' : 'Save Itinerary'}</span>
+            </button>
+          </div>
         </div>
       </div>
     </Card>

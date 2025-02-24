@@ -47,7 +47,8 @@ export default function TripCreationCarousel({ onComplete, initialData }: TripCr
         lat: location.state?.lat || 0,
         lng: location.state?.lng || 0
       },
-      dateRange: undefined,
+      fromDT: undefined,
+      toDT: undefined,
       monthlyDays: 0,
       interests: new Set<string>(),
       customInterests: new Set<string>(),
@@ -121,19 +122,15 @@ export default function TripCreationCarousel({ onComplete, initialData }: TripCr
       const limitedTo = addDays(range.from, 6);
       setTripData({
         ...tripData,
-        dateRange: {
-          from: range.from,
-          to: limitedTo
-        },
+        fromDT: range.from,
+        toDT: limitedTo,
         monthlyDays: differenceInDays(limitedTo, range.from) + 1,
       });
     } else {
       setTripData({
         ...tripData,
-        dateRange: {
-          from: range.from,
-          to
-        },
+        fromDT: range.from,
+        toDT: to,
         monthlyDays: daysDiff + 1,
       });
     }
@@ -237,12 +234,12 @@ export default function TripCreationCarousel({ onComplete, initialData }: TripCr
               <div className="space-y-4">
                 <h2 className="text-4xl font-bold text-center">When are you going?</h2>
                 <p className="text-xl text-gray-600 text-center">Choose a date range, up to 7 days.</p>
-                {tripData.dateRange?.from && (
+                {tripData.fromDT && (
                   <div className="text-center text-lg text-blue-600">
-                    {tripData.dateRange.to ? (
-                      <>{format(tripData.dateRange.from, "PPP")} to {format(tripData.dateRange.to, "PPP")}</>
+                    {tripData.toDT ? (
+                      <>{format(tripData.fromDT, "PPP")} to {format(tripData.toDT, "PPP")}</>
                     ) : (
-                      <>Selected: {format(tripData.dateRange.from, "PPP")}</>
+                      <>Selected: {format(tripData.fromDT, "PPP")}</>
                     )}
                   </div>
                 )}
@@ -250,11 +247,14 @@ export default function TripCreationCarousel({ onComplete, initialData }: TripCr
                   <div className="flex gap-4 px-4">
                     <Calendar
                       mode="range"
-                      selected={tripData.dateRange ?? undefined}
+                      selected={tripData.fromDT && tripData.toDT ? {
+                        from: tripData.fromDT,
+                        to: tripData.toDT
+                      } : undefined}
                       onSelect={handleDateSelect}
                       disabled={(date) => 
-                        tripData.dateRange?.from ? 
-                        date > new Date(tripData.dateRange.from.getTime() + 6 * 24 * 60 * 60 * 1000) : 
+                        tripData.fromDT ? 
+                        date > new Date(tripData.fromDT.getTime() + 6 * 24 * 60 * 60 * 1000) : 
                         false
                       }
                       numberOfMonths={2}

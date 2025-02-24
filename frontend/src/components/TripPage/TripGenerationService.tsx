@@ -1,4 +1,4 @@
-import ApiClient from '@/Api/ApiClient';
+import ApiClient from '@/Api/apiClient';  
 import type { TripData } from '@/Types/InterfaceTypes';
 
 export interface GeneratedTrip {
@@ -28,10 +28,9 @@ async generateTrip(tripData: TripData, attractionpois: MinimalPOI[], foodpois: M
           trip_data: {
               city: tripData.city,
               country: tripData.country,
-              date_range: tripData.dateRange ? {
-                  from: tripData.dateRange.from.toISOString(),
-                  to: tripData.dateRange.to.toISOString()
-              } : null,
+              coordinates: tripData.coordinates,
+              fromDT: tripData.fromDT,
+              toDT: tripData.toDT,
               monthly_days: tripData.monthlyDays,
               interests: Array.from(tripData.interests),
               food_preferences: Array.from(tripData.foodPreferences),

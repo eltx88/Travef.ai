@@ -15,7 +15,7 @@ function CreateTripPage() {
   };
 
   const handleEdit = () => {
-    setIsEditing(true);; // This will return to the carousel with existing data
+    setIsEditing(true);
   };
 
   return (

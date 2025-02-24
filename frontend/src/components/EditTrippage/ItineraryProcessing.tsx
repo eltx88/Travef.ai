@@ -1,13 +1,16 @@
 import { ItineraryPOI, POI, POIType, UnusedPOIs, RawItineraryData, ItineraryDay, ItineraryTimeSlot, ItineraryPOIData } from '@/Types/InterfaceTypes';
 
 function timeStringToMinutes(timeString: string): number {
-  const [hours, minutes] = timeString.split(":").map(Number);
-
-  if (isNaN(hours) || isNaN(minutes) || hours < 0 || hours > 23 || minutes < 0 || minutes > 59) {
-      throw new Error("Invalid time format.  Must be HH:MM"); // Handle invalid input
+  try {
+      const [hours, minutes] = timeString.split(":").map(Number);
+      if (isNaN(hours) || isNaN(minutes) || hours < 0 || hours > 23 || minutes < 0 || minutes > 59) {
+        return -1;
+      }
+      return hours * 60 + minutes;
+  } catch (error) {
+    console.error("Error converting time string to minutes:", error);
+    return -1;
   }
-
-  return hours * 60 + minutes;
 }
 
 // Helper to create unused POI with numeric values
