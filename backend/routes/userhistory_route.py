@@ -1,3 +1,4 @@
+from models.trip import UserTrip
 from fastapi import APIRouter, Depends, Body
 from typing import Dict, List
 from services.userhistory_service import UserHistoryService
@@ -52,3 +53,10 @@ async def save_trip_to_history(
     """Save a trip to user's history"""
     await user_history_service.save_trip_to_history(user_id, trip_doc_id, trip_id, city, country, fromDT, toDT, monthlyDays)
     return {"message": "Trip saved to history successfully"}
+
+@router.get("/saved-trips")
+async def get_user_trips(
+    user_id: str = Depends(verify_firebase_token)
+) -> List[UserTrip]:
+    """Get all saved trips for a user"""
+    return await user_history_service.get_user_saved_trips(user_id)

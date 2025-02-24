@@ -1,4 +1,6 @@
+from datetime import datetime
 import logging
+from models.trip import UserTrip
 from .firebase_service import FirebaseService
 from models.userhistory import SavedPOI
 from firebase_admin import firestore
@@ -186,17 +188,24 @@ class UserHistoryService(FirebaseService):
             raise HTTPException(status_code=500, detail=str(e))
 
     # Update the get_user_saved_trips method to use the correct field name
-    async def get_user_saved_trips(self, user_id: str) -> List[Dict]:
+    async def get_user_saved_trips(self, user_id: str) -> List[UserTrip]:
         """Get all saved trips for a user"""
         try:
             user_history_ref = self.get_collection_ref(self.collection_name).document(user_id)
-            saved_itineraries = await user_history_ref.collection('savedItineraries').get()
-            
-            return [{
-                'trip_id': doc.get('trip_id'),  # Updated field name
-                'savedAt': doc.get('savedAt')
-            } for doc in saved_itineraries]
+            saved_itineraries_ref = user_history_ref.collection('savedItineraries') 
 
+            query = saved_itineraries_ref.where("status", "==", True)
+            saved_itineraries = query.get()
+            user_trips = []
+            
+            for doc in saved_itineraries:
+                trip_data = doc.to_dict()
+                trip_data['fromDT'] = datetime.strptime(trip_data['fromDT'], "%Y-%m-%dT%H:%M:%S.%fZ")
+                trip_data['toDT'] = datetime.strptime(trip_data['toDT'], "%Y-%m-%dT%H:%M:%S.%fZ") 
+                user_trip = UserTrip(**trip_data, trip_doc_id=doc.id) 
+                user_trips.append(user_trip)
+
+            return user_trips
         except Exception as e:
             logging.error(f"Error getting user saved trips: {str(e)}")
             raise HTTPException(status_code=500, detail=str(e))

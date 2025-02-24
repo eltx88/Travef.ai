@@ -1,4 +1,4 @@
-import type { POI, WikidataImageResponse, ExploreParams, TripData, ItineraryPOI, FetchedTripDetails, ItineraryPOIDB, ItineraryPOIChanges } from '../Types/InterfaceTypes';
+import type { POI, WikidataImageResponse, ExploreParams, TripData, ItineraryPOI, FetchedTripDetails, ItineraryPOIDB, ItineraryPOIChanges, UserTrip } from '../Types/InterfaceTypes';
 
 interface ApiClientConfig {
   getIdToken: () => Promise<string>;
@@ -458,9 +458,22 @@ async getNearbyPlacesByTypes(
       return changes;
     }
   
-  async getUserSavedTrips() {
-    return this.fetchWithAuth('/user/history/saved-trips');
-  }
+    async getUserTrips(): Promise<UserTrip[]> {
+      try {
+        const savedTrips = await this.fetchWithAuth('/user/history/saved-trips');
+        
+        savedTrips.forEach((trip: UserTrip) => {
+          trip.fromDT = new Date(trip.fromDT);
+          trip.toDT = new Date(trip.toDT);
+        });
+
+        return savedTrips;
+      } catch (error) {
+        console.error('Error fetching user\'s trips:', error);
+        throw error;
+      }
+    }
+
 }
 
 export default ApiClient;

@@ -94,3 +94,14 @@ class TripUpdateRequest(BaseModel):
 
     class Config:
         populate_by_name = True
+
+# User Trip Model used for the query on the homepage to display the trips
+class UserTrip(BaseModel):
+    trip_doc_id: str
+    trip_id: str
+    city: str
+    country: str
+    fromDT: datetime
+    toDT: datetime
+    monthlyDays: int
+    status: bool

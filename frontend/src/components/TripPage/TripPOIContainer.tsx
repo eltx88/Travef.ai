@@ -175,7 +175,6 @@ const TripPOIContainer = ({ tripData, pois, savedpois, setIsGenerating }: TripPO
       });
       const generationService = new TripGenerationService(apiClient);
       const generatedTrip = await generationService.generateTrip(tripData, shortenedAttractionPOIs,shortenedFoodPOIs);
-      console.log(generatedTrip)
       navigate('/edit-trip', {
         state: {
           attractionPOIs : allAttractionPOIs.filter(poi => selectedPOIs.has(poi.place_id)),

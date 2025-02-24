@@ -63,7 +63,7 @@ export interface SearchCity {
   lng: string;
 }
 
-//Used to store data for Trip Creation after carousel submission
+//Used to store data for Trip Creation after carousel submission as well as displa trips in homepage
 export interface TripData {
   city: string;
   country: string;
@@ -206,3 +206,14 @@ export interface ItineraryPOIChanges {
       place_id: string,
     }>
 }
+
+export interface UserTrip {
+  trip_doc_id: string;
+  trip_id: string;
+  city: string;
+  country: string;
+  fromDT: Date;
+  toDT: Date;
+  monthlyDays: number;
+}
+
