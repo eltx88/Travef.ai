@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
-from models.trip import SaveTripRequest, TripDetails
+from models.trip import SaveTripRequest, TripDetails, TripUpdateRequest
 from services.trip_service import TripService
 from typing import Dict
 from .auth import verify_firebase_token
@@ -37,3 +37,13 @@ async def get_trip_details(
     trip_service = TripService()
     return await trip_service.get_trip_details(trip_doc_id)
 
+@router.put("/update/{trip_doc_id}")
+async def update_trip(
+    trip_doc_id: str,
+    request: TripUpdateRequest,
+    user_id: str = Depends(verify_firebase_token)
+) -> Dict[str, str]:
+    """Update an existing trip"""
+    trip_service = TripService()
+    trip_service.update_trip(trip_doc_id, request) 
+    return {"message": "Trip updated successfully"}

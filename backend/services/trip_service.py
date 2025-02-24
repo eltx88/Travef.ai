@@ -3,7 +3,7 @@ from typing import List, Dict, Optional
 from fastapi import HTTPException
 from .firebase_service import FirebaseService
 from .userhistory_service import UserHistoryService
-from models.trip import Coordinates, SaveTripRequest, TripDB, ItineraryPOI, TripData, TripDetails, UnusedPOI
+from models.trip import Coordinates, SaveTripRequest, TripDB, ItineraryPOI, TripData, TripDetails, TripUpdateRequest, UnusedPOI
 import logging
 from firebase_admin import firestore
 
@@ -132,4 +132,81 @@ class TripService(FirebaseService):
             )
         except Exception as e:
             logging.error(f"Error getting trip details: {str(e)}")
+            raise HTTPException(status_code=500, detail=str(e))
+
+    def update_trip(self, trip_doc_id: str, request: TripUpdateRequest) -> None:
+        """Update trip with changes"""
+        try:
+            trip_ref = self.get_collection_ref(self.collection_name).document(trip_doc_id)
+            batch = self.db.batch()
+
+            # Update trip data if changed
+            if request.tripDataChanged:
+                trip_updates = {
+                    k: v for k, v in request.tripDataChanged.dict().items() 
+                    if v is not None
+                }
+                if trip_updates:
+                    trip_updates['lastModifiedDT'] = firestore.SERVER_TIMESTAMP
+                    batch.update(trip_ref, trip_updates)
+
+            # Handle POIs moved to itinerary
+            itinerary_collection = trip_ref.collection('itineraryPOIs')
+            unused_collection = trip_ref.collection('unusedPOIs')
+
+            for poi in request.movedToItinerary:
+                # Add to itinerary collection
+                batch.set(
+                    itinerary_collection.document(poi.PointID),
+                    {
+                        'place_id': poi.place_id,
+                        'StartTime': poi.StartTime,
+                        'EndTime': poi.EndTime,
+                        'timeSlot': poi.timeSlot,
+                        'day': poi.day,
+                        'duration': poi.duration
+                    }
+                )
+                # Remove from unused collection
+                batch.delete(unused_collection.document(poi.PointID))
+
+            # Handle scheduling updates
+            for poi in request.schedulingUpdates:
+                batch.update(
+                    itinerary_collection.document(poi.PointID),
+                    {
+                        'StartTime': poi.StartTime,
+                        'EndTime': poi.EndTime,
+                        'timeSlot': poi.timeSlot,
+                        'day': poi.day,
+                        'duration': poi.duration
+                    }
+                )
+
+            # Handle POIs moved to unused
+            for poi in request.movedToUnused:
+                # Delete from itinerary collection
+                batch.delete(itinerary_collection.document(poi.PointID))
+                # Add to unused collection
+                batch.set(
+                    unused_collection.document(poi.PointID),
+                    {'place_id': poi.place_id}
+                )
+
+            # Update complete unused POIs state
+            existing_unused = unused_collection.stream()
+            for doc in existing_unused:
+                batch.delete(doc.reference)
+
+            for poi in request.unusedPOIsState:
+                batch.set(
+                    unused_collection.document(poi.PointID),
+                    {'place_id': poi.place_id}
+                )
+
+            # Commit all changes without await
+            batch.commit()
+
+        except Exception as e:
+            logging.error(f"Error updating trip: {str(e)}")
             raise HTTPException(status_code=500, detail=str(e))

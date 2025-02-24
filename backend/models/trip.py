@@ -3,6 +3,7 @@ from pydantic import BaseModel
 from datetime import datetime
 from typing import Dict, List, Optional, Union
 
+# Save Trip Request Models
 class Coordinates(BaseModel):
     lat: float
     lng: float
@@ -64,3 +65,32 @@ class TripDetails(BaseModel):
     tripData: TripData
     itineraryPOIs: List[ItineraryPOI]
     unusedPOIs: List[UnusedPOI]
+
+#UPDATE TRIP REQUEST MODELS
+class TripDataUpdate(BaseModel):
+    fromDT: Optional[datetime]
+    toDT: Optional[datetime]
+    monthlyDays: Optional[int]
+
+class ItineraryPOIUpdate(BaseModel):
+    PointID: str
+    place_id: str
+    StartTime: int
+    EndTime: int
+    timeSlot: str
+    day: int
+    duration: int
+
+class UnusedPOIUpdate(BaseModel):
+    PointID: str
+    place_id: str
+
+class TripUpdateRequest(BaseModel):
+    tripDataChanged: Optional[TripDataUpdate]
+    movedToItinerary: List[ItineraryPOIUpdate]
+    movedToUnused: List[UnusedPOIUpdate]
+    schedulingUpdates: List[ItineraryPOIUpdate]
+    unusedPOIsState: List[UnusedPOIUpdate]
+
+    class Config:
+        populate_by_name = True

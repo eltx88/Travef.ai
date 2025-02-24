@@ -1,17 +1,8 @@
-import type { POI, WikidataImageResponse, ExploreParams, ChatMessage, ChatRequest } from '../Types/InterfaceTypes';
+import type { POI, WikidataImageResponse, ExploreParams, TripData, ItineraryPOI, FetchedTripDetails, ItineraryPOIDB, ItineraryPOIChanges } from '../Types/InterfaceTypes';
 
 interface ApiClientConfig {
   getIdToken: () => Promise<string>;
 }
-
-const removeEmptyValues = <T extends Record<string, any>>(obj: T): Partial<T> => {
-  return Object.entries(obj).reduce((acc, [key, value]) => {
-    if (value !== null && value !== undefined) {
-      return { ...acc, [key]: value };
-    }
-    return acc;
-  }, {} as Partial<T>);
-};
 
 class ApiClient {
   private getIdToken: () => Promise<string>;
@@ -44,8 +35,6 @@ class ApiClient {
       throw error;
     }
   }
-
-  // Existing methods...
 
   async getSavedPOIs(city?: string) {
     const queryParams = city ? `?city=${encodeURIComponent(city)}` : '';
@@ -157,7 +146,7 @@ class ApiClient {
 
   async postTripGeneration(data: any): Promise<any> {
     try {
-      return await this.fetchWithAuth('/trip/generate', {
+      return await this.fetchWithAuth('/tripgeneration/generate', {
         method: 'POST',
         body: JSON.stringify(data),
       });
@@ -202,6 +191,275 @@ async getNearbyPlacesByTypes(
 
   async getPlaceDetails(placeId: string): Promise<any> {
     return this.fetchWithAuth(`/googleplaces/details/${placeId}`);
+  }
+
+  async getTripDetails(trip_doc_id: string): Promise<FetchedTripDetails> {
+    try {
+      const response = await this.fetchWithAuth(`/trip/details/${trip_doc_id}`);
+
+      const transformedData: FetchedTripDetails = {
+        tripData: {
+          ...response.tripData,
+          fromDT: new Date(response.tripData.fromDT),
+          toDT: new Date(response.tripData.toDT),
+          createdDT: new Date(response.tripData.createdDT),
+          interests: new Set(response.tripData.interests),
+          customInterests: new Set(response.tripData.customInterests),
+          foodPreferences: new Set(response.tripData.foodPreferences),
+          customFoodPreferences: new Set(response.tripData.customFoodPreferences)
+        },
+        itineraryPOIs: response.itineraryPOIs.map((poi: ItineraryPOIDB) => ({
+          PointID: poi.PointID,
+          place_id: poi.place_id,
+          StartTime: Number(poi.StartTime),
+          EndTime: Number(poi.EndTime),
+          day: Number(poi.day),
+          duration: Number(poi.duration),
+          timeSlot: poi.timeSlot
+        })),
+        unusedPOIs: response.unusedPOIs.map((poi: ItineraryPOIDB) => ({
+          PointID: poi.PointID,
+          place_id: poi.place_id,
+          StartTime: -1,
+          EndTime: -1,
+          day: -1,
+          duration: -1,
+          timeSlot: ""
+        }))
+      };
+      return transformedData;
+    } catch (error) {
+      console.error('Error in getting trip details:', error);
+      throw error;
+    }
+  }
+  
+  async createOrGetTrip(userId: string, tripData: TripData, itineraryPOIs: ItineraryPOI[], unusedPOIs: ItineraryPOI[]) {
+    try {
+      const tripId = `trip_data_${userId}_${tripData.city}_${tripData.createdDT.toISOString()}`;
+      const response = await this.fetchWithAuth(`/user/history/saved-trips/check/${tripId}`);
+  
+      if (response.exists) {
+        // Get current trip state from backend
+        const backendTripDetails = await this.getTripDetails(response.trip_doc_id);
+  
+        // Process all changes
+        const changes = this.processPOIChanges(
+          { itineraryPOIs, unusedPOIs },
+          { 
+            itineraryPOIs: backendTripDetails.itineraryPOIs,
+            unusedPOIs: backendTripDetails.unusedPOIs
+          }
+        );
+  
+        // Check if trip data changed
+        const tripDataChanged = 
+          tripData.fromDT?.getTime() !== backendTripDetails.tripData.fromDT?.getTime() ||
+          tripData.toDT?.getTime() !== backendTripDetails.tripData.toDT?.getTime() ||
+          tripData.monthlyDays !== backendTripDetails.tripData.monthlyDays;
+  
+        // Only update if there are actual changes
+        if (changes.movedToItinerary.length > 0 || 
+            changes.movedToUnused.length > 0 || 
+            changes.schedulingUpdates.length > 0 || 
+            changes.unusedPOIsState.length > 0 || 
+            tripDataChanged) {
+  
+          // Send update request
+          await this.fetchWithAuth(`/trip/update/${response.trip_doc_id}`, {
+            method: 'PUT',
+            body: JSON.stringify({
+              tripDataChanged: tripDataChanged ? {
+                fromDT: tripData.fromDT?.toISOString(),
+                toDT: tripData.toDT?.toISOString(),
+                monthlyDays: tripData.monthlyDays
+              } : null,
+              movedToItinerary: changes.movedToItinerary,
+              movedToUnused: changes.movedToUnused,
+              schedulingUpdates: changes.schedulingUpdates,
+              unusedPOIsState: changes.unusedPOIsState
+            })
+          });
+  
+          // After successful update, update our backend reference
+          const updatedBackendDetails = await this.getTripDetails(response.trip_doc_id);
+          backendTripDetails.itineraryPOIs = updatedBackendDetails.itineraryPOIs;
+          backendTripDetails.unusedPOIs = updatedBackendDetails.unusedPOIs;
+          backendTripDetails.tripData = updatedBackendDetails.tripData;
+        }
+        return response.trip_doc_id;
+      } else {
+          const processedItineraryPOIs = await Promise.all(
+            itineraryPOIs.map(async (poi) => {
+              // Create or get POI document
+              const poiDocId = await this.createOrGetPOI({
+                place_id: poi.place_id,
+                name: poi.name,
+                coordinates: poi.coordinates,
+                address: poi.address,
+                city: poi.city,
+                country: poi.country,
+                type: poi.type,
+                id: poi.id
+              });
+      
+              return {
+                PointID: poiDocId,
+                place_id: poi.place_id,
+                StartTime: poi.StartTime,
+                EndTime: poi.EndTime,
+                timeSlot: poi.timeSlot,
+                day: poi.day,
+                duration: poi.duration
+              };
+            })
+          );
+
+          const processedUnusedPOIs = await Promise.all(
+            unusedPOIs.map(async (poi) => {
+              const poiDocId = await this.createOrGetPOI({
+                place_id: poi.place_id,
+                name: poi.name,
+                coordinates: poi.coordinates,
+                address: poi.address,
+                city: poi.city,
+                country: poi.country,
+                type: poi.type,
+                id: poi.id
+              });
+              return {
+                PointID: poiDocId,
+                place_id: poi.place_id
+              };
+            })
+          );
+          
+          const tripDocId = await this.fetchWithAuth('/trip/create', {
+            method: 'POST',
+            body: JSON.stringify({
+              tripId: tripId,
+              tripData: {
+                ...tripData,
+                userId: userId,
+                interests: Array.from(tripData.interests),
+                customInterests: Array.from(tripData.customInterests),
+                foodPreferences: Array.from(tripData.foodPreferences),
+                customFoodPreferences: Array.from(tripData.customFoodPreferences),
+                fromDT: tripData.fromDT?.toISOString(),
+                toDT: tripData.toDT?.toISOString()
+              },
+              itineraryPOIs: processedItineraryPOIs,
+              unusedPOIs: processedUnusedPOIs
+            })
+          });
+          await this.fetchWithAuth(`/user/history/saved-trips/${tripDocId}`, {
+            method: 'POST',
+            body: JSON.stringify({
+              user_id: userId,
+              trip_id: tripId,
+              city: tripData.city,
+              country: tripData.country,
+              fromDT: tripData.fromDT?.toISOString(),
+              toDT: tripData.toDT?.toISOString(),
+              monthlyDays: tripData.monthlyDays
+            })
+          });
+          return tripDocId;
+      }
+    } catch (error) {
+      console.error('Error in creating or updating trip:', error);
+      throw error;
+    }
+  }
+
+  // Helper function to check if POI scheduling details have changed
+  private hasPOISchedulingChanged(frontendPOI: ItineraryPOI, backendPOI: ItineraryPOIDB): boolean {
+    return frontendPOI.StartTime !== backendPOI.StartTime ||
+          frontendPOI.EndTime !== backendPOI.EndTime ||
+          frontendPOI.day !== backendPOI.day ||
+          frontendPOI.timeSlot !== backendPOI.timeSlot;
+  }
+
+  // Function to process POI changes
+  private processPOIChanges(
+    frontendData: {
+      itineraryPOIs: ItineraryPOI[],
+      unusedPOIs: ItineraryPOI[]
+    },
+    backendData: {
+      itineraryPOIs: ItineraryPOIDB[],
+      unusedPOIs: ItineraryPOIDB[]
+    }): ItineraryPOIChanges {
+      const changes: ItineraryPOIChanges = {
+        movedToItinerary: [],
+        movedToUnused: [],
+        schedulingUpdates: [],
+        unusedPOIsState: []
+      };
+  
+      // Create maps for easier lookup
+      const backendItineraryMap = new Map(backendData.itineraryPOIs.map(poi => [poi.place_id, poi]));
+      const backendUnusedMap = new Map(backendData.unusedPOIs.map(poi => [poi.place_id, poi]));
+      
+      // Check for POIs moved to itinerary and scheduling updates
+      frontendData.itineraryPOIs.forEach(frontendPOI => {
+        const backendItineraryPOI = backendItineraryMap.get(frontendPOI.place_id);
+        const backendUnusedPOI = backendUnusedMap.get(frontendPOI.place_id);
+        const duration = frontendPOI.EndTime - frontendPOI.StartTime;
+  
+        if (backendUnusedPOI) {
+          // New POI moved from unused section to itinerary
+          changes.movedToItinerary.push({
+            PointID: backendUnusedPOI.PointID,
+            place_id: frontendPOI.place_id,
+            StartTime: frontendPOI.StartTime,
+            EndTime: frontendPOI.EndTime,
+            day: frontendPOI.day,
+            timeSlot: frontendPOI.timeSlot,
+            duration: duration
+          });
+        } else if (backendItineraryPOI && this.hasPOISchedulingChanged(frontendPOI, backendItineraryPOI)) {
+          // POI scheduling details changed
+          changes.schedulingUpdates.push({
+            PointID: backendItineraryPOI.PointID,
+            place_id: frontendPOI.place_id,
+            StartTime: frontendPOI.StartTime,
+            EndTime: frontendPOI.EndTime,
+            day: frontendPOI.day,
+            timeSlot: frontendPOI.timeSlot,
+            duration: duration
+          });
+        }
+      });
+  
+      // Track POIs moved back to unused
+      backendData.itineraryPOIs.forEach(backendPOI => {
+        if (!frontendData.itineraryPOIs.some(poi => poi.place_id === backendPOI.place_id)) {
+          changes.movedToUnused.push({
+            PointID: backendPOI.PointID,
+            place_id: backendPOI.place_id
+          });
+        }
+      });
+  
+      // Set complete state of unused POIs
+      frontendData.unusedPOIs.forEach(frontendPOI => {
+        const backendPOI = backendUnusedMap.get(frontendPOI.place_id) || 
+                          backendItineraryMap.get(frontendPOI.place_id);
+        
+        if (backendPOI) {
+          changes.unusedPOIsState.push({
+            PointID: backendPOI.PointID,
+            place_id: frontendPOI.place_id
+          });
+        }
+      });
+  
+      return changes;
+    }
+  
+  async getUserSavedTrips() {
+    return this.fetchWithAuth('/user/history/saved-trips');
   }
 }
 

@@ -159,7 +159,7 @@ export interface UnusedPOIs {
 }
 
 export interface FetchedTripDetails {
-  tripData?: {
+  tripData: {
     city: string;
     country: string;
     coordinates: Coordinates;
@@ -174,6 +174,35 @@ export interface FetchedTripDetails {
     lastModified: Date;
     version: number;
   };
-  itineraryPOIs?: ItineraryPOI[];
-  unusedPOIs?: ItineraryPOI[];
+  itineraryPOIs: ItineraryPOIDB[];
+  unusedPOIs: ItineraryPOIDB[];
+}
+
+export interface ItineraryPOIChanges {
+    movedToItinerary: Array<{
+      PointID: string,
+      place_id: string,
+      StartTime: number,
+      EndTime: number,
+      day: number,
+      timeSlot: string,
+      duration: number
+    }>;
+    movedToUnused: Array<{
+      PointID: string,
+      place_id: string,
+    }>; 
+    schedulingUpdates: Array<{
+      PointID: string,
+      place_id: string,
+      StartTime: number,
+      EndTime: number,
+      day: number,
+      timeSlot: string,
+      duration: number
+    }>;
+    unusedPOIsState: Array<{
+      PointID: string,
+      place_id: string,
+    }>
 }
