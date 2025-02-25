@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import List, Optional
 from fastapi import APIRouter, HTTPException
 from services.googleplaces_service import GooglePlacesService
 from models.googleplaces import PlaceWithPhotoUrl
@@ -34,5 +34,21 @@ async def get_place_details(place_id: str):
     try:
         place_details = google_places_service.get_place_details(place_id)
         return place_details
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/batch_details")
+async def batch_get_place_details(place_ids: List[str]):
+    """
+    Endpoint to retrieve detailed information for multiple places in one call.
+    """
+    try:
+        # Get place details for all valid place IDs
+        place_details_dict = google_places_service.batch_get_place_details(place_ids)
+        
+        # Add photo URLs to the details
+        enriched_details = google_places_service.batch_get_photos(place_details_dict)
+        
+        return enriched_details
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

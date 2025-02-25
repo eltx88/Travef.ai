@@ -1,4 +1,4 @@
-import type { POI, WikidataImageResponse, ExploreParams, TripData, ItineraryPOI, FetchedTripDetails, ItineraryPOIDB, ItineraryPOIChanges, UserTrip } from '../Types/InterfaceTypes';
+import type { POI, WikidataImageResponse, ExploreParams, TripData, ItineraryPOI, FetchedTripDetails, ItineraryPOIDB, ItineraryPOIChanges, UserTrip, GooglePlaceDetails, POIType } from '../Types/InterfaceTypes';
 
 interface ApiClientConfig {
   getIdToken: () => Promise<string>;
@@ -458,7 +458,7 @@ async getNearbyPlacesByTypes(
       return changes;
     }
   
-    async getUserTrips(): Promise<UserTrip[]> {
+  async getUserTrips(): Promise<UserTrip[]> {
       try {
         const savedTrips = await this.fetchWithAuth('/user/history/saved-trips');
         
@@ -472,7 +472,84 @@ async getNearbyPlacesByTypes(
         console.error('Error fetching user\'s trips:', error);
         throw error;
       }
+  }
+
+  // this function takes the original POIs and returns the POIs with the Google place details merged
+  async getBatchPlaceDetails(
+    pois: POI[], 
+    city: string, 
+    country: string
+  ): Promise<POI[]> {
+    try {
+      // If no POIs, return original list
+      if (!pois || pois.length === 0) {
+        return pois;
+      }
+  
+      // Filter place IDs that are from Google (starting with "ChI")
+      const googlePois = pois.filter(poi => poi.place_id && poi.place_id.startsWith('ChI'));
+      
+      if (googlePois.length === 0) {
+        return pois; // Return original list if no Google POIs
+      }
+      
+      // Extract just the place IDs for the API request
+      const googlePlaceIds = googlePois.map(poi => poi.place_id);
+      
+      // Create a mapping of place_id to original POI for later merging
+      const poiMap = new Map(googlePois.map(poi => [poi.place_id, poi]));
+      
+      // Send the request to get place details in batch
+      const response = await this.fetchWithAuth('/googleplaces/batch_details', {
+        method: 'POST',
+        body: JSON.stringify(googlePlaceIds),
+      });
+      
+      // Create a map of enhanced POIs
+      const enhancedPois = new Map<string, POI>();
+      
+      // Process Google Places details and merge with original POIs
+      for (const [placeId, details] of Object.entries(response) as [string, GooglePlaceDetails][]) {
+        const originalPoi = poiMap.get(placeId);
+        
+        if (originalPoi) {
+          // Merge the original POI with Google data, preferring Google data when available
+          const enhancedPoi: POI = {
+            ...originalPoi,
+            name: details.name || originalPoi.name,
+            coordinates: details.coordinates || originalPoi.coordinates,
+            address: details.formatted_address || originalPoi.address,
+            city: originalPoi.city || city,
+            country: originalPoi.country || country,
+            rating: details.rating || originalPoi.rating,
+            cuisine: details.cuisine || originalPoi.cuisine,
+            description: details.description || originalPoi.description,
+            categories: details.types || originalPoi.categories,
+            image_url: details.image_url || originalPoi.image_url,
+            website: details.website || originalPoi.website,
+            phone: details.phone || originalPoi.phone,
+            opening_hours: details.opening_hours || originalPoi.opening_hours,
+            price_level: details.price_level || originalPoi.price_level
+          };
+          
+          enhancedPois.set(placeId, enhancedPoi);
+        }
+      }
+      
+      // Create the final list by replacing original POIs with enhanced ones where available
+      return pois.map(poi => {
+        if (poi.place_id && poi.place_id.startsWith('ChI') && enhancedPois.has(poi.place_id)) {
+          return enhancedPois.get(poi.place_id)!;
+        }
+        return poi;
+      });
+      
+    } catch (error) {
+      console.error('Error fetching batch place details:', error);
+      // Return original POIs if there's an error
+      return pois;
     }
+  }
 
 }
 

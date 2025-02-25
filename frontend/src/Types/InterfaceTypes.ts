@@ -1,5 +1,5 @@
 //Used by POI Card
-export type POIType = "attraction" | "restaurant" | "hotel" ;
+export type POIType = "attraction" | "restaurant" | "hotel" | "cafe";
 
 export interface Coordinates {
     lat: number;
@@ -16,6 +16,7 @@ export interface POI {
   country: string;
   type: POIType;
   rating?: number;
+  user_ratings_total?: number;
   cuisine?: string[]; 
   description?: string; 
   categories?: string[];
@@ -31,6 +32,7 @@ export interface POI {
 
 //Extended POI for Itinerary Page
 export interface ItineraryPOI extends POI {
+  PointID?: string; //Used to store document id for the POI
   day: number;
   timeSlot: string;
   StartTime: number;
@@ -107,7 +109,7 @@ export interface ChatRequest {
   stream?: boolean;
 }
 
-//Itinerary interfaces 
+//Itinerary interfaces for generatedItinerary json from Groq
 export interface ItineraryPOIData {
   name: string;
   type: string;
@@ -217,3 +219,22 @@ export interface UserTrip {
   monthlyDays: number;
 }
 
+//Google Places API interfaces
+export interface GooglePlaceDetails {
+  place_id: string;
+  name: string;
+  formatted_address: string;
+  coordinates: Coordinates;
+  types: string[];
+  primary_type: string;
+  rating?: number;
+  user_ratings_total?: number;
+  photo_name?: string;
+  image_url?: string;
+  website?: string;
+  phone?: string;
+  description?: string;
+  opening_hours?: string;
+  price_level?: number;
+  cuisine?: string[];
+}

@@ -82,6 +82,127 @@ class GooglePlacesService:
             print(f"Error making Places API request: {str(e)}")
             raise
 
+    def get_place_details(self, place_id: str) -> Optional[Dict]:
+        """
+        Get detailed information for a specific place using Place Details API
+        Returns place details or None if the request fails.
+        """
+        # Skip if not a Google Place ID (should start with "ChI")
+        if not place_id.startswith("ChI"):
+            return None
+            
+        try:
+            url = f"{self.base_url}/{place_id}"
+            
+            headers = {
+                "Content-Type": "application/json",
+                "X-Goog-Api-Key": f"{self.api_key}",
+                "X-Goog-FieldMask": (
+                    "id,"
+                    "displayName,"
+                    "formattedAddress,"
+                    "location,"
+                    "rating,"
+                    "userRatingCount,"
+                    "types,"
+                    "photos,"
+                    "primaryType,"
+                    "websiteUri,"
+                    "internationalPhoneNumber,"
+                    "editorialSummary,"
+                    "regularOpeningHours,"
+                    "priceLevel"
+                )
+            }
+            
+            response = requests.get(url, headers=headers)
+            response.raise_for_status()
+            data = response.json()
+            
+            # Format opening hours if available
+            formatted_hours = None
+            if "regularOpeningHours" in data:
+                weekday_texts = data.get("regularOpeningHours", {}).get("weekdayDescriptions", [])
+                formatted_hours = "\n".join(weekday_texts) if weekday_texts else None
+            
+            # Extract cuisines from types if available
+            cuisine_types = [t for t in data.get("types", []) if t.startswith("cuisine.")]
+            cuisines = [t.replace("cuisine.", "").replace("_", " ").title() for t in cuisine_types]
+            
+            # Get first photo if available
+            photo_name = data.get("photos", [{}])[0].get("name") if data.get("photos") else None
+            
+            place_details = {
+                "place_id": data.get("id"),
+                "name": data.get("displayName", {}).get("text", ""),
+                "formatted_address": data.get("formattedAddress"),
+                "coordinates": {
+                    "lat": data.get("location", {}).get("latitude"),
+                    "lng": data.get("location", {}).get("longitude")
+                },
+                "types": data.get("types", []),
+                "primary_type": data.get("primaryType"),
+                "rating": data.get("rating"),
+                "user_ratings_total": data.get("userRatingCount"),
+                "photo_name": photo_name,
+                "website": data.get("websiteUri"),
+                "phone": data.get("internationalPhoneNumber"),
+                "description": data.get("editorialSummary", {}).get("text") if "editorialSummary" in data else None,
+                "opening_hours": formatted_hours,
+                "price_level": data.get("priceLevel"),
+                "cuisine": cuisines
+            }
+            
+            return place_details
+        
+        except requests.exceptions.RequestException as e:
+            print(f"Error fetching place details: {str(e)}")
+            return None
+
+    def batch_get_place_details(self, place_ids: List[str], max_concurrent: int = 5) -> Dict[str, Dict]:
+        """
+        Get details for multiple places in parallel batches to minimize API calls
+        Returns a dictionary of place_id -> place_details
+        """
+        import concurrent.futures
+        
+        # Filter out non-Google Place IDs
+        valid_place_ids = [pid for pid in place_ids if pid.startswith("ChI")]
+        
+        results = {}
+        
+        # Process in batches to avoid too many concurrent requests
+        with concurrent.futures.ThreadPoolExecutor(max_workers=max_concurrent) as executor:
+            future_to_place_id = {
+                executor.submit(self.get_place_details, place_id): place_id 
+                for place_id in valid_place_ids
+            }
+            
+            for future in concurrent.futures.as_completed(future_to_place_id):
+                place_id = future_to_place_id[future]
+                try:
+                    place_details = future.result()
+                    if place_details:
+                        results[place_id] = place_details
+                except Exception as e:
+                    print(f"Error processing place_id {place_id}: {str(e)}")
+        
+        return results
+
+    def batch_get_photos(self, place_details_dict: Dict[str, Dict]) -> Dict[str, Dict]:
+        """
+        Enrich place details with photo URLs
+        """
+        results = place_details_dict.copy()
+        
+        for place_id, details in results.items():
+            if details.get("photo_name"):
+                photo_url = self.get_place_photo(details["photo_name"])
+                if photo_url:
+                    details["image_url"] = photo_url
+        
+        return results
+
     def get_place_photo(self, photo_name: str, max_width: int = 400, max_height: int = 400) -> Optional[str]:
         """
         Get a place photo using the photo reference.

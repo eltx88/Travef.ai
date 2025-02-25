@@ -11,48 +11,47 @@ interface TripCacheData {
   tripData: TripData;
 }
 
-// Helper function to generate cache key
-const generateCacheKey = (city: string, createdDT: Date, userId: string) => {
-  const key = `${CACHE_PREFIX}_${userId}_${city}_${createdDT.toISOString()}`;
-  return key;
+// Helper function to generate a consistent cache key
+const generateCacheKey = (city: string, createdDT: Date) => {
+  const user = useAuthStore.getState().user;
+  const userId = user ? user.uid : 'guest';
+  return `${CACHE_PREFIX}_${userId}_${city}_${createdDT.getTime()}`;
 };
 
 export const tripCacheService = {
-  set: (city: string, data: Omit<TripCacheData, 'timestamp' | 'city'>) => {
+  set(city: string, data: { 
+    itineraryPOIs: ItineraryPOI[], 
+    unusedPOIs: ItineraryPOI[],
+    tripData: TripData 
+  }): void {
     try {
-      const user = useAuthStore.getState().user;
-      if (!user) {
-        return;
-      }
-
-      const cacheKey = generateCacheKey(city, data.tripData.createdDT, user.uid);
-      const cacheData: TripCacheData = {
+      const cacheKey = generateCacheKey(city, data.tripData.createdDT);
+      
+      // Create a deep copy to ensure all properties are preserved
+      const cacheData = {
         ...data,
-        timestamp: Date.now(),
-        city,
+        timestamp: Date.now()
       };
-
+      
+      // Use JSON to ensure we store ALL properties
       localStorage.setItem(cacheKey, JSON.stringify(cacheData));
     } catch (error) {
-      console.error('Trip cache storage error:', error);
+      console.error('Cache storage error:', error);
     }
   },
 
   get: (city: string, createdDT: Date): TripCacheData | null => {
     try {
-      const user = useAuthStore.getState().user;
-      if (!user) {
-        return null;
-      }
-
-      const cacheKey = generateCacheKey(city, createdDT, user.uid);
+      const cacheKey = generateCacheKey(city, createdDT);
       const cached = localStorage.getItem(cacheKey);
 
       if (!cached) {
+        console.log(`No cache found for key: ${cacheKey}`);
         return null;
       }
 
-      return JSON.parse(cached) as TripCacheData;
+      const parsedCache = JSON.parse(cached) as TripCacheData;
+      return parsedCache;
     } catch (error) {
       console.error('Trip cache retrieval error:', error);
       return null;
@@ -61,13 +60,9 @@ export const tripCacheService = {
 
   clear: (city: string, createdDT: Date) => {
     try {
-      const user = useAuthStore.getState().user;
-      if (!user) {
-        return;
-      }
-
-      const cacheKey = generateCacheKey(city, createdDT, user.uid);
+      const cacheKey = generateCacheKey(city, createdDT);
       localStorage.removeItem(cacheKey);
+      console.log(`Cache cleared for key: ${cacheKey}`);
     } catch (error) {
       console.error('Trip cache clearing error:', error);
     }
@@ -80,6 +75,7 @@ export const tripCacheService = {
           localStorage.removeItem(key);
         }
       });
+      console.log('All trip caches cleared');
     } catch (error) {
       console.error('Trip cache clearing all error:', error);
     }
@@ -89,11 +85,13 @@ export const tripCacheService = {
     try {
       const currentCache = tripCacheService.get(city, createdDT);
       if (!currentCache) {
+        console.log('No cache to update');
         return;
       }
 
       const updatedCache = updateFn(currentCache);
       tripCacheService.set(city, updatedCache);
+      console.log('Cache updated');
     } catch (error) {
       console.error('Trip cache update error:', error);
     }
