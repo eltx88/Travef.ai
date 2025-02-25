@@ -59,6 +59,52 @@
     --chart-5: 340 75% 55%
   }
 }
+@layer utilities {
+  .NavigationMenuTrigger,
+  .NavigationMenuContent,
+  .NavigationMenuLink {
+    background-color: transparent !important;
+  }
+  
+  .NavigationMenuTrigger:hover,
+  .NavigationMenuLink:hover {
+    background-color: rgb(226 232 240) !important; /* slate-200 */
+  }
+  .react-grid-item.react-draggable-dragging * {
+    transition: none !important;
+  }
+  
+  .dragging-active {
+    user-select: none !important;
+    -webkit-user-select: none !important;
+    cursor: grabbing !important;
+  }
+  
+  .drag-handle {
+    cursor: grab;
+  }
+  .drag-handle:active {
+    cursor: grabbing;
+  }
+  
+  .react-grid-item > .react-resizable-handle {
+    cursor: ew-resize;
+  }
+  
+  .react-grid-layout {
+    transform: translateZ(0);
+  }
+}
+
+@layer base {
+  * {
+    /* @apply border-border outline-ring/50; */
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
 @layer base {
   * {
     @apply font-outfit;
