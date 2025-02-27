@@ -24,13 +24,13 @@ const TripCard: FC<TripCardsProps> = ({ trip }) => {
     const navigate = useNavigate();
 
   return (
-    <Card className="w-[300px] flex-shrink-0 bg-white shadow-lg hover:shadow-lg transition-shadow items-center hover:bg-blue-100">
-      <CardContent className="p-4">
-        <div className="space-y-4">
-          <h2 className="font-semibold text-xl capitalize text-center">{trip.city}, {trip.country}</h2>
-          <p className="text-gray-600 text-center">{trip.monthlyDays} days</p>
+    <Card className="w-[300px] flex-shrink-0 bg-white shadow-lg hover:shadow-xl transition-all duration-300 items-center hover:bg-gray-200 overflow-hidden">
+      <CardContent className="p-4 w-full">
+        <div className="space-y-4 group">
+          <h2 className="font-semibold text-xl capitalize text-center transition-transform duration-300 group-hover:scale-110">{trip.city}, {trip.country}</h2>
+          <p className="text-gray-600 text-center transition-transform duration-300 group-hover:scale-110">{trip.monthlyDays} days</p>
           <div className="flex gap-2 text-gray-600">
-            <div className="flex items-center space-y-1 px-10 text-sm text-center">
+            <div className="flex items-center space-y-1 px-10 text-sm text-center w-full transition-transform duration-300 group-hover:scale-110">
               <Calendar className="h-4 w-4 mr-1" />
               <p className="inline">
                 {trip.fromDT.toLocaleDateString("en-UK")} - {trip.toDT.toLocaleDateString("en-UK")}
@@ -39,11 +39,12 @@ const TripCard: FC<TripCardsProps> = ({ trip }) => {
         </div>
 
           <Button 
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white transition-transform duration-300 group-hover:scale-105"
             onClick={async () => {
                 try {
                     // Fetch trip details
                     const tripDetails = await apiClient.getTripDetails(trip.trip_doc_id);
+                
                     // Fetch saved POI details
                     const [savedItineraryPOIs, savedUnusedPOIs] = await Promise.all([
                       apiClient.getSavedPOIDetails(tripDetails.itineraryPOIs.map(poi => poi.PointID)),
@@ -87,13 +88,13 @@ const TripCard: FC<TripCardsProps> = ({ trip }) => {
                         duration: -1
                       } as ItineraryPOI;
                     });
+
                     // Navigate to edit page with the enhanced data
-                    navigate(`/edit-trip/${encodeURIComponent(tripDetails.tripData.city)}/${encodeURIComponent(tripDetails.tripData.country)}/${tripDetails.tripData.createdDT.getTime()}`, {
+                    navigate('/edit-trip', {
                       state: {
                         itineraryPOIs: finalItineraryPOIs,
                         unusedPOIs: finalUnusedPOIs,
-                        tripData: tripDetails.tripData,
-                        timeStamp: Date.now()
+                        tripData: tripDetails.tripData
                       }
                     });
                   } catch (error) {

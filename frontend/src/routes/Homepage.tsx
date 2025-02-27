@@ -8,7 +8,8 @@ function HomePage() {
       
       <main className="top-60 flex flex-grow flex-col items-center justify-start relative p-4">
           <Searchbar />
-          <div className="w-full mt-44 animate-fade-in-down opacity-0">
+          {/* Increased margin-top from mt-44 to mt-96 to push trips section lower */}
+          <div className="w-full mt-96 animate-fade-in-down opacity-0" id="trips-section">
             <Itineraries />
           </div>
       </main>

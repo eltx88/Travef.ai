@@ -83,11 +83,11 @@ export const Itineraries: FC = () => {
 
     return (
         <div className="w-max-9xl py-12 bg-white rounded-3xl">
-            <div className="flex justify-between items-start mb-6 px-4 max-w-7xl mx-auto">
-                <div className="flex items-start gap-4">
-                    <h2 className="text-4xl font-semibold">Trips</h2>
+            <div className="mb-6 px-8">
+                <div className="flex items-center gap-4">
+                    <h2 className="text-4xl font-semibold">Trips</h2>       
                     <Button
-                        className=" text-xl py-4 px-3 rounded-full transition-all duration-300 ease-in-out hover:rounded-full bg-blue-300 hover:bg-blue-300"
+                        className="text-xl py-4 px-3 rounded-full transition-all duration-300 ease-in-out hover:rounded-full bg-blue-300 hover:bg-blue-300"
                         onClick={addItinerary}
                     >
                         <svg

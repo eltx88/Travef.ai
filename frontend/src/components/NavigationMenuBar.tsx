@@ -126,7 +126,22 @@ export function NavigationMenuBar() {
                         </NavigationMenuItem>
 
                         <NavigationMenuItem>
-                            <NavigationMenuTrigger className="text-lg bg-transparent hover:bg-slate-200">Trips</NavigationMenuTrigger>
+                            <NavigationMenuTrigger 
+                                className="text-lg bg-transparent hover:bg-slate-200"
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    navigate('/home');
+                                    // Wait for navigation to complete before scrolling
+                                    setTimeout(() => {
+                                        const tripsElement = document.getElementById('trips-container');
+                                        if (tripsElement) {
+                                            tripsElement.scrollIntoView({ behavior: 'smooth' });
+                                        }
+                                    }, 100);
+                                }}
+                            >
+                                Trips
+                            </NavigationMenuTrigger>
                             <NavigationMenuContent>
                                 <NavigationMenuLink asChild>
                                     <div className="w-[400px] p-4 bg-white shadow-lg rounded-md">
