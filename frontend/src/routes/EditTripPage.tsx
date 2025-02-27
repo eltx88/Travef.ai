@@ -1,4 +1,4 @@
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { NavigationMenuBar } from "@/components/NavigationMenuBar";
 import type { TripData, ItineraryPOI } from '@/Types/InterfaceTypes';
 import { useEffect, useState, useCallback } from 'react';
@@ -13,16 +13,19 @@ interface LocationState {
   itineraryPOIs: ItineraryPOI[];
   unusedPOIs: ItineraryPOI[];
   tripData: TripData;
+  timeStamp: number;
 }
 
 interface ItineraryState {
   itineraryPOIs: ItineraryPOI[];
   unusedPOIs: ItineraryPOI[];
+  lastModified: number;
 }
 
 function EditTripPage() {
   const location = useLocation();
   const navigate = useNavigate();
+  const params = useParams<{ city?: string; country?: string; createdTimestamp?: string }>();
   const { user } = useAuthStore();
   const [itineraryState, setItineraryState] = useState<ItineraryState | null>(null);
   const [tripData, setTripData] = useState<TripData | null>(null);
@@ -35,149 +38,178 @@ function EditTripPage() {
     }
   });
 
-  //Validaate incoming data
+  // Initialize data from location state or URL params
   useEffect(() => {
-    if (!location.state || 
-        !location.state.itineraryPOIs || 
-        !location.state.unusedPOIs || 
-        !location.state.tripData) {
-      console.error("Missing required trip data");
-      toast.error("Missing trip data");
-      navigate('/home');
-      return;
-    }
-    
-    const locationState = location.state as LocationState;
-    setTripData(locationState.tripData);
-    
-    // Validate and fix itinerary data if needed
-    const validatedItineraryPOIs = locationState.itineraryPOIs.map(poi => {
-      const hasValidScheduling = 
-        typeof poi.day === 'number' &&
-        typeof poi.timeSlot === 'string' &&
-        typeof poi.StartTime === 'number' &&
-        typeof poi.EndTime === 'number' &&
-        typeof poi.duration === 'number';
+    const initializeFromState = (locationState: LocationState) => {
+      setTripData(locationState.tripData);
       
-      if (!hasValidScheduling) {
-        console.warn("Found POI with missing scheduling data:", poi);
-        return {
-          ...poi,
-          day: poi.day ?? -1,
-          timeSlot: poi.timeSlot ?? "unused",
-          StartTime: poi.StartTime ?? -1,
-          EndTime: poi.EndTime ?? -1,
-          duration: poi.duration ?? -1
-        };
+      // Check for fresher cache
+      const hasFresherCache = tripCacheService.isCacheFresher(
+        locationState.tripData, 
+        locationState.timeStamp
+      );
+      
+      if (hasFresherCache) {
+        // Use cache (it's fresher than navigation state)
+        const cachedData = tripCacheService.get(locationState.tripData);
+        if (cachedData) {
+          setItineraryState({
+            itineraryPOIs: cachedData.itineraryPOIs,
+            unusedPOIs: cachedData.unusedPOIs,
+            lastModified: cachedData.lastModified
+          });
+          toast.success("Loaded your latest changes");
+          return true;
+        }
       }
-      return poi;
-    });
+      
+      // Use incoming state 
+      setItineraryState({
+        itineraryPOIs: locationState.itineraryPOIs,
+        unusedPOIs: locationState.unusedPOIs,
+        lastModified: locationState.timeStamp
+      });
+      
+      // Initialize cache
+      tripCacheService.set(locationState.tripData, {
+        itineraryPOIs: locationState.itineraryPOIs,
+        unusedPOIs: locationState.unusedPOIs,
+        lastModified: locationState.timeStamp
+      });
+      return true;
+    };
+    
+    const initializeFromParams = () => {
+      if (!params.city || !params.country || !params.createdTimestamp) return false;
+      
+      try {
+        const city = decodeURIComponent(params.city);
+        const country = decodeURIComponent(params.country);
+        const createdDT = new Date(parseInt(params.createdTimestamp));
+        
+        // Try to recover from cache
+        const cachedData = tripCacheService.getByTripParams(city, country, createdDT);
+        
+        if (cachedData) {
+          setTripData(cachedData.tripData);
+          setItineraryState({
+            itineraryPOIs: cachedData.itineraryPOIs,
+            unusedPOIs: cachedData.unusedPOIs,
+            lastModified: cachedData.lastModified
+          });
+          toast.success("Recovered your trip data");
+          return true;
+        }
+      } catch (error) {
+        console.error("Error parsing URL parameters:", error);
+      }
+      return false;
+    };
 
-    // Validate unused POIs
-    const validatedUnusedPOIs = locationState.unusedPOIs.map(poi => ({
-      ...poi,
+    const initialize = async () => {
+      let success = false;
+      
+      // Try to initialize from location state (normal navigation)
+      if (location.state?.tripData) {
+        success = initializeFromState(location.state as LocationState);
+      }
+      
+      // If that fails, try to initialize from URL params (page refresh)
+      if (!success) {
+        success = initializeFromParams();
+      }
+      
+      // If all initialization methods fail, redirect home
+      if (!success) {
+        toast.error("Could not load trip data");
+        navigate('/home');
+        return;
+      }
+      
+      setIsLoading(false);
+    };
+    
+    initialize();
+  }, [location.state, params, navigate]);
+
+  // ===== State Modification Functions =====
+  
+  // Helper to update state and cache consistently
+  const updateStateAndCache = useCallback((
+    newItineraryPOIs: ItineraryPOI[],
+    newUnusedPOIs: ItineraryPOI[]
+  ) => {
+    if (!tripData) return;
+    
+    const now = Date.now();
+    
+    // Update state
+    setItineraryState(prev => {
+      if (!prev) return prev;
+      return {
+        itineraryPOIs: newItineraryPOIs,
+        unusedPOIs: newUnusedPOIs,
+        lastModified: now
+      };
+    });
+    
+    // Update cache
+    tripCacheService.update(tripData, {
+      itineraryPOIs: newItineraryPOIs,
+      unusedPOIs: newUnusedPOIs,
+      lastModified: now
+    });
+  }, [tripData]);
+
+  // Update itinerary POIs (for drag and drop)
+  const updateItineraryPOIs = useCallback((updatedPOIs: ItineraryPOI[]) => {
+    if (!itineraryState) return;
+    updateStateAndCache(updatedPOIs, itineraryState.unusedPOIs);
+  }, [itineraryState, updateStateAndCache]);
+
+  // Delete POI from itinerary
+  const deleteItineraryPOI = useCallback((deletedPOI: ItineraryPOI) => {
+    if (!itineraryState) return;
+    
+    const modifiedPOI = {
+      ...deletedPOI,
       day: -1,
       timeSlot: "unused",
       StartTime: -1,
       EndTime: -1,
-      duration: -1
-    }));
-
-    // Cache after validating the data
-    let finalState: ItineraryState;
-    const cached = tripCacheService.get(locationState.tripData.city, locationState.tripData.createdDT);
+      duration: -1,
+    };
     
-    if (cached && cached.itineraryPOIs.length > 0) {
-      console.log("Using cached itinerary data");
-      finalState = {
-        itineraryPOIs: cached.itineraryPOIs,
-        unusedPOIs: cached.unusedPOIs
-      };
-    } else {
-      console.log("Using data from location state");
-      finalState = {
-        itineraryPOIs: validatedItineraryPOIs,
-        unusedPOIs: validatedUnusedPOIs
-      };
-      
-      // Create cache entry with validated data
-      tripCacheService.set(locationState.tripData.city, {
-        itineraryPOIs: validatedItineraryPOIs,
-        unusedPOIs: validatedUnusedPOIs,
-        tripData: locationState.tripData
-      });
-    }
+    const newItineraryPOIs = itineraryState.itineraryPOIs.filter(poi => poi.id !== deletedPOI.id);
+    const newUnusedPOIs = [...itineraryState.unusedPOIs, modifiedPOI];
     
-    setItineraryState(finalState);
-    setIsLoading(false);
-  }, [location.state, navigate]);
+    updateStateAndCache(newItineraryPOIs, newUnusedPOIs);
+  }, [itineraryState, updateStateAndCache]);
 
-  // Update cache whenever itineraryState changes
-  useEffect(() => {
-    if (!itineraryState || !tripData) return;
-    
-    tripCacheService.set(tripData.city, {
-      itineraryPOIs: itineraryState.itineraryPOIs,
-      unusedPOIs: itineraryState.unusedPOIs,
-      tripData,
-    });
-  }, [itineraryState, tripData]);
-
-  // Update itinerary POIs (for drag and drop updates)
-  const updateItineraryPOIs = useCallback((updatedPOIs: ItineraryPOI[]) => {
-    setItineraryState(prevState => {
-      if (!prevState) return prevState;
-      return {
-        ...prevState,
-        itineraryPOIs: updatedPOIs,
-      };
-    });
-  }, []);
-
-  const deleteItineraryPOI = useCallback((deletedPOI: ItineraryPOI) => {
-    setItineraryState(prevState => {
-      if (!prevState) return prevState;
-      return {
-        itineraryPOIs: prevState.itineraryPOIs.filter(poi => poi.id !== deletedPOI.id),
-        unusedPOIs: [...prevState.unusedPOIs, {
-          ...deletedPOI,
-          day: -1,
-          timeSlot: "unused",
-          StartTime: -1,
-          EndTime: -1,
-          duration: -1,
-        }],
-      };
-    });
-  }, []);
-
+  // Add POI to itinerary
   const handleAddToItinerary = useCallback((poi: ItineraryPOI, day: number) => {
     if (!itineraryState) return;
     
     const freeTimeSlot = findFreeTimeSlot(day, itineraryState.itineraryPOIs);
-
-    if (freeTimeSlot) {
-      const updatedPOI = {
-        ...poi,
-        day,
-        timeSlot: freeTimeSlot.timeSlot,
-        StartTime: freeTimeSlot.startTime,
-        EndTime: freeTimeSlot.endTime,
-      };
-
-      setItineraryState((prevState) => {
-        if (!prevState) return prevState;
-        return {
-          itineraryPOIs: [...prevState.itineraryPOIs, updatedPOI],
-          unusedPOIs: prevState.unusedPOIs.filter((p) => p.id !== poi.id),
-        };
-      });
-    } else {
+    if (!freeTimeSlot) {
       toast.error('No free time slot available on this day.');
+      return;
     }
-  }, [itineraryState]);
+    
+    const updatedPOI = {
+      ...poi,
+      day,
+      timeSlot: freeTimeSlot.timeSlot,
+      StartTime: freeTimeSlot.startTime,
+      EndTime: freeTimeSlot.endTime,
+    };
+    
+    const newItineraryPOIs = [...itineraryState.itineraryPOIs, updatedPOI];
+    const newUnusedPOIs = itineraryState.unusedPOIs.filter(p => p.id !== poi.id);
+    updateStateAndCache(newItineraryPOIs, newUnusedPOIs);
+  }, [itineraryState, updateStateAndCache]);
 
-  // Helper function to find a free time slot in the itinerary
+  // Find free time slot helper
   const findFreeTimeSlot = (day: number, itineraryPOIs: ItineraryPOI[]) => {
     const dayPOIs = itineraryPOIs.filter((poi) => poi.day === day);
     const timeSlots = dayPOIs.map((poi) => ({
@@ -248,21 +280,17 @@ function EditTripPage() {
     return null;
   };
 
-  // Logic for saving the itinerary
+  // Save itinerary to server
   const handleSaveItinerary = async () => {
-    if (!itineraryState || !tripData) {
-      toast.error("Missing itinerary data");
+    if (!itineraryState || !tripData || !user) {
+      toast.error("Missing data or not logged in");
       return;
     }
     
     try {
-      if (!user) {
-        toast.error("Please login to save your itinerary");
-        return;
-      }
-
       setIsSaving(true);
       const savingToast = toast.loading("Saving your itinerary...");
+      
       await apiClient.createOrGetTrip(
         user.uid,
         tripData,
@@ -270,43 +298,39 @@ function EditTripPage() {
         itineraryState.unusedPOIs
       );
 
+      // Clear cache after successful save
+      tripCacheService.clear(tripData);    
       toast.dismiss(savingToast);
-      toast.success("Itinerary saved successfully!", {
-        duration: 3000,
-        position: 'bottom-right'
-      });
+      toast.success("Itinerary saved successfully!");
+      navigate('/home');
     } catch (error) {
       console.error("Error saving itinerary:", error);
+      let errorMessage = "Failed to save itinerary";
+      
       if (error instanceof Error) {
         if (error.message.includes('version')) {
-          toast.error(
-            "Someone else has updated this itinerary. Please refresh and try again.",
-            { duration: 5000 }
-          );
+          errorMessage = "Someone else has updated this itinerary. Please refresh and try again.";
         } else if (error.message.includes('network')) {
-          toast.error(
-            "Network error. Please check your connection and try again.",
-            { duration: 5000 }
-          );
-        } else {
-          toast.error("Failed to save itinerary. Please try again.");
+          errorMessage = "Network error. Please check your connection and try again.";
         }
-      } else {
-        toast.error("An unexpected error occurred. Please try again.");
       }
+      
+      toast.error(errorMessage);
     } finally {
       setIsSaving(false);
     }
   };
 
-  // Show loading state while initializing
+  // Show loading state
   if (isLoading || !itineraryState || !tripData) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-blue-100">
-        <div className="text-xl font-semibold">Loading trip data...</div>
+      <div className="flex min-h-screen items-center justify-center bg-white">
+        <div className="text-xl font-semibold"><h1>Loading Trip...</h1></div>
       </div>
     );
   }
+  
+  // Render page
   return (
     <div className="flex flex-col min-h-screen bg-blue-100">
       <NavigationMenuBar />

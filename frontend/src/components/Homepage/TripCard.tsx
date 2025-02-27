@@ -44,7 +44,6 @@ const TripCard: FC<TripCardsProps> = ({ trip }) => {
                 try {
                     // Fetch trip details
                     const tripDetails = await apiClient.getTripDetails(trip.trip_doc_id);
-                
                     // Fetch saved POI details
                     const [savedItineraryPOIs, savedUnusedPOIs] = await Promise.all([
                       apiClient.getSavedPOIDetails(tripDetails.itineraryPOIs.map(poi => poi.PointID)),
@@ -88,13 +87,13 @@ const TripCard: FC<TripCardsProps> = ({ trip }) => {
                         duration: -1
                       } as ItineraryPOI;
                     });
-
                     // Navigate to edit page with the enhanced data
-                    navigate('/edit-trip', {
+                    navigate(`/edit-trip/${encodeURIComponent(tripDetails.tripData.city)}/${encodeURIComponent(tripDetails.tripData.country)}/${tripDetails.tripData.createdDT.getTime()}`, {
                       state: {
                         itineraryPOIs: finalItineraryPOIs,
                         unusedPOIs: finalUnusedPOIs,
-                        tripData: tripDetails.tripData
+                        tripData: tripDetails.tripData,
+                        timeStamp: Date.now()
                       }
                     });
                   } catch (error) {

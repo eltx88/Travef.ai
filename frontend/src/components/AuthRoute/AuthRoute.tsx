@@ -1,3 +1,4 @@
+// src/components/AuthRoute.tsx
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/firebase/firebase';
@@ -6,8 +7,7 @@ export interface AuthRouteProps {
   children: React.ReactNode;
 }
 
-const AuthRoute: React.FunctionComponent<AuthRouteProps> = (props) => {
-  const { children } = props;
+const AuthRoute: React.FC<AuthRouteProps> = ({ children }) => {
   const navigate = useNavigate();
   const { user, loading } = useAuthStore();
 
@@ -18,10 +18,15 @@ const AuthRoute: React.FunctionComponent<AuthRouteProps> = (props) => {
   }, [user, loading, navigate]);
 
   if (loading) {
-    return <div>Loading...</div>;
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-blue-100">
+        <div className="text-xl font-semibold">Checking authentication...</div>
+      </div>
+    );
   }
 
-  return <>{children}</>;
+  // If authentication check is complete and user exists, render children
+  return <>{user ? children : null}</>;
 };
 
 export default AuthRoute;

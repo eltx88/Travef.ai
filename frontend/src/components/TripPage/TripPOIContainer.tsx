@@ -248,11 +248,12 @@ const TripPOIContainer = ({ tripData, pois, savedpois, setIsGenerating }: TripPO
       });
       
       // Navigate to edit trip with enhanced data
-      navigate('/edit-trip', {
+      navigate(`/edit-trip/${encodeURIComponent(tripData.city)}/${encodeURIComponent(tripData.country)}/${tripData.createdDT.getTime()}`, {
         state: {
           itineraryPOIs: finalItineraryPOIs,
           unusedPOIs: finalUnusedPOIs,
-          tripData: tripData
+          tripData: tripData,
+          timeStamp: Date.now()
         }
       });
     } catch (error) {

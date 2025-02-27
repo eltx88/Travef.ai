@@ -1,28 +1,9 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import type { ItineraryPOI, TripData } from '@/Types/InterfaceTypes';
 import ItineraryDynamicPOI from './ItineraryDynamicPOI';
-import GridLayout from 'react-grid-layout';
+import GridLayout, { Layout } from 'react-grid-layout';
 import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
-
-// Add custom styles to improve drag performance
-const customStyles = `
-  .react-grid-item.react-draggable-dragging {
-    transition: none !important;
-    z-index: 100;
-    will-change: transform;
-    cursor: grabbing !important;
-  }
-  .react-grid-item > .react-resizable-handle {
-    cursor: ew-resize;
-  }
-  .drag-handle {
-    cursor: grab;
-  }
-  .drag-handle:active {
-    cursor: grabbing;
-  }
-`;
 
 interface ItineraryDayContainerProps {
   pois: ItineraryPOI[];
@@ -43,151 +24,112 @@ const ItineraryDayContainer = ({
   const CELLS_PER_HOUR = 2;
   const TOTAL_CELLS = (END_HOUR - START_HOUR) * CELLS_PER_HOUR;
   const DAY_HEIGHT = 100;
-  const DAY_SPACING = 2; 
-  const DAY_LABEL_WIDTH = 120; 
+  const DAY_SPACING = 4; 
+  const DAY_LABEL_WIDTH = 120;
   
-  // Reference to the grid layout
   const gridRef = useRef<GridLayout>(null);
-  
-  // Track whether an item is being dragged
   const [isDragging, setIsDragging] = useState(false);
+  const [isInitialRender, setIsInitialRender] = useState(true);
+  const userInteractedRef = useRef(false);
 
-  const [gridPositions, setGridPositions] = useState<Map<string, { x: number, y: number, w: number }>>(
-    new Map(pois.map(poi => [
-      poi.id,
-      {
-        x: timeToGridPosition(poi.StartTime),
-        y: poi.day - 1,
-        w: getDurationInCells(poi.StartTime, poi.EndTime)
-      }
-    ]))
-  );
-
-  // Inject custom CSS when component mounts
+  // Initialize first render flag
   useEffect(() => {
-    const styleElement = document.createElement('style');
-    styleElement.textContent = customStyles;
-    document.head.appendChild(styleElement);
+    const timer = setTimeout(() => {
+      setIsInitialRender(false);
+    }, 300);
     
-    return () => {
-      document.head.removeChild(styleElement);
-    };
+    return () => clearTimeout(timer);
   }, []);
 
-  // Update grid positions when POIs change
-  useEffect(() => {
-    setGridPositions(new Map(pois.map(poi => [
-      poi.id,
-      {
-        x: timeToGridPosition(poi.StartTime),
-        y: poi.day - 1,
-        w: getDurationInCells(poi.StartTime, poi.EndTime)
-      }
-    ])));
-  }, [pois]);
-
-  function timeToGridPosition(time: number): number {
+  // Convert time to grid position
+  const timeToGridPosition = useCallback((time: number): number => {
     if (time === -1) return 0;
     const hoursFromStart = Math.floor(time / 60) - START_HOUR;
     const cellsFromMinutes = Math.floor((time % 60) / 30);
-    return (hoursFromStart * CELLS_PER_HOUR) + cellsFromMinutes;
-  }
+    return Math.max(0, (hoursFromStart * CELLS_PER_HOUR) + cellsFromMinutes);
+  }, [START_HOUR, CELLS_PER_HOUR]);
 
-  function gridPositionToTime(position: number): number {
-    if (position === -1) return -1;
+  // Convert grid position to time
+  const gridPositionToTime = useCallback((position: number): number => {
+    if (position < 0) return -1;
     const totalMinutes = (position * 30) + (START_HOUR * 60);
     return totalMinutes;
-  }
+  }, [START_HOUR]);
 
-  function getDurationInCells(startTime: number, endTime: number): number {
+  // Calculate duration in cells
+  const getDurationInCells = useCallback((startTime: number, endTime: number): number => {
     if (startTime === -1 || endTime === -1) return 1; // Default to 1 cell
     const startPosition = timeToGridPosition(startTime);
     const endPosition = timeToGridPosition(endTime);
     return Math.max(1, endPosition - startPosition); // Ensure at least 1 cell
-  }
+  }, [timeToGridPosition]);
 
-  function hasTimeConflict(layout: ReactGridLayout.Layout[]): boolean {
-    for (let i = 0; i < layout.length; i++) {
-      for (let j = i + 1; j < layout.length; j++) {
-        if (layout[i].y === layout[j].y) {
-          const iStart = layout[i].x;
-          const iEnd = layout[i].x + layout[i].w;
-          const jStart = layout[j].x;
-          const jEnd = layout[j].x + layout[j].w;
-          
-          if (iStart < jEnd && iEnd > jStart) {
-            return true;
-          }
-        }
-      }
-    }
-    return false;
-  }
+  // Get time slot (Morning, Afternoon, Evening)
+  const getTimeSlot = useCallback((startTime: number): string => {
+    const hoursFromStart = Math.floor(startTime / 60);
+    if (hoursFromStart >= 8 && hoursFromStart < 12) return "Morning";
+    if (hoursFromStart >= 12 && hoursFromStart < 18) return "Afternoon";
+    return "Evening";
+  }, []);
 
-  const layout = pois.map(poi => {
-    const position = gridPositions.get(poi.id) || {
-      x: timeToGridPosition(poi.StartTime),
-      y: poi.day - 1,
-      w: getDurationInCells(poi.StartTime, poi.EndTime)
-    };
-
-    return {
-      i: poi.id,
-      x: position.x,
-      y: position.y,
-      w: position.w,
-      h: 1,
-      minW: 1,
-      maxW: TOTAL_CELLS,
-      isBounded: false // Allow items to be dragged outside the grid temporarily
-    };
-  });
+  // Prepare layout with one POI at a time
+  const layout: Layout[] = pois.map(poi => ({
+    i: poi.id,
+    x: timeToGridPosition(poi.StartTime),
+    y: poi.day - 1,
+    w: getDurationInCells(poi.StartTime, poi.EndTime),
+    h: 1,
+    minW: 1,
+    maxW: TOTAL_CELLS
+  }));
 
   // Handle drag start
-  const handleDragStart = () => {
+  const handleDragStart = useCallback(() => {
     setIsDragging(true);
-    document.body.style.cursor = 'grabbing';
-    // Add a class to the body to disable text selection during drag
-    document.body.classList.add('dragging-active');
-  };
+    userInteractedRef.current = true;
+  }, []);
 
   // Handle drag stop
-  const handleDragStop = () => {
+  const handleDragStop = useCallback((layout: Layout[], oldItem: Layout, newItem: Layout) => {
     setIsDragging(false);
-    document.body.style.cursor = '';
-    document.body.classList.remove('dragging-active');
-  };
-
-  const handleLayoutChange = (newLayout: ReactGridLayout.Layout[]) => {
-    if (hasTimeConflict(newLayout)) return;
-
-    const updatedGridPositions = new Map<string, { x: number, y: number, w: number }>();
-    const updatedPOIs: ItineraryPOI[] = [];
-
-    newLayout.forEach(item => {
-      const poi = pois.find(p => p.id === item.i);
-      if (!poi) return;
-
-      updatedGridPositions.set(item.i, { x: item.x, y: item.y, w: item.w });
-
-      const newStartTime = gridPositionToTime(item.x);
-      const newEndTime = gridPositionToTime(item.x + item.w);
-
-      const currentPosition = gridPositions.get(item.i);
-      if (!currentPosition || currentPosition.x !== item.x || currentPosition.y !== item.y || currentPosition.w !== item.w) {
-        updatedPOIs.push({
+    
+    // Skip processing during initialization
+    if (isInitialRender || !userInteractedRef.current) return;
+    
+    // Find the POI that was moved
+    const poi = pois.find(p => p.id === newItem.i);
+    if (!poi) return;
+    
+    // Get new position data
+    const newStartTime = gridPositionToTime(newItem.x);
+    const newEndTime = gridPositionToTime(newItem.x + newItem.w);
+    const newDay = newItem.y + 1;
+    
+    // Ensure day is within valid range
+    if (newDay > 0 && newDay <= tripData.monthlyDays) {
+      const newDuration = newEndTime - newStartTime;
+      const newTimeSlot = getTimeSlot(newStartTime);
+      
+      // Only update if something changed
+      if (newStartTime !== poi.StartTime || 
+          newEndTime !== poi.EndTime || 
+          newDay !== poi.day) {
+        
+        // Create updated POI
+        const updatedPoi = {
           ...poi,
           StartTime: newStartTime,
           EndTime: newEndTime,
-          day: item.y + 1
-        });
+          day: newDay,
+          duration: newDuration,
+          timeSlot: newTimeSlot
+        };
+        
+        // Send update to parent
+        onUpdatePOI(updatedPoi);
       }
-    });
-
-    setGridPositions(updatedGridPositions);
-    updatedPOIs.forEach(poi => onUpdatePOI(poi));
-  };
-
+    }
+  }, [isInitialRender, pois, tripData.monthlyDays, onUpdatePOI, gridPositionToTime, getTimeSlot]);
   return (
     <div 
       className="relative mb-8 bg-white rounded-lg shadow-md p-6 border border-gray-300" 
@@ -196,7 +138,7 @@ const ItineraryDayContainer = ({
         minWidth: `${DAY_LABEL_WIDTH + (TOTAL_CELLS * CELL_SIZE) + 100}px`
       }}>
       <div className="flex">
-        {/* Day Labels Column*/}
+        {/* Day Labels Column */}
         <div className="flex-none bg-white" style={{ width: `${DAY_LABEL_WIDTH}px`, zIndex: 10 }}>
           <div className="h-8" /> 
           <div className="flex flex-col">
@@ -245,8 +187,8 @@ const ItineraryDayContainer = ({
                   key={i}
                   className="absolute bg-gray-50 rounded-lg border border-gray-200"
                   style={{
-                    height: `${DAY_HEIGHT -2}px`,
-                    width: `${TOTAL_CELLS * CELL_SIZE}px`, // Match timeline width
+                    height: `${DAY_HEIGHT - 2}px`,
+                    width: `${TOTAL_CELLS * CELL_SIZE}px`,
                     top: `${i * (DAY_HEIGHT + DAY_SPACING)}px`,
                     left: 0,
                   }}
@@ -254,11 +196,13 @@ const ItineraryDayContainer = ({
               ))}
             </div>
 
-            <div style={{
-              height: `${(tripData.monthlyDays * DAY_HEIGHT) + ((tripData.monthlyDays - 1) * DAY_SPACING)}px`,
-              position: 'relative',
-              zIndex: 2
-            }}>
+            <div
+              style={{
+                height: `${(tripData.monthlyDays * DAY_HEIGHT) + ((tripData.monthlyDays - 1) * DAY_SPACING)}px`,
+                position: 'relative',
+                zIndex: 2
+              }}
+            >
               <GridLayout
                 className="layout"
                 layout={layout}
@@ -267,7 +211,6 @@ const ItineraryDayContainer = ({
                 width={TOTAL_CELLS * CELL_SIZE}
                 margin={[5, DAY_SPACING / 2]}
                 containerPadding={[0, DAY_SPACING / 2]}
-                onLayoutChange={handleLayoutChange}
                 onDragStart={handleDragStart}
                 onDragStop={handleDragStop}
                 isDraggable
@@ -278,26 +221,19 @@ const ItineraryDayContainer = ({
                 maxRows={tripData.monthlyDays}
                 ref={gridRef}
                 draggableHandle=".drag-handle"
-                useCSSTransforms={true}
-                transformScale={1}
-                autoSize={true}
                 isBounded={false}
-                allowOverlap={false}
               >
                 {pois.map(poi => {
-                  const position = gridPositions.get(poi.id);
-                  if (poi.day > tripData.monthlyDays) return null;
+                  // Skip POIs with invalid days
+                  if (poi.day <= 0 || poi.day > tripData.monthlyDays) return null;
+                  
                   return (
-                    <div key={poi.id} data-grid={{ x: position?.x || 0, y: position?.y || 0, w: position?.w || 1, h: 1 }}>
+                    <div key={poi.id}>
                       <ItineraryDynamicPOI
-                        poi={{
-                          ...poi,
-                          StartTime: poi.StartTime,
-                          EndTime: poi.EndTime
-                        }}
+                        poi={poi}
                         timeMap={{
-                          gridPosition: position?.x || 0,
-                          width: position?.w || 0,
+                          gridPosition: timeToGridPosition(poi.StartTime),
+                          width: getDurationInCells(poi.StartTime, poi.EndTime),
                           startTime: poi.StartTime,
                           endTime: poi.EndTime,
                           day: poi.day

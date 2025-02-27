@@ -78,7 +78,7 @@ const ItineraryView = ({
               onClick={saveItinerary}
               disabled={isSaving}
             >
-              <span>{isSaving ? 'Saving...' : 'Save Itinerary'}</span>
+              <span>{isSaving ? 'Saving...' : 'Save and Exit'}</span>
             </button>
           </div>
         </div>

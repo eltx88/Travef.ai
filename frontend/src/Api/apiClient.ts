@@ -41,7 +41,11 @@ class ApiClient {
     return this.fetchWithAuth(`/user/history/saved-pois${queryParams}`);
   }
 
-  async getSavedPOIDetails(ids: string[]) {
+  async getSavedPOIDetails(ids?: string[]) {
+    if (!ids || ids.length === 0) {
+      return [];
+    }
+
     const response = await this.fetchWithAuth(`/points/saved/details`, {
       method: 'POST',
       body: JSON.stringify({ point_ids: ids }),
@@ -238,7 +242,9 @@ async getNearbyPlacesByTypes(
     try {
       const tripId = `trip_data_${userId}_${tripData.city}_${tripData.createdDT.toISOString()}`;
       const response = await this.fetchWithAuth(`/user/history/saved-trips/check/${tripId}`);
-  
+      console.log("response:       ",response, tripId);
+      
+
       if (response.exists) {
         // Get current trip state from backend
         const backendTripDetails = await this.getTripDetails(response.trip_doc_id);

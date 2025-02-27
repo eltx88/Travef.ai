@@ -2,98 +2,158 @@ import type { ItineraryPOI, TripData } from '@/Types/InterfaceTypes';
 import { useAuthStore } from '@/firebase/firebase';
 
 const CACHE_PREFIX = 'trip_data';
+const CACHE_EXPIRY_MS = 30 * 60 * 1000; // 30 minutes
 
 interface TripCacheData {
   itineraryPOIs: ItineraryPOI[];
   unusedPOIs: ItineraryPOI[];
-  timestamp: number;
-  city: string;
+  lastModified: number;
+  cachedAt: number;
   tripData: TripData;
 }
 
-// Helper function to generate a consistent cache key
-const generateCacheKey = (city: string, createdDT: Date) => {
+// Get current user ID consistently
+const getCurrentUserId = () => {
   const user = useAuthStore.getState().user;
-  const userId = user ? user.uid : 'guest';
-  return `${CACHE_PREFIX}_${userId}_${city}_${createdDT.getTime()}`;
+  return user ? user.uid : 'guest';
+};
+
+// Generate cache key from trip data
+const generateCacheKey = (tripData: TripData) => {
+  const userId = getCurrentUserId();
+  return `${CACHE_PREFIX}_${userId}_${tripData.city}_${tripData.country}_${tripData.createdDT.toISOString()}`;
+};
+
+// Generate cache key from trip parameters
+const generateCacheKeyFromParams = (city: string, country: string, createdDT: Date) => {
+  const userId = getCurrentUserId();
+  return `${CACHE_PREFIX}_${userId}_${city}_${country}_${createdDT.toISOString()}`;
 };
 
 export const tripCacheService = {
-  set(city: string, data: { 
+  // Set new cache data
+  set(tripData: TripData, data: { 
     itineraryPOIs: ItineraryPOI[], 
     unusedPOIs: ItineraryPOI[],
-    tripData: TripData 
+    lastModified?: number 
   }): void {
     try {
-      const cacheKey = generateCacheKey(city, data.tripData.createdDT);
-      
-      // Create a deep copy to ensure all properties are preserved
-      const cacheData = {
-        ...data,
-        timestamp: Date.now()
+      const cacheData: TripCacheData = {
+        itineraryPOIs: data.itineraryPOIs,
+        unusedPOIs: data.unusedPOIs,
+        lastModified: data.lastModified || Date.now(),
+        cachedAt: Date.now(),
+        tripData: tripData
       };
       
-      // Use JSON to ensure we store ALL properties
-      localStorage.setItem(cacheKey, JSON.stringify(cacheData));
+      localStorage.setItem(generateCacheKey(tripData), JSON.stringify(cacheData));
+      console.log(`Cache set for ${data.itineraryPOIs}`);
     } catch (error) {
       console.error('Cache storage error:', error);
     }
   },
 
-  get: (city: string, createdDT: Date): TripCacheData | null => {
+  // Get cache by trip data
+  get: (tripData: TripData): TripCacheData | null => {
     try {
-      const cacheKey = generateCacheKey(city, createdDT);
-      const cached = localStorage.getItem(cacheKey);
-
-      if (!cached) {
-        console.log(`No cache found for key: ${cacheKey}`);
-        return null;
-      }
-
-      const parsedCache = JSON.parse(cached) as TripCacheData;
-      return parsedCache;
+      const cacheKey = generateCacheKey(tripData);
+      return tripCacheService.getByKey(cacheKey);
     } catch (error) {
       console.error('Trip cache retrieval error:', error);
       return null;
     }
   },
 
-  clear: (city: string, createdDT: Date) => {
+  // Get cache by parameters (for URL params/page refresh)
+  getByTripParams: (city: string, country: string, createdDT: Date): TripCacheData | null => {
     try {
-      const cacheKey = generateCacheKey(city, createdDT);
-      localStorage.removeItem(cacheKey);
-      console.log(`Cache cleared for key: ${cacheKey}`);
+      const cacheKey = generateCacheKeyFromParams(city, country, createdDT);
+      return tripCacheService.getByKey(cacheKey);
     } catch (error) {
-      console.error('Trip cache clearing error:', error);
+      console.error('Error getting cache by params:', error);
+      return null;
     }
   },
 
+  // Get cache by key (internal helper)
+  getByKey: (cacheKey: string): TripCacheData | null => {
+    try {
+      const cached = localStorage.getItem(cacheKey);
+      if (!cached) return null;
+
+      const parsedCache = JSON.parse(cached) as TripCacheData;
+      
+      // Check for expiration
+      if (Date.now() - parsedCache.cachedAt > CACHE_EXPIRY_MS) {
+        localStorage.removeItem(cacheKey);
+        return null;
+      }
+
+      return parsedCache;
+    } catch (error) {
+      console.error('Error retrieving cache:', error);
+      return null;
+    }
+  },
+
+  // Update cache with partial data
+  update: (tripData: TripData, updates: Partial<Omit<TripCacheData, 'cachedAt' | 'tripData'>>) => {
+    try {
+      const cacheKey = generateCacheKey(tripData);
+      const cachedItem = localStorage.getItem(cacheKey);
+      
+      if (!cachedItem) return null;
+
+      const currentCache = JSON.parse(cachedItem) as TripCacheData;
+      
+      // Create updated cache with timestamp
+      const updatedCache = {
+        ...currentCache,
+        ...updates,
+        lastModified: Date.now()
+      };
+
+      localStorage.setItem(cacheKey, JSON.stringify(updatedCache));
+      return updatedCache;
+    } catch (error) {
+      console.error('Trip cache update error:', error);
+      return null;
+    }
+  },
+
+  // Remove specific cache
+  clear: (tripData: TripData) => {
+    try {
+      localStorage.removeItem(generateCacheKey(tripData));
+    } catch (error) {
+      console.error('Cache clearing error:', error);
+    }
+  },
+
+  // Remove all caches for current user
   clearAll: () => {
     try {
+      const userId = getCurrentUserId();
+      const userPrefix = `${CACHE_PREFIX}_${userId}`;
+      
       Object.keys(localStorage).forEach(key => {
-        if (key.startsWith(CACHE_PREFIX)) {
+        if (key.startsWith(userPrefix)) {
           localStorage.removeItem(key);
         }
       });
-      console.log('All trip caches cleared');
     } catch (error) {
-      console.error('Trip cache clearing all error:', error);
+      console.error('Error clearing all caches:', error);
     }
   },
 
-  update: (city: string, createdDT: Date, updateFn: (cache: TripCacheData) => TripCacheData) => {
+  // Check if cache is fresher than timestamp
+  isCacheFresher: (tripData: TripData, timestamp: number): boolean => {
     try {
-      const currentCache = tripCacheService.get(city, createdDT);
-      if (!currentCache) {
-        console.log('No cache to update');
-        return;
-      }
-
-      const updatedCache = updateFn(currentCache);
-      tripCacheService.set(city, updatedCache);
-      console.log('Cache updated');
+      const cache = tripCacheService.get(tripData);
+      return cache ? cache.lastModified > timestamp : false;
     } catch (error) {
-      console.error('Trip cache update error:', error);
+      console.error('Error checking cache freshness:', error);
+      return false;
     }
-  },
+  }
 };
