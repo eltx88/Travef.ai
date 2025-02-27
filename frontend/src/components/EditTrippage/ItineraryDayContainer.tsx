@@ -89,7 +89,6 @@ const ItineraryDayContainer = ({
     userInteractedRef.current = true;
   }, []);
 
-  // Handle drag stop
   const handleDragStop = useCallback((layout: Layout[], oldItem: Layout, newItem: Layout) => {
     setIsDragging(false);
     
@@ -130,6 +129,44 @@ const ItineraryDayContainer = ({
       }
     }
   }, [isInitialRender, pois, tripData.monthlyDays, onUpdatePOI, gridPositionToTime, getTimeSlot]);
+
+  const handleResizeStop = useCallback((layout: Layout[], oldItem: Layout, newItem: Layout) => {
+    if (isInitialRender || !userInteractedRef.current) return;
+    
+    // Find the POI that was resized
+    const poi = pois.find(p => p.id === newItem.i);
+    if (!poi) return;
+    
+    // Get new position data
+    const newStartTime = gridPositionToTime(newItem.x);
+    const newEndTime = gridPositionToTime(newItem.x + newItem.w);
+    const newDay = newItem.y + 1;
+    
+    // Ensure day is within valid range
+    if (newDay > 0 && newDay <= tripData.monthlyDays) {
+      const newDuration = newEndTime - newStartTime;
+      const newTimeSlot = getTimeSlot(newStartTime);
+      
+      // Only update if something changed
+      if (newStartTime !== poi.StartTime || 
+          newEndTime !== poi.EndTime) {
+        
+        // Create updated POI
+        const updatedPoi = {
+          ...poi,
+          StartTime: newStartTime,
+          EndTime: newEndTime,
+          day: newDay,
+          duration: newDuration,
+          timeSlot: newTimeSlot
+        };
+        
+        // Send update to parent
+        onUpdatePOI(updatedPoi);
+      }
+    }
+  }, [isInitialRender, pois, tripData.monthlyDays, onUpdatePOI, gridPositionToTime, getTimeSlot]);
+  
   return (
     <div 
       className="relative mb-8 bg-white rounded-lg shadow-md p-6 border border-gray-300" 
@@ -213,6 +250,7 @@ const ItineraryDayContainer = ({
                 containerPadding={[0, DAY_SPACING / 2]}
                 onDragStart={handleDragStart}
                 onDragStop={handleDragStop}
+                onResizeStop={handleResizeStop}
                 isDraggable
                 isResizable
                 resizeHandles={['e', 'w']}

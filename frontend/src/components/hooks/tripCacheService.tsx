@@ -47,7 +47,6 @@ export const tripCacheService = {
       };
       
       localStorage.setItem(generateCacheKey(tripData), JSON.stringify(cacheData));
-      console.log(`Cache set for ${data.itineraryPOIs}`);
     } catch (error) {
       console.error('Cache storage error:', error);
     }
