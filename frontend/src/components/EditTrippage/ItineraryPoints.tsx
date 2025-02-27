@@ -14,6 +14,7 @@ interface ItineraryPointsProps {
   itineraryPOIs: ItineraryPOI[];
   unusedPOIs: ItineraryPOI[];
   onAddToItinerary: (poi: ItineraryPOI, day: number) => void; // Pass onAddToItinerary as a prop
+  onDeleteSavedPOI: (poi: ItineraryPOI) => void; // Pass onDeleteSavedPOI as a prop
 }
 
 const ItineraryPoints = ({ 
@@ -21,6 +22,7 @@ const ItineraryPoints = ({
   itineraryPOIs,
   unusedPOIs,
   onAddToItinerary,
+  onDeleteSavedPOI,
 }: ItineraryPointsProps) => {
   const [activeTab, setActiveTab] = useState<TabType>('itinerary');
   const [filterDay, setFilterDay] = useState<string>('all'); 
@@ -101,6 +103,7 @@ const ItineraryPoints = ({
             poi={poi}
             dayOptions={dayOptions}
             onAddToItinerary={onAddToItinerary}
+            onDeleteSavedPOI={onDeleteSavedPOI}
           />
         ))}
       </div>
@@ -115,6 +118,7 @@ const ItineraryPoints = ({
             poi={poi}
             dayOptions={dayOptions}
             onAddToItinerary={onAddToItinerary}
+            onDeleteSavedPOI={onDeleteSavedPOI}
           />
         ))}
       </div>
@@ -138,12 +142,12 @@ const ItineraryPoints = ({
   return (
     <Card className="w-1/3 h-[calc(100vh-7rem)] overflow-hidden bg-white rounded-lg flex flex-col">
       <div className="sticky top-0 bg-white px-6 py-4 border-b z-20">
-        <h2 className="text-2xl font-semibold">{tripData.city}</h2>
-        {tripData.dateRange && (
+        <h2 className="text-2xl font-semibold">{tripData.city.charAt(0).toUpperCase() + tripData.city.slice(1)}</h2>
+        {tripData.fromDT && tripData.toDT && (
           <div className="flex items-center gap-2 text-gray-600 mt-2">
             <Calendar className="w-4 h-4" />
             <span>
-              {tripData.dateRange.from?.toLocaleDateString("en-UK")} - {tripData.dateRange.to?.toLocaleDateString("en-UK")}
+              {tripData.fromDT?.toLocaleDateString("en-UK")} - {tripData.toDT?.toLocaleDateString("en-UK")}
             </span>
           </div>
         )}

@@ -167,6 +167,13 @@ function EditTripPage() {
     updateStateAndCache(updatedPOIs, itineraryState.unusedPOIs);
   }, [itineraryState, updateStateAndCache]);
 
+  // Delete POI from Saved POIs
+  const deleteSavedPOI = useCallback((deletedPOI: ItineraryPOI) => {
+    if (!itineraryState) return;
+    const newUnusedPOIs = itineraryState.unusedPOIs.filter(p => p.id !== deletedPOI.id);
+    updateStateAndCache(itineraryState.itineraryPOIs, newUnusedPOIs);
+  }, [itineraryState, updateStateAndCache]);
+
   // Delete POI from itinerary
   const deleteItineraryPOI = useCallback((deletedPOI: ItineraryPOI) => {
     if (!itineraryState) return;
@@ -336,11 +343,12 @@ function EditTripPage() {
       <NavigationMenuBar />
       <main className="flex-grow p-4">
         <div className="flex h-full gap-4">          
-          <ItineraryPoints
+        <ItineraryPoints
             tripData={tripData}
             itineraryPOIs={itineraryState.itineraryPOIs}
             unusedPOIs={itineraryState.unusedPOIs}
             onAddToItinerary={handleAddToItinerary}
+            onDeleteSavedPOI={deleteSavedPOI}
           />
           <ItineraryView
             itineraryPOIs={itineraryState.itineraryPOIs}

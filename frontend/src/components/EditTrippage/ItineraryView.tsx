@@ -48,7 +48,7 @@ const ItineraryView = ({
         <div>
           <h2 className="text-2xl font-bold">Trip Itinerary</h2>
           <p className="text-sm text-gray-600">
-            {tripData.city}, {tripData.country}
+            {tripData.city.charAt(0).toUpperCase() + tripData.city.slice(1)}, {tripData.country.charAt(0).toUpperCase() + tripData.country.slice(1)}
           </p>
         </div>
       </div>

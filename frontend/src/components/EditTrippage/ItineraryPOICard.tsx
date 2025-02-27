@@ -7,6 +7,8 @@ import { FC, useMemo, useState } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@radix-ui/react-hover-card';
+import { DialogDescription } from "@radix-ui/react-dialog";
+import OpeningHoursFormatter from "./OpeningHoursFormatter";
 
 // TEMPORARY PLACEHOLDER IMAGES
 const DEFAULT_ATTRACTION_IMAGE = "https://fastly.picsum.photos/id/57/2448/3264/4336.jpg?hmac=iS-l9m6Vq7wE-m9x6n9_d72mN2_l72j-c99y9v9j9cI";
@@ -15,7 +17,8 @@ const DEFAULT_RESTAURANT_IMAGE = "https://fastly.picsum.photos/id/431/5000/3334.
 interface ItineraryPOICardProps {
   poi: ItineraryPOI;
   dayOptions?: number[];
-  onAddToItinerary?: (poi: ItineraryPOI, day: number) => void; 
+  onAddToItinerary?: (poi: ItineraryPOI, day: number) => void;
+  onDeleteSavedPOI?: (poi: ItineraryPOI) => void;
 }
 
 // Helper function to convert minutes to HH:MM
@@ -76,9 +79,10 @@ const getTypeIcon = (type: string) => {
   }
 };
 
-const ItineraryPOICard: FC<ItineraryPOICardProps> = ({ poi, dayOptions, onAddToItinerary }) => {
+const ItineraryPOICard: FC<ItineraryPOICardProps> = ({ poi, dayOptions, onAddToItinerary, onDeleteSavedPOI }) => {
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
   const [isHovered, setIsHovered] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
   const openWebsite = (e: React.MouseEvent, url: string) => {
     e.preventDefault();
@@ -92,6 +96,13 @@ const ItineraryPOICard: FC<ItineraryPOICardProps> = ({ poi, dayOptions, onAddToI
     if (selectedDay !== null && onAddToItinerary) {
       onAddToItinerary(poi, selectedDay);
     }
+  };
+  
+  const handleDeleteSavedPOI = () => {
+    if (onDeleteSavedPOI) {
+      onDeleteSavedPOI(poi);
+    }
+    setIsDeleteDialogOpen(false);
   };
 
   return (
@@ -212,11 +223,11 @@ const ItineraryPOICard: FC<ItineraryPOICardProps> = ({ poi, dayOptions, onAddToI
                   <Button
                     variant="outline"
                     size="sm"
-                    className="w-full hover:bg-blue-200 text-xs h-8"
+                    className="w-full hover:bg-blue-200 text-xs h-8 truncate flex items-center justify-center"
                     onClick={(e) => e.stopPropagation()}
                   >
-                    <Info className="h-3 w-3 mr-1.5" />
-                    More Details
+                    <Info className="h-3 w-3 mr-1.5 flex-shrink-0" />
+                    <span className="truncate">More Details</span>
                   </Button>
                 </DialogTrigger>
                 <DialogContent className="max-w-md bg-white p-4 rounded-md">
@@ -225,6 +236,16 @@ const ItineraryPOICard: FC<ItineraryPOICardProps> = ({ poi, dayOptions, onAddToI
                   </DialogHeader>
 
                   <div className="space-y-4 mt-4">
+                    {poi.image_url && (
+                      <div className="relative overflow-hidden aspect-[4/3]">
+                        <img
+                          src={poi.image_url}
+                          alt={poi.name}
+                          className="w-full h-full object-cover transition-transform duration-300"
+                        />
+                      </div>
+                    )}
+
                     {renderRatingStars(poi.rating)}
                     
                     {poi.address && (
@@ -268,15 +289,8 @@ const ItineraryPOICard: FC<ItineraryPOICardProps> = ({ poi, dayOptions, onAddToI
                     )}
 
                     {poi.opening_hours && (
-                      <div className="flex items-start gap-2">
-                        <Clock className="h-5 w-5 text-gray-500 mt-0.5" />
-                        <div>
-                          <h4 className="font-medium mb-1">Opening Hours</h4>
-                          <p className="text-sm text-gray-600">{poi.opening_hours}</p>
-                        </div>
-                      </div>
+                      <OpeningHoursFormatter openingHours={poi.opening_hours} />
                     )}
-
                     {poi.cuisine && poi.cuisine.length > 0 && (
                       <div>
                         <h4 className="font-medium mb-1">Cuisine</h4>
@@ -327,7 +341,7 @@ const ItineraryPOICard: FC<ItineraryPOICardProps> = ({ poi, dayOptions, onAddToI
 
              {/* Add to Itinerary Button (only shown in Saved tab) */}
              {poi.day === -1 && dayOptions && onAddToItinerary && (
-              <div className="mt-2">
+              <div className="mt-2 space-y-2">
                 <HoverCard openDelay={0} closeDelay={200}>
                   <HoverCardTrigger asChild>
                     <Button className="w-full h-8 bg-blue-600 hover:bg-blue-700 text-white text-xs">
@@ -370,12 +384,47 @@ const ItineraryPOICard: FC<ItineraryPOICardProps> = ({ poi, dayOptions, onAddToI
                         </Button>
                       </div>
                     </HoverCardContent>
-                  </HoverCard>
-                </div>
-              )}
+                </HoverCard>
+                <Button 
+                  onClick={() => setIsDeleteDialogOpen(true)}
+                  className="w-full h-7 bg-red-600 hover:bg-red-700 text-white"
+                >
+                  Delete
+                </Button>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
+      
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent className="bg-white p-6 max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-xl">Confirm Deletion</DialogTitle>
+          </DialogHeader>
+          <DialogDescription>
+            <div className="py-4">
+                Are you sure you want to delete <span className="font-semibold">{poi.name}</span>?
+            </div>
+            <div className="flex justify-end gap-3 mt-2">
+              <Button 
+                variant="outline" 
+                onClick={() => setIsDeleteDialogOpen(false)}
+                className="bg-white border-gray-300 text-gray-700 hover:bg-gray-100"
+              >
+                Cancel
+              </Button>
+              <Button 
+                onClick={handleDeleteSavedPOI}
+                className="bg-red-600 hover:bg-red-700 text-white"
+              >
+                Delete
+              </Button>
+            </div>
+          </DialogDescription>
+        </DialogContent>
+      </Dialog>
     </TooltipProvider>
   );
 };
