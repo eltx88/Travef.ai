@@ -7,7 +7,7 @@ from .auth import verify_firebase_token
 import json
 
 logger = logging.getLogger(__name__)
-router = APIRouter(prefix="/api/trip", tags=["trip"])
+router = APIRouter(prefix="/api/tripgeneration", tags=["tripgeneration"])
 trip_service = TripGenerationService()
 
 @router.post("/generate")

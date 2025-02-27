@@ -25,7 +25,7 @@ const LoadingGlobe = () => {
           ease: "easeInOut",
         }}
       >
-        Loading...
+        Generating Suggestions...
       </motion.p>
     </div>
   );

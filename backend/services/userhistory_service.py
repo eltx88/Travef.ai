@@ -1,4 +1,6 @@
+from datetime import datetime
 import logging
+from models.trip import UserTrip
 from .firebase_service import FirebaseService
 from models.userhistory import SavedPOI
 from firebase_admin import firestore
@@ -135,3 +137,75 @@ class UserHistoryService(FirebaseService):
                 status_code=500,
                 detail=f"Error unsaving POIs: {str(e)}"
             )
+
+    async def save_trip_to_history(self, user_id: str, trip_doc_id: str, trip_id: str, city: str, country: str, fromDT: str, toDT: str, monthlyDays: int) -> None:
+        try:
+            # Create reference to user's savedItineraries subcollection
+            user_history_ref = self.get_collection_ref(self.collection_name).document(user_id)
+            
+            saved_itineraries_ref = user_history_ref.collection('savedItineraries').document(trip_doc_id)
+            # Save reference in user's history
+            saved_itineraries_ref.set({
+                'trip_id': trip_id,
+                'city': city,
+                'country': country,
+                'fromDT': fromDT,
+                'toDT': toDT,
+                'monthlyDays': monthlyDays,
+                'status': True
+            })
+
+        except Exception as e:
+            logging.error(f"Error saving trip to user history: {str(e)}")
+            raise HTTPException(status_code=500, detail=str(e))
+
+    async def check_trip_exists(self, user_id: str, trip_id: str) -> Dict:
+        """Check if a trip exists in user's saved trips"""
+        try:
+            user_history_ref = self.get_collection_ref(self.collection_name).document(user_id)
+            saved_trips_collection = user_history_ref.collection('savedItineraries')
+            query = saved_trips_collection.where('trip_id', '==', trip_id).limit(1)
+            docs = query.get()
+            
+            if docs:
+                doc = docs[0] 
+                trip_doc_id = doc.id
+                
+                return {
+                    "exists": True,
+                    "trip_doc_id": trip_doc_id,
+                    "trip_id": trip_id
+                }
+
+            return {
+                "exists": False,
+                "trip_doc_id": None,
+                "trip_id": None
+            }
+
+        except Exception as e:
+            logging.error(f"Error checking trip existence: {str(e)}")
+            raise HTTPException(status_code=500, detail=str(e))
+
+    # Update the get_user_saved_trips method to use the correct field name
+    async def get_user_saved_trips(self, user_id: str) -> List[UserTrip]:
+        """Get all saved trips for a user"""
+        try:
+            user_history_ref = self.get_collection_ref(self.collection_name).document(user_id)
+            saved_itineraries_ref = user_history_ref.collection('savedItineraries') 
+
+            query = saved_itineraries_ref.where("status", "==", True)
+            saved_itineraries = query.get()
+            user_trips = []
+            
+            for doc in saved_itineraries:
+                trip_data = doc.to_dict()
+                trip_data['fromDT'] = datetime.strptime(trip_data['fromDT'], "%Y-%m-%dT%H:%M:%S.%fZ")
+                trip_data['toDT'] = datetime.strptime(trip_data['toDT'], "%Y-%m-%dT%H:%M:%S.%fZ") 
+                user_trip = UserTrip(**trip_data, trip_doc_id=doc.id) 
+                user_trips.append(user_trip)
+
+            return user_trips
+        except Exception as e:
+            logging.error(f"Error getting user saved trips: {str(e)}")
+            raise HTTPException(status_code=500, detail=str(e))

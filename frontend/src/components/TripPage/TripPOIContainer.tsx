@@ -2,12 +2,14 @@
 import { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Calendar, ChevronLeft, ChevronRight } from "lucide-react";
-import type { POI, TripData } from '@/Types/InterfaceTypes';
+import type { ItineraryPOI, POI, TripData } from '@/Types/InterfaceTypes';
 import TripPOICard from './TripPOICard';
 import { useNavigate } from 'react-router-dom';
 import { TripGenerationService } from './TripGenerationService';
 import { useAuthStore } from '@/firebase/firebase';
-import ApiClient from '@/Api/ApiClient';
+import ApiClient from '@/Api/apiClient';
+import { processItinerary } from './ItineraryProcessing';
+import { toast } from 'react-hot-toast';
 
 interface TripPOIContainerProps {
   tripData: TripData;
@@ -140,13 +142,18 @@ const TripPOIContainer = ({ tripData, pois, savedpois, setIsGenerating }: TripPO
   //Navigate to edit page after submitting
   const navigate = useNavigate();
   const handleSubmit = async () => {
-    if (!user) return;
-
+    if (!user) {
+      toast.error("Please login to continue");
+      return;
+    }
+  
     const allFoodPOIs = [...foodPOIs, ...savedFoodPOIs];
     const allAttractionPOIs = [...attractionPOIs, ...savedAttractPOIs];
-    const shortenedFoodPOIs = allFoodPOIs
-    .filter(poi => selectedPOIs.has(poi.place_id))
-    .map(poi => ({
+    const selectedFoodPOIs = allFoodPOIs.filter(poi => selectedPOIs.has(poi.place_id));
+    const selectedAttractionPOIs = allAttractionPOIs.filter(poi => selectedPOIs.has(poi.place_id));
+    
+    // Create shortened POIs for the API call
+    const shortenedFoodPOIs = selectedFoodPOIs.map(poi => ({
       place_id: poi.place_id,
       name: poi.name,
       type: poi.type,
@@ -155,10 +162,8 @@ const TripPOIContainer = ({ tripData, pois, savedpois, setIsGenerating }: TripPO
         lng: poi.coordinates.lng
       }
     }));
-
-  const shortenedAttractionPOIs = allAttractionPOIs
-    .filter(poi => selectedPOIs.has(poi.place_id))
-    .map(poi => ({
+  
+    const shortenedAttractionPOIs = selectedAttractionPOIs.map(poi => ({
       place_id: poi.place_id,
       name: poi.name,
       type: poi.type,
@@ -167,32 +172,97 @@ const TripPOIContainer = ({ tripData, pois, savedpois, setIsGenerating }: TripPO
         lng: poi.coordinates.lng
       }
     }));
-
     setIsGenerating(true);
+
     try {
       const apiClient = new ApiClient({
         getIdToken: async () => user.getIdToken()
       });
-      
       const generationService = new TripGenerationService(apiClient);
-      const generatedTrip = await generationService.generateTrip(tripData, shortenedAttractionPOIs,shortenedFoodPOIs,);
-      //TODO generatedTrip has new suggested places, may want to call api here to match suggested to places api then only go to the new page
-      navigate('/edit-trip', {
-        state: {
-          attractionPOIs : allAttractionPOIs,
-          foodPOIs : allFoodPOIs,
-          tripData: tripData,
-          generatedItinerary: generatedTrip.itinerary,
-          isNewTrip: true
+      const generatedTrip = await generationService.generateTrip(
+        tripData, 
+        shortenedAttractionPOIs,
+        shortenedFoodPOIs
+      );
+      
+      // Process the itinerary
+      const processedItinerary = processItinerary(
+        generatedTrip.itinerary, 
+        selectedFoodPOIs, 
+        selectedAttractionPOIs
+      );
+  
+      // Remove duplicates from generated itinerary
+      const uniqueItineraryPOIs = Array.from(
+        new Map(processedItinerary.ItineraryPOIs.map(poi => [poi.place_id, poi])).values()
+      );
+      
+      const uniqueUnusedPOIs = Array.from(
+        new Map(processedItinerary.unusedPOIs.map(poi => [poi.place_id, poi])).values()
+      );
+      
+      // Enhance POIs with complete Google Places details
+      const loadingToast = toast.loading("Fetching destination details...");
+      
+      // Get enhanced details from Google Places API
+      const [enhancedItineraryPOIs, enhancedUnusedPOIs] = await Promise.all([
+        apiClient.getBatchPlaceDetails(uniqueItineraryPOIs, tripData.city, tripData.country),
+        apiClient.getBatchPlaceDetails(uniqueUnusedPOIs, tripData.city, tripData.country)
+      ]);
+      
+      toast.dismiss(loadingToast);
+      
+      // Merge scheduling information with google POI details for itinerary POIs
+      const finalItineraryPOIs = uniqueItineraryPOIs.map(schedulingInfo => {
+        const matchingPOI = enhancedItineraryPOIs.find(poi => poi.place_id === schedulingInfo.place_id);
+        
+        if (matchingPOI) {
+          return {
+            ...matchingPOI,
+            day: schedulingInfo.day,
+            timeSlot: schedulingInfo.timeSlot,
+            StartTime: schedulingInfo.StartTime,
+            EndTime: schedulingInfo.EndTime,
+            duration: schedulingInfo.duration
+          } as ItineraryPOI;
         }
-      }
-    );
+        return schedulingInfo;
+      });
+      
+      // Apply unused properties to google POIs
+      const finalUnusedPOIs = uniqueUnusedPOIs.map(unusedInfo => {
+        const matchingPOI = enhancedUnusedPOIs.find(poi => poi.place_id === unusedInfo.place_id);
+        
+        if (matchingPOI) {
+          return {
+            ...matchingPOI,
+            day: -1,
+            timeSlot: "unused",
+            StartTime: -1,
+            EndTime: -1,
+            duration: -1
+          } as ItineraryPOI;
+        }
+        
+        return unusedInfo;
+      });
+      
+      // Navigate to edit trip with enhanced data
+      navigate(`/edit-trip/${encodeURIComponent(tripData.city)}/${encodeURIComponent(tripData.country)}/${tripData.createdDT.getTime()}`, {
+        state: {
+          itineraryPOIs: finalItineraryPOIs,
+          unusedPOIs: finalUnusedPOIs,
+          tripData: tripData,
+          timeStamp: Date.now()
+        }
+      });
     } catch (error) {
       console.error('Failed to generate trip:', error);
+      toast.error("Failed to generate trip. Please try again.");
     } finally {
       setIsGenerating(false);
     }
-};
+  };
 
   //Select All Saved POI button logic
   const getSavedPOIIds = (pois: POI[]): Set<string> => {
@@ -216,11 +286,11 @@ const TripPOIContainer = ({ tripData, pois, savedpois, setIsGenerating }: TripPO
     <div className="h-full w-full bg-white rounded-lg overflow-y-auto">
       <div className="sticky top-0 bg-white px-6 py-4 border-b z-10">
         <h2 className="text-2xl font-semibold">{tripData.city}</h2>
-        {tripData.dateRange && (
+        {tripData.fromDT && tripData.toDT && (
           <div className="flex items-center gap-2 text-gray-600 mt-2">
             <Calendar className="w-4 h-4" />
             <span>
-              {tripData.dateRange.from?.toLocaleDateString()} - {tripData.dateRange.to?.toLocaleDateString()}
+              {tripData.fromDT?.toLocaleDateString("en-GB")} - {tripData.toDT?.toLocaleDateString("en-GB")}
             </span>
           </div>
         )}

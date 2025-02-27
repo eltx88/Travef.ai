@@ -21,10 +21,18 @@ class SavedPOI(BaseModel):
         
     def dict(self, *args, **kwargs):
         return jsonable_encoder(self)
+    
+class SavedTrip(BaseModel):
+    id: str
+    tripId: str
+    city: str
+    country: str
+    status: bool
 
 class UserHistory(BaseModel):
     user_id: str
     saved_pois: List[SavedPOI] = []
+    saved_trips: List[SavedTrip] = []
 
     class Config:
         json_encoders = {

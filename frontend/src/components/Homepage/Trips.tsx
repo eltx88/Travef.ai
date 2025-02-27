@@ -1,4 +1,4 @@
-import {useState, FC} from "react";
+import {useState, FC, useEffect} from "react";
 import { Select,
   SelectTrigger,
   SelectContent,
@@ -6,25 +6,43 @@ import { Select,
   SelectValue,
  } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useNavigate } from 'react-router-dom';
-
-interface Itinerary {
-    id: number;
-    image: string;
-    country: string;
-    days: number;
-    date: string;
-}
+import TripCard from './TripCard';
+import type { UserTrip } from '@/Types/InterfaceTypes';
+import { useAuthStore } from "@/firebase/firebase";
+import ApiClient from "@/Api/apiClient";
 
 type FilterOption = 'alphabetical' | 'date' | 'days';
 
 export const Itineraries: FC = () => {
-    const [itineraries, setItineraries] = useState<Itinerary[]>([]);
+    const [trips, setTrips] = useState<UserTrip[]>([]);
+    const [loading, setLoading] = useState(true);
+    const { user } = useAuthStore();
     const [filterOption, setFilterOption] = useState<FilterOption>('date');
     const [scrollPosition, setScrollPosition] = useState(0);
     const navigate = useNavigate();
+
+    useEffect(() => {
+        const fetchTrips = async () => {
+          if (!user) return;
+          
+          try {
+            setLoading(true);
+            const apiClient = new ApiClient({
+              getIdToken: async () => user.getIdToken()
+            });
+            
+            const userTrips = await apiClient.getUserTrips();
+            setTrips(userTrips);
+          } catch (error) {
+            console.error('Error fetching trips:', error);
+          } finally {
+            setLoading(false);
+          }
+        };
+        fetchTrips();
+    }, [user]);
 
     // Function to handle scrolling
     const scroll = (direction: 'left' | 'right') => {
@@ -47,26 +65,29 @@ export const Itineraries: FC = () => {
         navigate('/createtrip');
     };
 
-    const sortItineraries = (itineraries: Itinerary[]): Itinerary[] => {
+    const sortTrips = (trips: UserTrip[]): UserTrip[] => {
         switch (filterOption) {
-            case 'alphabetical':
-                return [...itineraries].sort((a, b) => a.country.localeCompare(b.country));
-            case 'date':
-                return [...itineraries].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-            case 'days':
-                return [...itineraries].sort((a, b) => b.days - a.days);
-            default:
-                return itineraries;
+          case 'alphabetical':
+            return [...trips].sort((a, b) => 
+              a.city.localeCompare(b.city));
+          case 'date':
+            return [...trips].sort((a, b) => 
+              (b.fromDT?.getTime() || 0) - (a.fromDT?.getTime() || 0));
+          case 'days':
+            return [...trips].sort((a, b) => 
+              b.monthlyDays - a.monthlyDays);
+          default:
+            return trips;
         }
-    };
+      };
 
     return (
-        <div className="w-full py-16 bg-blue-50">
-            <div className="flex justify-between items-center mb-6 px-4 max-w-7xl mx-auto">
-                <div className="flex items-center gap-4">
+        <div className="w-max-9xl py-12 bg-white rounded-3xl">
+            <div className="flex justify-between items-start mb-6 px-4 max-w-7xl mx-auto">
+                <div className="flex items-start gap-4">
                     <h2 className="text-4xl font-semibold">Trips</h2>
                     <Button
-                        className=" text-xl py-4 px-3 rounded-full transition-all duration-300 ease-in-out hover:rounded-full bg-slate-300 hover:bg-blue-300"
+                        className=" text-xl py-4 px-3 rounded-full transition-all duration-300 ease-in-out hover:rounded-full bg-blue-300 hover:bg-blue-300"
                         onClick={addItinerary}
                     >
                         <svg
@@ -98,47 +119,47 @@ export const Itineraries: FC = () => {
                 </div>
             </div>
 
-            <div className="relative max-w-7xl mx-auto">
-                {itineraries.length > 0 ? (
-                <>
+            <div className="relative max-w-8xl mx-auto">
+        {loading ? (
+          <div className="flex justify-center items-center p-8">
+            <p>Loading trips...</p>
+          </div>
+        ) : trips.length > 0 ? (
+          <>
+            <Button 
+              onClick={() => scroll('left')}
+              className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 z-10 rounded-full w-8 h-8 p-0 bg-white border shadow-lg hover:bg-gray-100"
+              variant="ghost">
+              <ChevronLeft className="w-5 h-5" />
+            </Button>
 
-                <Button 
-                    onClick={() => scroll('left')}
-                    className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 z-10 rounded-full w-8 h-8 p-0 bg-white border shadow-lg hover:bg-gray-100"
-                    variant="ghost">
-                <ChevronLeft className="w-5 h-5" />
-                </Button>
-
-                <div id="trips-container" className="flex gap-4 overflow-hidden px-8 scroll-smooth">
-                    {sortItineraries(itineraries).map((itinerary: Itinerary) => (
-                    <Card key={itinerary.id} className="w-[300px] flex-shrink-0 bg-white shadow-md hover:shadow-lg transition-shadow">
-                        <CardContent className="p-4">
-                        <img src={itinerary.image} alt={itinerary.country} className="w-full h-[200px] object-cover rounded-md mb-4" />
-                        <h3 className="font-semibold text-lg">{itinerary.country}</h3>
-                        <p>Days: {itinerary.days}</p>
-                        <p>Date: {itinerary.date}</p>
-                        </CardContent>
-                    </Card>
-                    ))}
-                </div>
-
-                <Button 
-                    onClick={() => scroll('right')}
-                    className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 z-10 rounded-full w-8 h-8 p-0 bg-white border shadow-lg hover:bg-gray-100"
-                    variant="ghost">
-                    <ChevronRight className="w-5 h-5" />
-                </Button>
-                </>
-                ) : (
-                <div className="flex flex-col items-center justify-center p-8 bg-white rounded-lg shadow-sm">
-                <p className="text-lg text-gray-600 mb-4 py-16">No trips yet!</p>
-                    <Button onClick={addItinerary} className="bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 rounded-lg transition-colors">
-                        Create Trip
-                    </Button>
-                </div>
-                )};
+            <div id="trips-container" className="flex gap-4 overflow-hidden px-8 scroll-smooth">
+              {sortTrips(trips).map((trip) => (
+                <TripCard key={trip.trip_doc_id} trip={trip} />
+              ))}
             </div>
-        </div>);
+
+            <Button 
+              onClick={() => scroll('right')}
+              className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 z-10 rounded-full w-8 h-8 p-0 bg-white border shadow-lg hover:bg-gray-100"
+              variant="ghost">
+              <ChevronRight className="w-5 h-5" />
+            </Button>
+          </>
+        ) : (
+          <div className="flex flex-col items-center justify-center p-8 bg-white rounded-lg shadow-sm">
+            <p className="text-lg text-gray-600 mb-4 py-16">No trips yet!</p>
+            <Button 
+              onClick={addItinerary} 
+              className="bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 rounded-lg transition-colors"
+            >
+              Create Trip
+            </Button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
 };
 
 export default Itineraries;

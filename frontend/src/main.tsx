@@ -59,6 +59,15 @@ const router = createBrowserRouter([
             <EditTripPage/>
           </AuthRoute>
         ),
+      },
+      // Add the parameterized route for refresh handling
+      {
+        path: '/edit-trip/:city/:country/:createdTimestamp', 
+        element: (
+          <AuthRoute>
+            <EditTripPage/>
+          </AuthRoute>
+        ),
       }
     ]
   },

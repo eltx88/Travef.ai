@@ -35,14 +35,14 @@ const Searchbar: React.FC = () => {
 
   return (
       <div className="flex flex-col items-center w-full">
-          <h1 className="text-6xl font-bold text-center mb-4 content-center">Planning a trip?</h1>
-          <p className="text-center mb-5">Get inspired by searching for attractions, restaurants and hotels</p>
+          <h1 className="text-6xl font-bold text-center mb-4 content-center animate-scale-in text-white">Planning a trip?</h1>
+          <p className="text-center mb-5 animate-fade-in-left opacity-0 text-white">Get inspired by searching for attractions, restaurants and hotels</p>
           
           <div className="mb-10 w-full max-w-screen-md">
                 <CitySearch
                     initialValue=""
                     onSubmit={handleCitySubmit}
-                    className="w-full"
+                    className="w-full border-t-neutral-950"
                     inputClassName="h-12 text-black hover:cursor-text focus:cursor-text"
                     showButton={true}
                 />
@@ -70,7 +70,7 @@ const Searchbar: React.FC = () => {
                           whileHover="hover"
                       >
                           <Card 
-                              className="h-[210px] w-[250px] cursor-pointer" 
+                              className="h-[210px] w-[250px] cursor-pointer bg-white" 
                               onClick={() => handleCitySubmit({ 
                                   name: city.city,
                                   country: city.country,
