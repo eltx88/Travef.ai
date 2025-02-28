@@ -15,6 +15,12 @@ class Place(BaseModel):
     user_ratings_total: Optional[int]
     photo_name: Optional[str]
     location: Location
+    website: Optional[str]
+    phone: Optional[str]
+    description: Optional[str]
+    opening_hours: Optional[str]
+    price_level: Optional[str]
+    cuisine: Optional[List[str]]
 
 class PlaceWithPhotoUrl(Place):
     photo_url: Optional[str]

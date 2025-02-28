@@ -9,8 +9,9 @@ interface Coordinates {
 
 interface LocationContextType {
     currentCity: string;
+    currentCountry: string;
     coordinates: Coordinates;
-    updateLocation: (city: string, lng: number, lat: number, zoom?: number) => void;
+    updateLocation: (city: string, country: string, lng: number, lat: number, zoom?: number) => void;
     updateCoordinates: (coords: Partial<Coordinates>) => void;
 }
 
@@ -21,6 +22,7 @@ interface LocationProviderProps {
 //Caching logic for location
 interface LocationCache {
     city: string;
+    country: string;
     coordinates: Coordinates;
 }
 
@@ -47,6 +49,7 @@ const setLocationCache = (city: string, coordinates: Coordinates) => {
 
 export function LocationProvider({ children }: LocationProviderProps) {
     const [currentCity, setCurrentCity] = useState('');
+    const [currentCountry, setCurrentCountry] = useState('');
     const [coordinates, setCoordinates] = useState({
         lng: -2.2426,
         lat: 53.4808,
@@ -58,11 +61,12 @@ export function LocationProvider({ children }: LocationProviderProps) {
         const cachedLocation = getLocationCache();
         if (cachedLocation) {
             setCurrentCity(cachedLocation.city);
+            setCurrentCountry(cachedLocation.country);
             setCoordinates(cachedLocation.coordinates);
         }
     }, []);
 
-    const updateLocation = (city: string, lng: number, lat: number, zoom?: number) => {
+    const updateLocation = (city: string, country: string, lng: number, lat: number, zoom?: number) => {
         const newCoordinates = {
             ...coordinates,
             lng,
@@ -71,6 +75,7 @@ export function LocationProvider({ children }: LocationProviderProps) {
         };
         
         setCurrentCity(city);
+        setCurrentCountry(country);
         setCoordinates(newCoordinates);
         setLocationCache(city, newCoordinates);
     };
@@ -85,6 +90,7 @@ export function LocationProvider({ children }: LocationProviderProps) {
         <LocationContext.Provider value={{ 
             currentCity, 
             coordinates, 
+            currentCountry,
             updateLocation,
             updateCoordinates 
         }}>

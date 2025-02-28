@@ -28,7 +28,8 @@ class TripGenerationRequest(BaseModel):
     trip_data: TripData
     attractionpois: List[POI] = []
     foodpois: List[POI] = []
-    
+    cafepois: List[POI] = []
+
     class Config:
         populate_by_name = True
         arbitrary_types_allowed = True

@@ -15,22 +15,30 @@ function PointOfInterest() {
     const [containerWidth, setContainerWidth] = useState<number>(40);
     const [isResizing, setIsResizing] = useState(false);
     const resizeTimeoutRef = useRef<NodeJS.Timeout>();
-    const [displayedPOIs, setDisplayedPOIs] = useState<POI[]>([]);
+    const [allPOIs, setAllPOIs] = useState<POI[]>([]);
     const previousPOIsRef = useRef<string>('');
+    const previousAllPOIsRef = useRef<string>('');
 
     // Refs for map instance and functions
     const mapInstanceRef = useRef<mapboxgl.Map | null>(null);
     const mapFunctionsRef = useRef<MapFunctions | null>(null);
   
-    // Memoize the POIs update handler
+    // Memoize the POIs update handlers
     const handlePOIsUpdate = useCallback((pois: POI[]) => {
         const poisString = JSON.stringify(pois);
         if (previousPOIsRef.current !== poisString) {
-            console.log('PointOfInterestPage received POIs update:', pois);
-            setDisplayedPOIs(pois);
             previousPOIsRef.current = poisString;
+            setAllPOIs(pois);
         }
-    }, []); 
+    }, []);
+    
+    const handleAllPOIsUpdate = useCallback((pois: POI[]) => {
+        const poisString = JSON.stringify(pois);
+        if (previousAllPOIsRef.current !== poisString) {
+            setAllPOIs(pois);
+            previousAllPOIsRef.current = poisString;
+        }
+    }, []);
 
     const startResizing = useCallback((mouseDownEvent: React.MouseEvent) => {
         mouseDownEvent.preventDefault();
@@ -91,16 +99,17 @@ function PointOfInterest() {
     const memoizedPOIContainer = useMemo(() => (
         <POIContainer 
             onPOIsUpdate={handlePOIsUpdate}
+            onAllPOIsUpdate={handleAllPOIsUpdate}
         />
-    ), [handlePOIsUpdate]);
+    ), [handlePOIsUpdate, handleAllPOIsUpdate]);
 
     const memoizedMapContainer = useMemo(() => (
         <MapContainer 
             isResizing={isResizing} 
-            pois={displayedPOIs}
+            pois={allPOIs}  // Use all POIs for the map instead of just displayedPOIs
             savedPois={[]}
         />
-    ), [isResizing, displayedPOIs, handleMapCreate]);
+    ), [isResizing, allPOIs, handleMapCreate]);
 
     return (
         <LocationProvider>
@@ -113,10 +122,12 @@ function PointOfInterest() {
                     style={{ userSelect: isResizing ? 'none' : 'auto' }}
                 >
                     <div
-                        className="relative"
+                        className="relative h-[calc(100vh-7rem)]"
                         style={{ width: `${containerWidth}%` }}
                     >
-                        {memoizedPOIContainer}
+                        <div className="h-full overflow-hidden">
+                            {memoizedPOIContainer}
+                        </div>
                     </div>
     
                     <div

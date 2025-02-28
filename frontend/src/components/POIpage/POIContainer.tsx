@@ -13,6 +13,7 @@ import { poiCacheService } from '../hooks/poiCacheService';
 
 interface POIContainerProps {
     onPOIsUpdate: (pois: POI[]) => void;
+    onAllPOIsUpdate?: (pois: POI[]) => void;
 }
 
 type TabType = 'saved' | 'explore';
@@ -20,14 +21,15 @@ type CategoryType = POIType | 'all';
 
 const citiesData: SearchCity[] = searchCitiesData as SearchCity[];
 
-const POIContainer = ({ onPOIsUpdate }: POIContainerProps) => {
+const POIContainer = ({ onPOIsUpdate, onAllPOIsUpdate }: POIContainerProps) => {
     const navigate = useNavigate();
     const routerLocation = useRouterLocation();
-    const { currentCity, coordinates, updateLocation } = useLocation();
+    const { currentCity, coordinates, currentCountry, updateLocation } = useLocation();
     const { user, loading: authLoading } = useAuthStore();
     const fetchInProgressRef = useRef(false);
     const [isEditing, setIsEditing] = useState(false);
     const [nameFilter, setNameFilter] = useState('');
+    const [ratingFilter, setRatingFilter] = useState<number | null>(null); // New rating filter state
     const [activeTab, setActiveTab] = useState<TabType>('saved');
     const [isNewCity, setIsNewCity] = useState(false);
     const [savedCategoryFilter, setSavedCategoryFilter] = useState<CategoryType>('all');
@@ -46,7 +48,9 @@ const POIContainer = ({ onPOIsUpdate }: POIContainerProps) => {
         isPoiSaved,
         refreshSaved,
         setRefreshSaved,
-    } = usePOIData(user, currentCity);
+        savedPois,
+        explorePois
+    } = usePOIData(user, currentCity, currentCountry);
 
     const currentPagination = activeTab === 'saved' ? savedPagination : explorePagination;
     const { nextPage, prevPage, totalPages, currentPage, currentItems } = currentPagination;
@@ -94,6 +98,7 @@ const POIContainer = ({ onPOIsUpdate }: POIContainerProps) => {
             if (cityData) {
                 updateLocation(
                     city,
+                    currentCountry,
                     Number(cityData.lng),
                     Number(cityData.lat)
                 );
@@ -110,6 +115,7 @@ const POIContainer = ({ onPOIsUpdate }: POIContainerProps) => {
         
         setActiveTab(newTab);
         setNameFilter('');
+        setRatingFilter(null);
         
         const fetchData = async () => {
             try {
@@ -165,6 +171,11 @@ const POIContainer = ({ onPOIsUpdate }: POIContainerProps) => {
         }
     }, [activeTab, fetchExplorePOIs, isNewCity]);
 
+    // Handler for rating filter changes
+    const handleRatingFilterChange = useCallback((rating: number | null) => {
+        setRatingFilter(rating);
+    }, []);
+
     const handleLoadResults = useCallback(async () => {
         if (fetchInProgressRef.current) return;
     
@@ -206,6 +217,7 @@ const POIContainer = ({ onPOIsUpdate }: POIContainerProps) => {
                 
                 await updateLocation(
                     newCity,
+                    currentCountry,
                     Number(cityData.lng),
                     Number(cityData.lat)
                 );
@@ -213,6 +225,7 @@ const POIContainer = ({ onPOIsUpdate }: POIContainerProps) => {
                 navigate(routerLocation.pathname, {
                     state: {
                         city: newCity,
+                        country: currentCountry,
                         lat: Number(cityData.lat),
                         lng: Number(cityData.lng),
                         initialized: true
@@ -222,6 +235,7 @@ const POIContainer = ({ onPOIsUpdate }: POIContainerProps) => {
 
                 setIsEditing(false);
                 setNameFilter('');
+                setRatingFilter(null); // Reset rating filter when changing city
             } finally {
                 fetchInProgressRef.current = false;
                 setLoading(false);
@@ -233,7 +247,8 @@ const POIContainer = ({ onPOIsUpdate }: POIContainerProps) => {
         routerLocation.pathname,
         activeTab,
         fetchSavedPOIs,
-        setLoading
+        setLoading,
+        currentCountry
     ]);
 
     //Filtering logic
@@ -241,13 +256,31 @@ const POIContainer = ({ onPOIsUpdate }: POIContainerProps) => {
         return currentItems.filter(poi => {
             const matchesName = poi.name.toLowerCase().includes(nameFilter.toLowerCase());
             const matchesCategory = categoryFilter === 'all' || poi.type === categoryFilter;
-            return matchesName && matchesCategory;
+            
+            // Apply rating filter if set
+            const matchesRating = ratingFilter === null || 
+                                 (poi.rating !== undefined && poi.rating >= ratingFilter);
+                                 
+            return matchesName && matchesCategory && matchesRating;
         });
-    }, [currentItems, nameFilter, categoryFilter]);
+    }, [currentItems, nameFilter, categoryFilter, ratingFilter]);
 
+    // Get all POIs regardless of pagination or filtering
+    const allPOIs = useMemo(() => {
+        return activeTab === 'saved' ? savedPois : explorePois;
+    }, [activeTab, savedPois, explorePois]);
+
+    // Update displayed (filtered) POIs
     useEffect(() => {
         onPOIsUpdate(filteredItems);
     }, [filteredItems, onPOIsUpdate]);
+
+    // Update all POIs for the map
+    useEffect(() => {
+        if (onAllPOIsUpdate) {
+            onAllPOIsUpdate(allPOIs);
+        }
+    }, [allPOIs, onAllPOIsUpdate]);
 
     const showPagination = filteredItems.length > 0;
     
@@ -261,93 +294,89 @@ const POIContainer = ({ onPOIsUpdate }: POIContainerProps) => {
           }
         });
       };
-
     return (
-        <div className="h-full w-full bg-white p-6 rounded-lg overflow-y-auto">
-            {isEditing ? (
-                <div className="mb-6">
-                    <CitySearch
-                        initialValue={currentCity}
-                        onSubmit={(city) => handleCityChange(city.name)}
-                        className="max-w-md"
-                        inputClassName="text-2xl font-semibold h-12 bg-transparent"
-                        showButton={true}
-                        autoFocus={true}
-                    />
-                </div>
-            ) : (
-                <div className="flex items-center gap-2 mb-4">
-                    <h2 className="text-2xl font-semibold">{currentCity}</h2>
-                    <button 
-                        onClick={() => setIsEditing(true)}
-                        className="p-1 hover:bg-gray-100 rounded-full transition-colors"
-                    >
-                        <Pen className="w-4 h-4 text-gray-500 hover:text-gray-700" />
-                    </button>
-                    <button 
-                        onClick={handleCreateTrip}
-                        className="bg-blue-600 ml-auto hover:bg-blue-700 text-white font-medium px-3 rounded-lg transition-colors"
-                    >
-                        Create trip
-                    </button>
-                </div>
-            )}
+        <div className="h-full w-full bg-white rounded-lg flex flex-col overflow-hidden">
+            <div className="sticky top-0 bg-white z-10 p-6 pb-2">
+                {isEditing ? (
+                    <div className="mb-4">
+                        <CitySearch
+                            initialValue={currentCity}
+                            onSubmit={(city) => handleCityChange(city.name)}
+                            className="max-w-md"
+                            inputClassName="text-2xl font-semibold h-12 bg-transparent"
+                            showButton={true}
+                            autoFocus={true}
+                        />
+                    </div>
+                ) : (
+                    <div className="flex items-center gap-2 mb-4">
+                        <h2 className="text-2xl font-semibold">{currentCity}</h2>
+                        <button 
+                            onClick={() => setIsEditing(true)}
+                            className="p-1 hover:bg-gray-100 rounded-full transition-colors"
+                        >
+                            <Pen className="w-4 h-4 text-gray-500 hover:text-gray-700" />
+                        </button>
+                        <button 
+                            onClick={handleCreateTrip}
+                            className="bg-blue-600 ml-auto hover:bg-blue-700 text-white font-medium px-3 rounded-lg transition-colors"
+                        >
+                            Create trip
+                        </button>
+                    </div>
+                )}
+            </div>
 
-            <POITabs
-                activeTab={activeTab}
-                onTabChange={handleTabChange}
-                nameFilter={nameFilter}
-                categoryFilter={categoryFilter}
-                onNameFilterChange={setNameFilter}
-                onCategoryFilterChange={handleCategoryChange}
-                loading={loading}
-                error={error}
-                pois={filteredItems}
-                isNewCity={isNewCity}
-                onLoadResults={handleLoadResults}
-                onSavePOI={savePOI}
-                onUnsavePOI={unsavePOI}
-                isPoiSaved={isPoiSaved}
-            />
+            <div className="flex-1 overflow-y-auto px-6">
+                <POITabs
+                    activeTab={activeTab}
+                    onTabChange={handleTabChange}
+                    nameFilter={nameFilter}
+                    categoryFilter={categoryFilter}
+                    ratingFilter={ratingFilter}
+                    onNameFilterChange={setNameFilter}
+                    onCategoryFilterChange={handleCategoryChange}
+                    onRatingFilterChange={handleRatingFilterChange}
+                    loading={loading}
+                    error={error}
+                    pois={filteredItems}
+                    isNewCity={isNewCity}
+                    onLoadResults={handleLoadResults}
+                    onSavePOI={savePOI}
+                    onUnsavePOI={unsavePOI}
+                    isPoiSaved={isPoiSaved}
+                />
+            </div>
 
             {showPagination && (
-                <div className="mt-6 flex items-center justify-between border-t pt-4">
-                    <div className="flex items-center gap-2">
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={prevPage}
-                            disabled={currentPage === 1 || loading}
-                        >
-                            <ChevronLeft className="h-4 w-4 mr-1" />
-                            Previous
-                        </Button>
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={nextPage}
-                            disabled={currentPage === totalPages || loading}
-                        >
-                            Next
-                            <ChevronRight className="h-4 w-4 ml-1" />
-                        </Button>
+                <div className="sticky bottom-0 bg-white z-10 px-6 py-4 border-t">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={prevPage}
+                                disabled={currentPage === 1 || loading}
+                            >
+                                <ChevronLeft className="h-4 w-4 mr-1" />
+                                Previous
+                            </Button>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={nextPage}
+                                disabled={currentPage === totalPages || loading}
+                            >
+                                Next
+                                <ChevronRight className="h-4 w-4 ml-1" />
+                            </Button>
+                        </div>
+                        <span className="text-sm text-gray-500">
+                            Page {currentPage} of {totalPages}
+                        </span>
                     </div>
-                    <span className="text-sm text-gray-500">
-                        Page {currentPage} of {totalPages}
-                    </span>
                 </div>
             )}
-
-            {/* {showLoadMore && (
-                <Button
-                    variant="outline"
-                    className="w-full mt-4"
-                    onClick={handleLoadMore}
-                    disabled={loading}
-                >
-                    {loading ? 'Loading...' : 'Load More Results'}
-                </Button>
-            )} */}
         </div>
     );
 };

@@ -32,7 +32,7 @@ const POIGrid = ({
   items: POI[], 
   currentPage: number,
   setPage: (page: number) => void,
-  category: 'food' | 'attraction',
+  category: 'food' | 'attraction' | 'cafe',
   isSaved?: boolean,
   selectedPOIs: Set<string>,
   onPOISelect: (poi: POI) => void,
@@ -121,12 +121,14 @@ const TripPOIContainer = ({ tripData, pois, savedpois, setIsGenerating }: TripPO
   const [currentExploreFoodPage, setCurrentExploreFoodPage] = useState(0);
   const [currentSavedAttractionPage, setCurrentSavedAttractionPage] = useState(0);
   const [currentSavedFoodPage, setCurrentSavedFoodPage] = useState(0);
+  const [currentSavedCafePage, setCurrentSavedCafePage] = useState(0);
   const [selectedPOIs, setSelectedPOIs] = useState<Set<string>>(new Set());
 
   const attractionPOIs = pois.filter(poi => poi.type === 'attraction');
   const foodPOIs = pois.filter(poi => poi.type === 'restaurant');
   const savedAttractPOIs = savedpois.filter(poi => poi.type === 'attraction');
   const savedFoodPOIs = savedpois.filter(poi => poi.type === 'restaurant');
+  const savedCafePOIs = savedpois.filter(poi => poi.type === 'cafe');
   const { user } = useAuthStore();
 
     const handlePOISelect = (poi: POI) => {
@@ -148,10 +150,11 @@ const TripPOIContainer = ({ tripData, pois, savedpois, setIsGenerating }: TripPO
     }
   
     const allFoodPOIs = [...foodPOIs, ...savedFoodPOIs];
+    const allCafePOIs = [...savedCafePOIs];
     const allAttractionPOIs = [...attractionPOIs, ...savedAttractPOIs];
     const selectedFoodPOIs = allFoodPOIs.filter(poi => selectedPOIs.has(poi.place_id));
+    const selectedCafePOIs = allCafePOIs.filter(poi => selectedPOIs.has(poi.place_id));
     const selectedAttractionPOIs = allAttractionPOIs.filter(poi => selectedPOIs.has(poi.place_id));
-    
     // Create shortened POIs for the API call
     const shortenedFoodPOIs = selectedFoodPOIs.map(poi => ({
       place_id: poi.place_id,
@@ -162,7 +165,17 @@ const TripPOIContainer = ({ tripData, pois, savedpois, setIsGenerating }: TripPO
         lng: poi.coordinates.lng
       }
     }));
-  
+
+    const shortenedCafePOIs = selectedCafePOIs.map(poi => ({
+      place_id: poi.place_id,
+      name: poi.name,
+      type: poi.type,
+      coordinates: {
+        lat: poi.coordinates.lat,
+        lng: poi.coordinates.lng
+      }
+    }));
+
     const shortenedAttractionPOIs = selectedAttractionPOIs.map(poi => ({
       place_id: poi.place_id,
       name: poi.name,
@@ -182,7 +195,8 @@ const TripPOIContainer = ({ tripData, pois, savedpois, setIsGenerating }: TripPO
       const generatedTrip = await generationService.generateTrip(
         tripData, 
         shortenedAttractionPOIs,
-        shortenedFoodPOIs
+        shortenedFoodPOIs,
+        shortenedCafePOIs
       );
       
       // Process the itinerary
@@ -392,6 +406,25 @@ const TripPOIContainer = ({ tripData, pois, savedpois, setIsGenerating }: TripPO
               selectedPOIs={selectedPOIs}
               onPOISelect={handlePOISelect}
             />
+          </div>
+        )}
+
+        {/* Saved Cafes */}
+        
+        {savedCafePOIs.length > 0 && (
+          <div className="mt-8">
+          <div className="inline-flex items-center gap-3 mb-6">
+            <h4 className="text-lg font-medium text-gray-600">Saved Cafes</h4>
+            </div>
+            <POIGrid 
+              items={savedCafePOIs} 
+              currentPage={currentSavedCafePage}
+              setPage={setCurrentSavedCafePage}
+              category="cafe"
+              isSaved={true}
+              selectedPOIs={selectedPOIs}
+              onPOISelect={handlePOISelect}
+            />    
           </div>
         )}
       </div>

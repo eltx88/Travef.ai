@@ -6,10 +6,11 @@ import { useDebounce } from './debounce';
 import { poiCacheService } from './poiCacheService';
 import { usePagination } from './usePagination';
 import ApiClient from '@/Api/apiClient';
-const categoryMapping: Record<POIType, string> = {
-    hotel: 'accommodation',
-    restaurant: 'catering',
-    attraction: 'tourism,entertainment',
+const categoryMapping: Record<POIType, string[]> = {
+    hotel: ['hotel', 'lodging','inn'],
+    restaurant: ['restaurant', "fast_food_restaurant","bar"],
+    attraction: ['tourist_attraction',"historical_landmark", "cultural_landmark", "shopping_mall"],
+    cafe: ['cafe',"coffee_shop","bakery",],
 };
 
 export interface POIDataHookReturn {
@@ -32,12 +33,13 @@ export interface POIDataHookReturn {
   setRefreshSaved: (refresh: boolean) => void;
 }
 
-export const usePOIData = (user: any, currentCity: string): POIDataHookReturn => {
+export const usePOIData = (user: any, currentCity: string, currentCountry: string): POIDataHookReturn => {
     const [savedPois, setSavedPois] = useState<POI[]>([]);
     const [explorePoisMap, setExplorePoisMap] = useState<Record<POIType, POI[]>>({
       hotel: [],
       restaurant: [],
-      attraction: []
+      attraction: [],
+      cafe: []
     });
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -61,7 +63,8 @@ export const usePOIData = (user: any, currentCity: string): POIDataHookReturn =>
       setExplorePoisMap({
         hotel: [],
         restaurant: [],
-        attraction: []
+        attraction: [],
+        cafe: []
       });
       explorePagination.resetPagination();
       savedPagination.resetPagination();
@@ -82,11 +85,12 @@ export const usePOIData = (user: any, currentCity: string): POIDataHookReturn =>
     // Effect to load cached data for all categories on mount
     useEffect(() => {
     const loadCachedCategories = async () => {
-      const categories: POIType[] = ['hotel', 'restaurant', 'attraction'];
+      const categories: POIType[] = ['hotel', 'restaurant', 'attraction' , 'cafe'];
       const newPoisMap: Record<POIType, POI[]> = {
         hotel: [],
         restaurant: [],
-        attraction: []
+        attraction: [],
+        cafe: []
       };
 
       categories.forEach(category => {
@@ -125,29 +129,23 @@ export const usePOIData = (user: any, currentCity: string): POIDataHookReturn =>
     setError(null);
 
     try {
-        const pois = await apiClient.getExplorePOIs({
-            city: currentCity,
-            category: categoryMapping[selectedCategory],
-            type: selectedCategory,
+        const pois = await apiClient.getGoogleExplorePOIs({
+            type: categoryMapping[selectedCategory],
             coordinates: {
                 lat: debouncedCoordinates.lat,
                 lng: debouncedCoordinates.lng
-            }
+            },
+            poitype: selectedCategory,
+            city: currentCity,
+            country: currentCountry
         });
-
-        // Filter out any POIs without required fields
-        const validPois = pois.filter((poi: POI) => 
-            poi.name && 
-            poi.coordinates?.lat && 
-            poi.coordinates?.lng
-        );
-
-        poiCacheService.set(cacheKey, validPois, currentCity);
+        
+        poiCacheService.set(cacheKey, pois, currentCity, currentCountry);
         setExplorePoisMap(prev => ({
             ...prev,
-            [selectedCategory]: validPois
+            [selectedCategory]: pois
         }));
-        return validPois;
+        return pois;
     } catch (error) {
         console.error('Error fetching explore POIs:', error);
         setError(error instanceof Error ? error.message : 'An error occurred');
@@ -159,7 +157,7 @@ export const usePOIData = (user: any, currentCity: string): POIDataHookReturn =>
     } finally {
         setLoading(false);
     }
-}, [user, currentCity, debouncedCoordinates, apiClient]);
+}, [user, currentCity, currentCountry, debouncedCoordinates, apiClient]);
 
 const fetchSavedPOIs = useCallback(async (): Promise<POI[]> => {
   if (!user) {
@@ -222,7 +220,6 @@ const isPoiSaved = useCallback((poiId: string) => {
           setError(err instanceof Error ? err.message : 'An error occurred');
       }
 };
-
     return {
       savedPois,
       explorePois: explorePoisMap[currentCategory] || [],

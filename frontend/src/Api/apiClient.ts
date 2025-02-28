@@ -1,4 +1,4 @@
-import type { POI, WikidataImageResponse, ExploreParams, TripData, ItineraryPOI, FetchedTripDetails, ItineraryPOIDB, ItineraryPOIChanges, UserTrip, GooglePlaceDetails, POIType } from '../Types/InterfaceTypes';
+import type { POI, WikidataImageResponse, ExploreParams, TripData, ItineraryPOI, FetchedTripDetails, ItineraryPOIDB, ItineraryPOIChanges, UserTrip, GooglePlaceDetails, POIType, ExploreGoogleParams } from '../Types/InterfaceTypes';
 
 interface ApiClientConfig {
   getIdToken: () => Promise<string>;
@@ -56,7 +56,7 @@ class ApiClient {
       type: `${poi.type}`,
     }));
   }
-
+  
   async getExplorePOIs({
     city,
     category = 'accommodation',
@@ -91,6 +91,69 @@ class ApiClient {
       });
     }
     return pois;
+  }
+
+  //Called by search bar
+  async getGoogleExplorePOIs({
+    type,
+    coordinates,
+    poitype,
+    city,
+    country
+  }: ExploreGoogleParams): Promise<POI[]> {
+    const queryParams = new URLSearchParams({
+      type: type.join(','),
+      latitude: coordinates.lat.toString(),
+      longitude: coordinates.lng.toString(),
+      radius: '2000',
+      max_results: '20'
+    });
+    
+    try {
+      const pois = await this.fetchWithAuth(`/googleplaces/explore?${queryParams.toString()}`);
+      
+      // Make sure pois is an array before proceeding
+      if (!Array.isArray(pois)) {
+        console.error('Expected pois to be an array but got:', typeof pois);
+        return [];
+      }
+      
+      const processedPois: POI[] = pois.map((poi: any) => {
+        // Handle cuisine - ensure it's an array
+        const cuisineArray = poi.cuisine ? 
+          (Array.isArray(poi.cuisine) ? poi.cuisine : [poi.cuisine]) : 
+          undefined;
+        
+        return {
+          id: poi.place_id || '',
+          place_id: poi.place_id || '',
+          name: poi.name || '',
+          coordinates: {
+            lat: poi.location?.latitude || 0,
+            lng: poi.location?.longitude || 0
+          },
+          address: poi.formatted_address || '',
+          city: city,
+          country: country,
+          type: poitype,
+          rating: poi.rating,
+          user_ratings_total: poi.user_ratings_total,
+          cuisine: cuisineArray,
+          description: poi.description || '',
+          categories: Array.isArray(poi.types) ? poi.types : [],
+          image_url: poi.photo_url || '',
+          website: poi.website || '',
+          phone: poi.phone || '',
+          opening_hours: poi.opening_hours || '',
+          price_level: poi.price_level
+        };
+      });
+      
+      return processedPois;
+    } catch (error) {
+      console.error('Error fetching nearby places:', error);
+      return [];
+    }
   }
 
   async createOrGetPOI(poiData: POI): Promise<string> {

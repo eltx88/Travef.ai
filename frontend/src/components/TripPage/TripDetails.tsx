@@ -21,6 +21,7 @@ export function TripDetails({ tripData, onEdit }: TripDetailsProps) {
     try {
       updateLocation(
         tripData.city,
+        tripData.country,
         tripData.coordinates.lng,
         tripData.coordinates.lat
       );
