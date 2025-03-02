@@ -40,12 +40,13 @@ class PointOfInterestResponse(BaseModel):
     cuisine: Optional[List[str]] = None
     description: Optional[str] = None    
     wikidata_id: Optional[str] = None
-    images: Optional[ImageMetadata] = None
+    image_url: Optional[str] = None
     website: Optional[str] = None
     phone: Optional[str] = None
     email: Optional[str] = None
     opening_hours: Optional[str] = None 
     rating: Optional[float] = None
+    user_ratings_total: Optional[int] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
 

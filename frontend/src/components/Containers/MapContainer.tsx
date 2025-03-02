@@ -124,6 +124,34 @@ function MapContainer({ isResizing, pois, savedPois }: MapContainerProps) {
         return el;
     }, []);
 
+    // Event handler for POI name clicks
+    useEffect(() => {
+        const handleSearchClick = (e: MouseEvent) => {
+            const target = e.target as HTMLElement;
+            const searchLink = target.closest('.search-poi-link');
+            
+            if (searchLink) {
+                e.preventDefault();
+                const poiName = searchLink.getAttribute('data-poi-name');
+                
+                if (poiName) {
+                    // Dispatch custom event to notify parent components
+                    const event = new CustomEvent('searchForPoi', {
+                        detail: { name: poiName },
+                        bubbles: true,
+                    });
+                    document.dispatchEvent(event);
+                }
+            }
+        };
+        
+        document.addEventListener('click', handleSearchClick);
+        
+        return () => {
+            document.removeEventListener('click', handleSearchClick);
+        };
+    }, []);
+
     // Initialize map
     useEffect(() => {
         if (!mapContainer.current || map.current) return;
@@ -175,10 +203,16 @@ function MapContainer({ isResizing, pois, savedPois }: MapContainerProps) {
     }, [coordinates]); 
 
     const createPopup = useCallback((poi: POI, isSaved: boolean = false) => {
+        const escapedName = poi.name.replace(/"/g, '&quot;');
+        
         return new mapboxgl.Popup({ offset: 25 })
             .setHTML(`
                 <div class="p-2">
-                    <h3 class="font-bold text-base">${poi.name}</h3>
+                    <h3 class="font-bold text-base">
+                        <a href="#" class="text-blue-600 hover:underline flex items-center search-poi-link" data-poi-name="${escapedName}">
+                            ${poi.name}
+                        </a>
+                    </h3>
                     <p class="text-sm mt-1">${poi.address}</p>
                     <p class="text-sm mt-1 text-yellow-600">${poi.rating ? `Rating: ${poi.rating} ★` : ''}</p>
                     <p class="text-sm text-gray-600 mt-1">${poi.type.charAt(0).toUpperCase() + poi.type.slice(1)}</p>

@@ -124,6 +124,7 @@ class PointOfInterestService(FirebaseService):
                 point_data.coordinates.lng
             )
             poi_dict['created_at'] = firestore.SERVER_TIMESTAMP
+            poi_dict['images'] = point_data.image_url
 
             doc_ref.set(poi_dict)
             return doc_ref.id

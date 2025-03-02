@@ -6,7 +6,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
-import { Building2, Coffee, Landmark, Star, UtensilsCrossed } from 'lucide-react';
+import { Building2, Coffee, Landmark, Star, UtensilsCrossed, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import type { POIType } from '../../Types/InterfaceTypes';
 import { useDebounce } from '../hooks/debounce';
@@ -75,13 +75,25 @@ const POIFilters = ({
         <div className="space-y-4">
             <div className="flex flex-col sm:flex-row gap-4">
                 <div className="flex-grow relative">
-                    <Input
-                        placeholder="Filter by name"
-                        value={localNameFilter}
-                        onChange={(e) => setLocalNameFilter(e.target.value)}
-                        className="w-full bg-white border-gray-200 focus-visible:ring-blue-500"
-                        disabled={loading}
-                    />
+                    <div className="relative">
+                        <Input
+                            placeholder="Filter by name"
+                            value={nameFilter}
+                            onChange={(e) => onNameFilterChange(e.target.value)}
+                            className="w-full bg-white border-gray-200 focus-visible:ring-blue-500 pr-8"
+                            disabled={loading}
+                        />
+                        {nameFilter && (
+                            <button
+                                type="button"
+                                onClick={() => onNameFilterChange('')}
+                                className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 p-1 rounded-full hover:bg-gray-100"
+                                aria-label="Clear search"
+                            >
+                                <X className="h-4 w-4" />
+                            </button>
+                        )}
+                    </div>
                     {loading && (
                         <div className="absolute right-3 top-1/2 -translate-y-1/2">
                             <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>

@@ -125,6 +125,11 @@ const POICard = ({
     );
   }
 
+  // Add this function to your component
+  const handleImageError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+    e.currentTarget.src = getDefaultImage(type || 'attraction');
+  };
+
   return (
     <>
       <Card 
@@ -140,10 +145,11 @@ const POICard = ({
           {/* Image Section with Type Indicator */}
           <div className="relative overflow-hidden aspect-[4/3]">
             <img
-              src={image_url || getDefaultImage(type || 'attraction')}
+              src={image_url ? image_url.startsWith('http') ? image_url : `https:${image_url}` : getDefaultImage(type || 'attraction')}
               alt={name}
               className="w-full h-full object-cover transition-transform duration-300"
               style={{ transform: isHovered ? 'scale(1.05)' : 'scale(1)' }}
+              onError={(e) => handleImageError(e)}
             />
             <div className="absolute top-2 left-2 flex items-center bg-white bg-opacity-90 rounded-full px-2 py-0.5 text-xs">
               {getTypeIcon(type || 'attraction')}
@@ -247,9 +253,10 @@ const POICard = ({
             {/* Image */}
             <div className="overflow-hidden rounded-md">
               <img
-                src={image_url || getDefaultImage(type || 'attraction')}
+                src={image_url ? image_url.startsWith('http') ? image_url : `https:${image_url}` : getDefaultImage(type || 'attraction')}
                 alt={name}
                 className="w-full h-48 object-cover"
+                onError={(e) => handleImageError(e)}
               />
             </div>
             

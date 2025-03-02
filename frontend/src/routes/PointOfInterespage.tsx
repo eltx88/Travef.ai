@@ -18,28 +18,28 @@ function PointOfInterest() {
     const [allPOIs, setAllPOIs] = useState<POI[]>([]);
     const previousPOIsRef = useRef<string>('');
     const previousAllPOIsRef = useRef<string>('');
+    const [searchTerm, setSearchTerm] = useState<string>('');
 
     // Refs for map instance and functions
     const mapInstanceRef = useRef<mapboxgl.Map | null>(null);
     const mapFunctionsRef = useRef<MapFunctions | null>(null);
   
-    // Memoize the POIs update handlers
-    const handlePOIsUpdate = useCallback((pois: POI[]) => {
+    // Fnction to handle POIs updates
+    const handlePOIsUpdate = useCallback((pois: POI[], isAllUpdate: boolean = false) => {
         const poisString = JSON.stringify(pois);
-        if (previousPOIsRef.current !== poisString) {
-            previousPOIsRef.current = poisString;
-            setAllPOIs(pois);
+        if (isAllUpdate) {
+            if (previousAllPOIsRef.current !== poisString) {
+                setAllPOIs(pois);
+                previousAllPOIsRef.current = poisString;
+            }
+        } else {
+            if (previousPOIsRef.current !== poisString) {
+                previousPOIsRef.current = poisString;
+                setAllPOIs(pois);
+            }
         }
     }, []);
     
-    const handleAllPOIsUpdate = useCallback((pois: POI[]) => {
-        const poisString = JSON.stringify(pois);
-        if (previousAllPOIsRef.current !== poisString) {
-            setAllPOIs(pois);
-            previousAllPOIsRef.current = poisString;
-        }
-    }, []);
-
     const startResizing = useCallback((mouseDownEvent: React.MouseEvent) => {
         mouseDownEvent.preventDefault();
         setIsResizing(true);
@@ -95,18 +95,34 @@ function PointOfInterest() {
         };
     }, [isResizing, resize, stopResizing]);
 
+    // Add event listener for searchForPoi event
+    useEffect(() => {
+        const handleSearchForPoi = (event: CustomEvent) => {
+            if (event.detail && event.detail.name) {
+                setSearchTerm(event.detail.name);
+            }
+        };
+
+        document.addEventListener('searchForPoi', handleSearchForPoi as EventListener);
+        
+        return () => {
+            document.removeEventListener('searchForPoi', handleSearchForPoi as EventListener);
+        };
+    }, []);
+
     // Memoize the POIContainer and MapContainer
     const memoizedPOIContainer = useMemo(() => (
         <POIContainer 
-            onPOIsUpdate={handlePOIsUpdate}
-            onAllPOIsUpdate={handleAllPOIsUpdate}
+            onPOIsUpdate={(pois) => handlePOIsUpdate(pois, false)}
+            onAllPOIsUpdate={(pois) => handlePOIsUpdate(pois, true)}
+            searchTerm={searchTerm}
         />
-    ), [handlePOIsUpdate, handleAllPOIsUpdate]);
+    ), [handlePOIsUpdate, searchTerm]);
 
     const memoizedMapContainer = useMemo(() => (
         <MapContainer 
             isResizing={isResizing} 
-            pois={allPOIs}  // Use all POIs for the map instead of just displayedPOIs
+            pois={allPOIs}
             savedPois={[]}
         />
     ), [isResizing, allPOIs, handleMapCreate]);

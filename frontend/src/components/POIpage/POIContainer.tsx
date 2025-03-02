@@ -7,13 +7,13 @@ import { usePOIData } from '@/components/hooks/usePOIData';
 import searchCitiesData from 'cities.json';
 import POITabs from '@/components/POIpage/POITabs';
 import CitySearch from '../CitySearchBar';
-import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, Pen } from 'lucide-react';
 import { poiCacheService } from '../hooks/poiCacheService';
+import { Pen } from 'lucide-react';
 
 interface POIContainerProps {
     onPOIsUpdate: (pois: POI[]) => void;
-    onAllPOIsUpdate?: (pois: POI[]) => void;
+    onAllPOIsUpdate: (pois: POI[]) => void;
+    searchTerm?: string;
 }
 
 type TabType = 'saved' | 'explore';
@@ -21,7 +21,7 @@ type CategoryType = POIType | 'all';
 
 const citiesData: SearchCity[] = searchCitiesData as SearchCity[];
 
-const POIContainer = ({ onPOIsUpdate, onAllPOIsUpdate }: POIContainerProps) => {
+const POIContainer = ({ onPOIsUpdate, onAllPOIsUpdate, searchTerm = ''}: POIContainerProps) => {
     const navigate = useNavigate();
     const routerLocation = useRouterLocation();
     const { currentCity, coordinates, currentCountry, updateLocation } = useLocation();
@@ -40,8 +40,6 @@ const POIContainer = ({ onPOIsUpdate, onAllPOIsUpdate }: POIContainerProps) => {
         error,
         fetchSavedPOIs,
         fetchExplorePOIs,
-        explorePagination,
-        savedPagination,
         setLoading,
         savePOI,
         unsavePOI,
@@ -52,9 +50,12 @@ const POIContainer = ({ onPOIsUpdate, onAllPOIsUpdate }: POIContainerProps) => {
         explorePois
     } = usePOIData(user, currentCity, currentCountry);
 
-    const currentPagination = activeTab === 'saved' ? savedPagination : explorePagination;
-    const { nextPage, prevPage, totalPages, currentPage, currentItems } = currentPagination;
-
+    useEffect(() => {
+        if (searchTerm) {
+            setNameFilter(searchTerm);
+        }
+    }, [searchTerm]);
+    
     // Effect for initial data load and auth
     useEffect(() => {
         if (!user || !currentCity || authLoading || fetchInProgressRef.current) return;
@@ -70,7 +71,12 @@ const POIContainer = ({ onPOIsUpdate, onAllPOIsUpdate }: POIContainerProps) => {
                     // Check if cache is still valid (10 minutes)
                     if (Date.now() - timestamp < 10 * 60 * 1000) {
                         // Use cached data instead of making API call
-                        return;
+                        console.log('Using cached POI data for', currentCity);
+                        // Update the saved POIs state with cached data
+                        if (data && Array.isArray(data)) {
+                            onPOIsUpdate(data);
+                            return;
+                        }
                     }
                 }
                 
@@ -251,29 +257,44 @@ const POIContainer = ({ onPOIsUpdate, onAllPOIsUpdate }: POIContainerProps) => {
         currentCountry
     ]);
 
-    //Filtering logic
-    const filteredItems = useMemo(() => {
-        return currentItems.filter(poi => {
-            const matchesName = poi.name.toLowerCase().includes(nameFilter.toLowerCase());
-            const matchesCategory = categoryFilter === 'all' || poi.type === categoryFilter;
-            
-            // Apply rating filter if set
-            const matchesRating = ratingFilter === null || 
-                                 (poi.rating !== undefined && poi.rating >= ratingFilter);
-                                 
-            return matchesName && matchesCategory && matchesRating;
-        });
-    }, [currentItems, nameFilter, categoryFilter, ratingFilter]);
-
     // Get all POIs regardless of pagination or filtering
     const allPOIs = useMemo(() => {
         return activeTab === 'saved' ? savedPois : explorePois;
     }, [activeTab, savedPois, explorePois]);
 
     // Update displayed (filtered) POIs
+    const filteredPOIs = useMemo(() => {
+        // Apply filters to the POIs
+        let filtered = activeTab === 'saved' ? savedPois : explorePois;
+        
+        // Apply name filter
+        if (nameFilter) {
+            filtered = filtered.filter(poi => 
+                poi.name.toLowerCase().includes(nameFilter.toLowerCase())
+            );
+        }
+        
+        // Apply rating filter
+        if (ratingFilter !== null) {
+            filtered = filtered.filter(poi => 
+                poi.rating !== undefined && poi.rating >= ratingFilter
+            );
+        }
+        
+        // Apply category filter for saved tab
+        if (activeTab === 'saved' && savedCategoryFilter !== 'all') {
+            filtered = filtered.filter(poi => 
+                poi.type === savedCategoryFilter
+            );
+        }
+        
+        return filtered;
+    }, [savedPois, explorePois, activeTab, nameFilter, ratingFilter, savedCategoryFilter]);
+
+    // Update parent component with filtered POIs
     useEffect(() => {
-        onPOIsUpdate(filteredItems);
-    }, [filteredItems, onPOIsUpdate]);
+        onPOIsUpdate(filteredPOIs);
+    }, [filteredPOIs, onPOIsUpdate]);
 
     // Update all POIs for the map
     useEffect(() => {
@@ -282,8 +303,6 @@ const POIContainer = ({ onPOIsUpdate, onAllPOIsUpdate }: POIContainerProps) => {
         }
     }, [allPOIs, onAllPOIsUpdate]);
 
-    const showPagination = filteredItems.length > 0;
-    
     //Create trip button navigation
     const handleCreateTrip = () => {
         navigate('/createtrip', {
@@ -294,6 +313,7 @@ const POIContainer = ({ onPOIsUpdate, onAllPOIsUpdate }: POIContainerProps) => {
           }
         });
       };
+      console.log(filteredPOIs)
     return (
         <div className="h-full w-full bg-white rounded-lg flex flex-col overflow-hidden">
             <div className="sticky top-0 bg-white z-10 p-6 pb-2">
@@ -339,7 +359,7 @@ const POIContainer = ({ onPOIsUpdate, onAllPOIsUpdate }: POIContainerProps) => {
                     onRatingFilterChange={handleRatingFilterChange}
                     loading={loading}
                     error={error}
-                    pois={filteredItems}
+                    pois={filteredPOIs}
                     isNewCity={isNewCity}
                     onLoadResults={handleLoadResults}
                     onSavePOI={savePOI}
@@ -347,36 +367,6 @@ const POIContainer = ({ onPOIsUpdate, onAllPOIsUpdate }: POIContainerProps) => {
                     isPoiSaved={isPoiSaved}
                 />
             </div>
-
-            {showPagination && (
-                <div className="sticky bottom-0 bg-white z-10 px-6 py-4 border-t">
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={prevPage}
-                                disabled={currentPage === 1 || loading}
-                            >
-                                <ChevronLeft className="h-4 w-4 mr-1" />
-                                Previous
-                            </Button>
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={nextPage}
-                                disabled={currentPage === totalPages || loading}
-                            >
-                                Next
-                                <ChevronRight className="h-4 w-4 ml-1" />
-                            </Button>
-                        </div>
-                        <span className="text-sm text-gray-500">
-                            Page {currentPage} of {totalPages}
-                        </span>
-                    </div>
-                </div>
-            )}
         </div>
     );
 };
