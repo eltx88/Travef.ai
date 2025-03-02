@@ -13,8 +13,9 @@ interface ItineraryPointsProps {
   tripData: TripData;
   itineraryPOIs: ItineraryPOI[];
   unusedPOIs: ItineraryPOI[];
-  onAddToItinerary: (poi: ItineraryPOI, day: number) => void; // Pass onAddToItinerary as a prop
-  onDeleteSavedPOI: (poi: ItineraryPOI) => void; // Pass onDeleteSavedPOI as a prop
+  onAddToItinerary: (poi: ItineraryPOI, day: number) => void;
+  onDeleteSavedPOI: (poi: ItineraryPOI) => void; 
+  isRightExpanded?: boolean;
 }
 
 const ItineraryPoints = ({ 
@@ -23,6 +24,7 @@ const ItineraryPoints = ({
   unusedPOIs,
   onAddToItinerary,
   onDeleteSavedPOI,
+  isRightExpanded = false,
 }: ItineraryPointsProps) => {
   const [activeTab, setActiveTab] = useState<TabType>('itinerary');
   const [filterDay, setFilterDay] = useState<string>('all'); 
@@ -36,13 +38,31 @@ const ItineraryPoints = ({
     [tripData.monthlyDays]
   );
 
-  // Filter itinerary POIs using memoization
+  // Filter and sort itinerary POIs using memoization
   const filteredItineraryPOIs = useMemo(() => {
-    return itineraryPOIs.filter(poi => {
+    let filtered = itineraryPOIs.filter(poi => {
       const matchesDay = filterDay === 'all' || poi.day === Number(filterDay);
       const matchesTimeSlot = filterTimeSlot === 'all' || 
         poi.timeSlot?.toLowerCase() === filterTimeSlot.toLowerCase();
       return matchesDay && matchesTimeSlot;
+    });
+    
+    return filtered.sort((a, b) => {
+      // When showing all days, sort by day first, then by start time
+      if (filterDay === 'all') {
+        // First sort by day
+        if (a.day !== b.day) {
+          return a.day - b.day;
+        }
+        
+        // Then sort by start time (earlier times first)
+        return (a.StartTime || '') < (b.StartTime || '') ? -1 : 1;
+      } 
+      // When filtering by a specific day, sort only by start time
+      else {
+        // Sort by start time (earlier times first)
+        return (a.StartTime || '') < (b.StartTime || '') ? -1 : 1;
+      }
     });
   }, [itineraryPOIs, filterDay, filterTimeSlot]);
 
@@ -79,8 +99,8 @@ const ItineraryPoints = ({
           </SelectContent>
         </Select>
       </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          
+      <div className={`grid ${isRightExpanded ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'} gap-4`}>
         {filteredItineraryPOIs.map((poi) => (
           <ItineraryPOICard
             key={poi.id}
@@ -91,12 +111,13 @@ const ItineraryPoints = ({
     </div>
   );
 
+  // 4. Update the grid class in the renderSavedContent function
   const renderSavedContent = () => (
     <div className="space-y-4">
       <h3 className="text-lg font-medium sticky top-0 bg-white z-10 pb-2">
         Saved Attractions
       </h3>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className={`grid ${isRightExpanded ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'} gap-4`}>
         {savedAttractions.map((poi) => (
           <ItineraryPOICard
             key={poi.id}
@@ -111,7 +132,7 @@ const ItineraryPoints = ({
       <h3 className="text-lg font-medium sticky top-0 bg-white z-10 pb-2">
         Saved Restaurants
       </h3>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className={`grid ${isRightExpanded ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'} gap-4`}>
         {savedRestaurants.map((poi) => (
           <ItineraryPOICard
             key={poi.id}
@@ -140,7 +161,7 @@ const ItineraryPoints = ({
     }
   };
   return (
-    <Card className="w-1/3 h-[calc(100vh-7rem)] overflow-hidden bg-white rounded-lg flex flex-col">
+    <Card className="w-full h-full overflow-hidden bg-white rounded-lg flex flex-col">
       <div className="sticky top-0 bg-white px-6 py-4 border-b z-20">
         <h2 className="text-2xl font-semibold">{tripData.city.charAt(0).toUpperCase() + tripData.city.slice(1)}</h2>
         {tripData.fromDT && tripData.toDT && (
