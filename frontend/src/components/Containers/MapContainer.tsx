@@ -214,9 +214,9 @@ function MapContainer({ isResizing, pois, savedPois }: MapContainerProps) {
                         </a>
                     </h3>
                     <p class="text-sm mt-1">${poi.address}</p>
-                    <p class="text-sm mt-1 text-yellow-600">${poi.rating ? `Rating: ${poi.rating} ★` : ''}</p>
+                    <p class="text-sm mt-1 text-yellow-400">${poi.rating ? `Rating: ${poi.rating} ★` : ''}</p>
                     <p class="text-sm text-gray-600 mt-1">${poi.type.charAt(0).toUpperCase() + poi.type.slice(1)}</p>
-                    ${isSaved ? '<p class="text-sm text-yellow-600 mt-1">★ Saved</p>' : ''}
+                    ${isSaved ? '<p class="text-sm text-blue-300 mt-1">Saved</p>' : ''}
                 </div>
             `);
     }, []);

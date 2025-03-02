@@ -19,11 +19,13 @@ function PointOfInterest() {
     const previousPOIsRef = useRef<string>('');
     const previousAllPOIsRef = useRef<string>('');
     const [searchTerm, setSearchTerm] = useState<string>('');
+    type TabType = 'saved' | 'explore';
+    const [activeTab, setActiveTab] = useState<TabType>('saved');
 
     // Refs for map instance and functions
     const mapInstanceRef = useRef<mapboxgl.Map | null>(null);
     const mapFunctionsRef = useRef<MapFunctions | null>(null);
-  
+
     // Fnction to handle POIs updates
     const handlePOIsUpdate = useCallback((pois: POI[], isAllUpdate: boolean = false) => {
         const poisString = JSON.stringify(pois);
@@ -115,6 +117,7 @@ function PointOfInterest() {
         <POIContainer 
             onPOIsUpdate={(pois) => handlePOIsUpdate(pois, false)}
             onAllPOIsUpdate={(pois) => handlePOIsUpdate(pois, true)}
+            onTabChange={(tab) => setActiveTab(tab)}
             searchTerm={searchTerm}
         />
     ), [handlePOIsUpdate, searchTerm]);
@@ -122,11 +125,10 @@ function PointOfInterest() {
     const memoizedMapContainer = useMemo(() => (
         <MapContainer 
             isResizing={isResizing} 
-            pois={allPOIs}
-            savedPois={[]}
+            pois={activeTab === 'explore' ? allPOIs : []}
+            savedPois={activeTab === 'saved' ? allPOIs : []}
         />
     ), [isResizing, allPOIs, handleMapCreate]);
-
     return (
         <LocationProvider>
             <div className="flex flex-col min-h-screen bg-gray-100">

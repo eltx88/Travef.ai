@@ -13,6 +13,7 @@ import { Pen } from 'lucide-react';
 interface POIContainerProps {
     onPOIsUpdate: (pois: POI[]) => void;
     onAllPOIsUpdate: (pois: POI[]) => void;
+    onTabChange: (tab: TabType) => void;
     searchTerm?: string;
 }
 
@@ -21,7 +22,7 @@ type CategoryType = POIType | 'all';
 
 const citiesData: SearchCity[] = searchCitiesData as SearchCity[];
 
-const POIContainer = ({ onPOIsUpdate, onAllPOIsUpdate, searchTerm = ''}: POIContainerProps) => {
+const POIContainer = ({ onPOIsUpdate, onAllPOIsUpdate, onTabChange, searchTerm = ''}: POIContainerProps) => {
     const navigate = useNavigate();
     const routerLocation = useRouterLocation();
     const { currentCity, coordinates, currentCountry, updateLocation } = useLocation();
@@ -33,7 +34,7 @@ const POIContainer = ({ onPOIsUpdate, onAllPOIsUpdate, searchTerm = ''}: POICont
     const [activeTab, setActiveTab] = useState<TabType>('saved');
     const [isNewCity, setIsNewCity] = useState(false);
     const [savedCategoryFilter, setSavedCategoryFilter] = useState<CategoryType>('all');
-    const [exploreCategoryFilter, setExploreCategoryFilter] = useState<POIType>('hotel');
+    const [exploreCategoryFilter, setExploreCategoryFilter] = useState<POIType>('attraction');
     const categoryFilter = activeTab === 'saved' ? savedCategoryFilter : exploreCategoryFilter;
     const {
         loading,
@@ -120,6 +121,7 @@ const POIContainer = ({ onPOIsUpdate, onAllPOIsUpdate, searchTerm = ''}: POICont
         if (fetchInProgressRef.current) return;
         
         setActiveTab(newTab);
+        onTabChange(newTab);
         setNameFilter('');
         setRatingFilter(null);
         
@@ -313,7 +315,6 @@ const POIContainer = ({ onPOIsUpdate, onAllPOIsUpdate, searchTerm = ''}: POICont
           }
         });
       };
-      console.log(filteredPOIs)
     return (
         <div className="h-full w-full bg-white rounded-lg flex flex-col overflow-hidden">
             <div className="sticky top-0 bg-white z-10 p-6 pb-2">
