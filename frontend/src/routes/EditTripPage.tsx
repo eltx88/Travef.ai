@@ -1,4 +1,4 @@
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate, useBlocker } from 'react-router-dom';
 import { NavigationMenuBar } from "@/components/NavigationMenuBar";
 import type { TripData, ItineraryPOI } from '@/Types/InterfaceTypes';
 import { useEffect, useState, useCallback } from 'react';
@@ -21,6 +21,35 @@ interface ItineraryState {
   itineraryPOIs: ItineraryPOI[];
   unusedPOIs: ItineraryPOI[];
   lastModified: number;
+}
+
+// Custom usePrompt hook to inform user when they try to leave the page with unsaved changes
+function usePrompt(message: string, when = true) {
+  const blocker = useBlocker(when);
+  
+  useEffect(() => {
+    if (blocker.state === 'blocked') {
+      const confirmed = window.confirm(message);
+      if (confirmed) {
+        blocker.proceed();
+      } else {
+        blocker.reset();
+      }
+    }
+  }, [blocker, message]);
+
+  // Modern approach for beforeunload event
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (when) {
+        e.preventDefault();
+        return message;
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [when, message]);
 }
 
 function EditTripPage() {
@@ -279,6 +308,12 @@ function EditTripPage() {
   const leftContainerWidth = isLeftExpanded ? 85 : isRightExpanded ? 15 : 40;
   const rightContainerWidth = isRightExpanded ? 85 : isLeftExpanded ? 15 : 60;
 
+  // Use the custom hook to prompt when navigating away with unsaved changes
+  usePrompt(
+    "You have unsaved changes. Are you sure you want to leave this page?",
+    itineraryStateChange
+  );
+
   // Show loading state
   if (isLoading || !itineraryState || !tripData) {
     return (
@@ -287,6 +322,7 @@ function EditTripPage() {
       </div>
     );
   }
+  
   return (
     <div className="flex flex-col min-h-screen bg-blue-100">
       <NavigationMenuBar/>
