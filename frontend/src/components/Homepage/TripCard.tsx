@@ -8,12 +8,24 @@ import ApiClient from '@/Api/apiClient';
 import { useAuthStore } from '@/firebase/firebase';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 interface TripCardsProps {
   trip: UserTrip;
+  onDelete: (refresh: boolean) => void;
 }
 
-const TripCard: FC<TripCardsProps> = ({ trip }) => {
+const TripCard: FC<TripCardsProps> = ({ trip, onDelete }) => {
     const { user } = useAuthStore();
     const apiClient = new ApiClient({
         getIdToken: async () => {
@@ -106,12 +118,41 @@ const TripCard: FC<TripCardsProps> = ({ trip }) => {
           >
             View Trip
           </Button>
-          <Button className="w-full bg-red-600 hover:bg-red-700 text-white transition-transform duration-300 group-hover:scale-105" onClick={() => {
-            // apiClient.deleteTrip(trip.trip_doc_id);
-            toast.success('Trip deleted successfully!');
-          }}>
-            <Trash2 className="h-6 w-6" />
-          </Button>
+          
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button className="w-full bg-red-600 hover:bg-red-700 text-white transition-transform duration-300 group-hover:scale-105">
+                <Trash2 className="h-6 w-6" />
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Are you sure you want to delete your trip to {trip.city.charAt(0).toUpperCase() + trip.city.slice(1)}?</AlertDialogTitle>
+                <AlertDialogDescription className="text-red-600">
+                  This action cannot be undone
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  className="bg-red-600 hover:bg-red-700 text-white"
+                  onClick={async () => {
+                    try {
+                      const loadingToast = toast.loading("Deleting trip...");
+                      await apiClient.deleteTrip(trip.trip_doc_id);
+                      toast.dismiss(loadingToast);
+                      toast.success('Trip deleted successfully!');
+                      onDelete(true);
+                    } catch (error) {
+                      toast.error(`Failed to delete trip: ${error}`);
+                    }
+                  }}
+                >
+                  Delete
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       </CardContent>
     </Card>

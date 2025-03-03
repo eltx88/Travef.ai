@@ -543,6 +543,18 @@ async getNearbyPlacesByTypes(
       }
   }
 
+  async deleteTrip(trip_doc_id: string) {
+    try {
+      await this.fetchWithAuth(`/trip/delete-with-history/${trip_doc_id}`, {
+        method: 'DELETE',
+      });
+
+    } catch (error) {
+      console.error('Error deleting trip:', error);
+      throw error;
+    }
+  }
+
   // this function takes the original POIs and returns the POIs with the Google place details merged
   async getBatchPlaceDetails(
     pois: POI[], 

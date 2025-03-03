@@ -431,10 +431,9 @@ const TripPOIContainer = ({ tripData, pois, savedpois, setIsGenerating }: TripPO
       <div className="sticky bottom-0 pt-2 mt-8 z-50">
       <Button 
         className="w-full bg-blue-600 hover:bg-blue-700 text-white"
-        disabled={selectedPOIs.size < 3}
         onClick={handleSubmit}
       >
-        {selectedPOIs.size < 3 ? 'Select at least 3 places' : `Create Itinerary with Selected Places (${selectedPOIs.size})`}
+        Create Itinerary with Selected Places ({selectedPOIs.size})
       </Button>
       </div>
     </div>
