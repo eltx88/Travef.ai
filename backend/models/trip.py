@@ -36,7 +36,6 @@ class UnusedPOI(BaseModel):
     place_id: str
 
 class SaveTripRequest(BaseModel):
-    tripId: str
     tripData: TripData
     itineraryPOIs: List[ItineraryPOI]
     unusedPOIs: List[UnusedPOI]
@@ -98,7 +97,6 @@ class TripUpdateRequest(BaseModel):
 # User Trip Model used for the query on the homepage to display the trips
 class UserTrip(BaseModel):
     trip_doc_id: str
-    trip_id: str
     city: str
     country: str
     fromDT: datetime

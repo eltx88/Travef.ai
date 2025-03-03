@@ -267,7 +267,7 @@ const TripPOIContainer = ({ tripData, pois, savedpois, setIsGenerating }: TripPO
           itineraryPOIs: finalItineraryPOIs,
           unusedPOIs: finalUnusedPOIs,
           tripData: tripData,
-          timeStamp: Date.now()
+          trip_doc_id: ""
         }
       });
     } catch (error) {
@@ -295,7 +295,6 @@ const TripPOIContainer = ({ tripData, pois, savedpois, setIsGenerating }: TripPO
     }
     setSelectedPOIs(newSelected);
   };
-
   return (
     <div className="h-full w-full bg-white rounded-lg overflow-y-auto">
       <div className="sticky top-0 bg-white px-6 py-4 border-b z-10">

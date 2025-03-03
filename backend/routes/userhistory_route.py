@@ -1,6 +1,6 @@
 from models.trip import UserTrip
 from fastapi import APIRouter, Depends, Body
-from typing import Dict, List
+from typing import Dict, List, Optional
 from services.userhistory_service import UserHistoryService
 from .auth import verify_firebase_token
 
@@ -31,27 +31,18 @@ async def unsave_pois(
     await user_history_service.unsave_poi(user_id, request['point_ids'])
     return {"message": "POIs unsaved successfully"}
 
-@router.get("/saved-trips/check/{trip_id}")
-async def check_saved_trip(
-    trip_id: str,
-    user_id: str = Depends(verify_firebase_token)
-) -> Dict:
-    """Check if a trip exists in user's saved trips"""
-    return await user_history_service.check_trip_exists(user_id, trip_id)
-
 @router.post("/saved-trips/{trip_doc_id}")
 async def save_trip_to_history(
     trip_doc_id: str,
     user_id: str = Depends(verify_firebase_token),
-    trip_id: str = Body(..., description="Trip ID"),
     city: str = Body(..., description="City of the trip"), 
     country: str = Body(..., description="Country of the trip"),
-    fromDT: str = Body(..., description="From date of the trip"),
-    toDT: str = Body(..., description="To date of the trip"),
-    monthlyDays: int = Body(..., description="Monthly days of the trip")
+    fromDT: Optional[str] = Body(None, description="From date of the trip"),
+    toDT: Optional[str] = Body(None, description="To date of the trip"),
+    monthlyDays: Optional[int] = Body(None, description="Monthly days of the trip")
 ) -> Dict:
     """Save a trip to user's history"""
-    await user_history_service.save_trip_to_history(user_id, trip_doc_id, trip_id, city, country, fromDT, toDT, monthlyDays)
+    await user_history_service.save_trip_to_history(trip_doc_id, user_id, city, country, fromDT, toDT, monthlyDays)
     return {"message": "Trip saved to history successfully"}
 
 @router.get("/saved-trips")

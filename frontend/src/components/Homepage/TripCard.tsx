@@ -2,7 +2,7 @@
 import { FC } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Calendar } from "lucide-react";
+import { Calendar, Trash2 } from "lucide-react";
 import type { ItineraryPOI, UserTrip } from '@/Types/InterfaceTypes';
 import ApiClient from '@/Api/apiClient';
 import { useAuthStore } from '@/firebase/firebase';
@@ -27,14 +27,14 @@ const TripCard: FC<TripCardsProps> = ({ trip }) => {
     <Card className="w-[300px] flex-shrink-0 bg-white shadow-lg hover:shadow-xl transition-all duration-300 items-center hover:bg-gray-200 overflow-hidden">
       <CardContent className="p-4 w-full">
         <div className="space-y-4 group">
-          <h2 className="font-semibold text-xl capitalize text-center transition-transform duration-300 group-hover:scale-110">{trip.city}, {trip.country}</h2>
+          <h2 className="font-semibold text-2xl capitalize text-center transition-transform duration-300 group-hover:scale-110">{trip.city}, {trip.country.toUpperCase()}</h2>
           <p className="text-gray-600 text-center transition-transform duration-300 group-hover:scale-110">{trip.monthlyDays} days</p>
           <div className="flex gap-2 text-gray-600">
-            <div className="flex items-center space-y-1 px-10 text-sm text-center w-full transition-transform duration-300 group-hover:scale-110">
-              <Calendar className="h-4 w-4 mr-1" />
-              <p className="inline">
-                {trip.fromDT.toLocaleDateString("en-UK")} - {trip.toDT.toLocaleDateString("en-UK")}
-              </p>
+            <div className="flex items-center space-y-2 px-3 text-m w-full transition-transform duration-300 group-hover:scale-110">
+              <Calendar className="h-6 w-5 mr-2" />
+              <h3 className="inline">
+                {trip.fromDT.getDate() + " " + trip.fromDT.toLocaleString('default', { month: 'long' }) + " " + trip.fromDT.getFullYear()} to {trip.toDT.getDate() + " " + trip.toDT.toLocaleString('default', { month: 'long' }) + " " + trip.toDT.getFullYear()}
+              </h3>
             </div>
         </div>
 
@@ -94,7 +94,8 @@ const TripCard: FC<TripCardsProps> = ({ trip }) => {
                       state: {
                         itineraryPOIs: finalItineraryPOIs,
                         unusedPOIs: finalUnusedPOIs,
-                        tripData: tripDetails.tripData
+                        tripData: tripDetails.tripData,
+                        trip_doc_id: trip.trip_doc_id
                       }
                     });
                   } catch (error) {
@@ -104,6 +105,12 @@ const TripCard: FC<TripCardsProps> = ({ trip }) => {
             }}
           >
             View Trip
+          </Button>
+          <Button className="w-full bg-red-600 hover:bg-red-700 text-white transition-transform duration-300 group-hover:scale-105" onClick={() => {
+            // apiClient.deleteTrip(trip.trip_doc_id);
+            toast.success('Trip deleted successfully!');
+          }}>
+            <Trash2 className="h-6 w-6" />
           </Button>
         </div>
       </CardContent>
