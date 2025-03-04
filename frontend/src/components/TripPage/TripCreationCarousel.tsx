@@ -30,11 +30,12 @@ export default function TripCreationCarousel({ onComplete, initialData }: TripCr
   //Determine if we have a location set , if not then start from step 0
   const location = useLocation();
   const navigate = useNavigate();
-  const initialStep = location.state?.city ? 1 : 0;
+  const initialStep = location.state?.city && location.state?.country ? 1 : 0;
 
   const [api, setApi] = useState<CarouselApi>();
   const [current, setCurrent] = useState(0);
   const [validCity, setValidCity] = useState(!!location.state?.city);
+  const [validCountry, setValidCountry] = useState(!!location.state?.country);
   const [count, setCount] = useState(0);
   const [tripData, setTripData] = useState<TripData>(() => {
     if (initialData) {
@@ -92,7 +93,8 @@ export default function TripCreationCarousel({ onComplete, initialData }: TripCr
       }
     });
     setValidCity(true);
-    // Update location state similar to SearchbarHome
+    setValidCountry(true);
+    // Update location state
     navigate(location.pathname, {
       state: { 
         city: city.name,
@@ -270,12 +272,15 @@ export default function TripCreationCarousel({ onComplete, initialData }: TripCr
                   </div>
                 </div>
                 <p className="text-center mt-4">
-                  {/* <button 
-                    onClick={() => setTripData({...tripData, dateRange: { from: undefined, to: undefined }})}
-                    className="text-blue-600 underline"
-                  >
-                    I don't know my dates yet
-                  </button> */}
+                  {tripData.fromDT && (
+                    <Button 
+                      variant="outline"
+                      onClick={() => setTripData({...tripData, fromDT: undefined, toDT: undefined, monthlyDays: 0})}
+                      className="text-white hover:bg-blue-100 bg-blue-600"
+                    >
+                      Clear dates
+                    </Button>
+                  )}
                 </p>
               </div>
             </CarouselItem>
@@ -427,7 +432,7 @@ export default function TripCreationCarousel({ onComplete, initialData }: TripCr
               disabled={current === 0}
             />
           )}
-          {(current > 0 || validCity) && (
+          {(current > 0 || (validCity && validCountry)) && (
             <CarouselNext 
               className="right-2"
               disabled={current === count - 1}

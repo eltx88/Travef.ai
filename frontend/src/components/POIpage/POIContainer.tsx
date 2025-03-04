@@ -25,7 +25,7 @@ const citiesData: SearchCity[] = searchCitiesData as SearchCity[];
 const POIContainer = ({ onPOIsUpdate, onAllPOIsUpdate, onTabChange, searchTerm = ''}: POIContainerProps) => {
     const navigate = useNavigate();
     const routerLocation = useRouterLocation();
-    const { currentCity, coordinates, currentCountry, updateLocation } = useLocation();
+    const { currentCity, currentCountry, coordinates, updateLocation } = useLocation();
     const { user, loading: authLoading } = useAuthStore();
     const fetchInProgressRef = useRef(false);
     const [isEditing, setIsEditing] = useState(false);
@@ -97,6 +97,7 @@ const POIContainer = ({ onPOIsUpdate, onAllPOIsUpdate, onTabChange, searchTerm =
 
     useEffect(() => {
         const city = routerLocation.state?.city;
+        const country = routerLocation.state?.country;
         if (city && !routerLocation.state?.initialized) {
             const cityData = citiesData.find(
                 (searchCity: SearchCity) => searchCity.name.toLowerCase() === city.toLowerCase()
@@ -105,7 +106,7 @@ const POIContainer = ({ onPOIsUpdate, onAllPOIsUpdate, onTabChange, searchTerm =
             if (cityData) {
                 updateLocation(
                     city,
-                    currentCountry,
+                    country,
                     Number(cityData.lng),
                     Number(cityData.lat)
                 );
@@ -225,7 +226,7 @@ const POIContainer = ({ onPOIsUpdate, onAllPOIsUpdate, onTabChange, searchTerm =
                 
                 await updateLocation(
                     newCity,
-                    currentCountry,
+                    cityData.country,
                     Number(cityData.lng),
                     Number(cityData.lat)
                 );
@@ -233,7 +234,7 @@ const POIContainer = ({ onPOIsUpdate, onAllPOIsUpdate, onTabChange, searchTerm =
                 navigate(routerLocation.pathname, {
                     state: {
                         city: newCity,
-                        country: currentCountry,
+                        country: cityData.country,
                         lat: Number(cityData.lat),
                         lng: Number(cityData.lng),
                         initialized: true
@@ -308,13 +309,14 @@ const POIContainer = ({ onPOIsUpdate, onAllPOIsUpdate, onTabChange, searchTerm =
     //Create trip button navigation
     const handleCreateTrip = () => {
         navigate('/createtrip', {
-          state: { 
-            city: currentCity,
-            lat: coordinates.lat,
-            lng: coordinates.lng
-          }
+            state: { 
+                city: currentCity,
+                country: currentCountry,
+                lat: coordinates.lat,
+                lng: coordinates.lng
+            }
         });
-      };
+    };
     return (
         <div className="h-full w-full bg-white rounded-lg flex flex-col overflow-hidden">
             <div className="sticky top-0 bg-white z-10 p-6 pb-2">
@@ -331,7 +333,7 @@ const POIContainer = ({ onPOIsUpdate, onAllPOIsUpdate, onTabChange, searchTerm =
                     </div>
                 ) : (
                     <div className="flex items-center gap-2 mb-4">
-                        <h2 className="text-2xl font-semibold">{currentCity}</h2>
+                        <h2 className="text-2xl font-semibold">{currentCity}, {currentCountry}</h2>
                         <button 
                             onClick={() => setIsEditing(true)}
                             className="p-1 hover:bg-gray-100 rounded-full transition-colors"

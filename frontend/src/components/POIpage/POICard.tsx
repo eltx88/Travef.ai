@@ -64,7 +64,8 @@ const getProxiedImageUrl = (url: string | undefined, type: string) => {
 };
 
 const POICard = ({ 
-  id, 
+  id,
+  place_id,
   name, 
   address, 
   city,
@@ -134,7 +135,7 @@ const POICard = ({
   };
 
   // Function to generate Google Maps URL
-  const getGoogleMapsUrl = () => {
+  const getGoogleMapsUrl = (id: string) => {
     return `https://www.google.com/maps/place/?q=place_id:${id}`;
   };
 
@@ -230,7 +231,7 @@ const POICard = ({
               
               {/* Google Maps Icon */}
               <a 
-                href={getGoogleMapsUrl()}
+                href={getGoogleMapsUrl(place_id)}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="ml-1.5 text-gray-500 hover:text-blue-600"
@@ -284,14 +285,14 @@ const POICard = ({
               {name}
               {/* Google Maps Icon in Dialog */}
               <a 
-                href={getGoogleMapsUrl()}
+                href={getGoogleMapsUrl(place_id)}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="ml-2 text-gray-500 hover:text-blue-600"
+                className="ml-1.5 text-gray-500 hover:text-blue-600"
                 onClick={(e) => e.stopPropagation()}
                 title="View on Google Maps"
               >
-                <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
+                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" />
                 </svg>
               </a>
@@ -305,13 +306,18 @@ const POICard = ({
           <div className="space-y-4">
             {/* Image */}
             <div className="overflow-hidden rounded-md">
-              <img
-                ref={detailImageRef}
-                src={getDefaultImage(type || 'attraction')} 
-                alt={name}
-                className="w-full h-48 object-cover"
-                onError={handleImageError}
-              />
+            <img
+              ref={imageRef}
+              src={shouldLoadImage 
+                ? getProxiedImageUrl(image_url, type || 'attraction')
+                : getDefaultImage(type || 'attraction')
+              }
+              alt={name}
+              className="w-full h-full object-cover transition-transform duration-300"
+              style={{ transform: isHovered ? 'scale(1.05)' : 'scale(1)' }}
+              onError={handleImageError}
+              onLoad={() => setImageLoaded(true)}
+            />
             </div>
             
             {/* Address */}

@@ -98,7 +98,7 @@ const POISaveButton = ({ isSaved, onSave, onUnsave, name }: SaveButtonProps) => 
           size="sm"
           className={`min-w-[70px] shrink-0 transition-colors ${
             isHovered 
-              ? 'bg-red-50 text-red-600 border-red-200' 
+              ? 'bg-red-400 text-red-600 border-red-500' 
               : 'bg-gray-50 text-gray-700'
           }`}
           onMouseEnter={() => setIsHovered(true)}

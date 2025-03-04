@@ -15,7 +15,10 @@ interface TripPOICardProps {
 //TEMPORARY PLACEHOLDER IMAGES
 const DEFAULT_ATTRACTION_IMAGE = "https://fastly.picsum.photos/id/57/2448/3264.jpg?hmac=ewraXYesC6HuSEAJsg3Q80bXd1GyJTxekI05Xt9YjfQ";
 const DEFAULT_RESTAURANT_IMAGE = "https://fastly.picsum.photos/id/431/5000/3334.jpg?hmac=T2rL_gBDyJYpcr1Xm8Kv7L6bhwvmZS8nKT5w3ok58kA";
-const getDefaultImage = (type: string) => {
+const getImage = (type: string, image_url?: string) => {
+  if(image_url) {
+    return image_url;
+  }
   return type === 'restaurant' ? DEFAULT_RESTAURANT_IMAGE : DEFAULT_ATTRACTION_IMAGE;
 };
 
@@ -49,12 +52,12 @@ const TripPOICard = ({
         <div className="bg-gray-200 rounded-md aspect-[4/3] mb-4">
           <div className="relative rounded-md overflow-hidden aspect-[4/3] mb-4">
             <img
-              src={poi.image_url || getDefaultImage(poi.type)}
+              src={getImage(poi.type, poi.image_url)}
               alt={poi.name}
               className="w-full h-full object-cover"
               onError={(e) => {
                 const img = e.target as HTMLImageElement;
-                img.src = getDefaultImage(poi.type);
+                img.src = getImage(poi.type, poi.image_url);
               }}
             />
           </div>
