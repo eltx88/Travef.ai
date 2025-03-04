@@ -3,7 +3,7 @@ import { POI } from "@/Types/InterfaceTypes";
 import { useLocation } from '@/contexts/LocationContext';
 import { MapPin, Coffee, Utensils, Info, Star } from 'lucide-react';
 import { Card, CardContent } from "@/components/ui/card";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -47,6 +47,22 @@ const getTypeIcon = (type: string) => {
   }
 };
 
+// Helper for proxying image URLs
+const getProxiedImageUrl = (url: string | undefined, type: string) => {
+  if (!url) return getDefaultImage(type || 'attraction');
+  
+  // If URL is already a proxied URL or blob URL, return it
+  if (url.startsWith('https://images.weserv.nl') || url.startsWith('blob:')) {
+    return url;
+  }
+
+  // Fix the URL protocol if missing
+  const fixedUrl = url.startsWith('http') ? url : `https:${url}`;
+  
+  // Use images.weserv.nl as a proxy with caching
+  return `https://images.weserv.nl/?url=${encodeURIComponent(fixedUrl)}&default=${encodeURIComponent(getDefaultImage(type || 'attraction'))}&n=-1`;
+};
+
 const POICard = ({ 
   id, 
   name, 
@@ -71,6 +87,31 @@ const POICard = ({
   const { updateCoordinates } = useLocation();
   const [isHovered, setIsHovered] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
+  const [imageLoaded, setImageLoaded] = useState(false);
+  const [shouldLoadImage, setShouldLoadImage] = useState(false);
+  const imageRef = useRef<HTMLImageElement>(null);
+  const detailImageRef = useRef<HTMLImageElement>(null);
+  
+  // Set up IntersectionObserver to detect when card is in viewport
+  useEffect(() => {
+    if (!imageRef.current) return;
+    
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          setShouldLoadImage(true);
+          observer.disconnect();
+        }
+      },
+      { threshold: 0.1 }
+    );
+    
+    observer.observe(imageRef.current);
+    
+    return () => {
+      observer.disconnect();
+    };
+  }, []);
   
   const handleCardClick = () => {
     if (coordinates?.lat && coordinates?.lng) {
@@ -125,10 +166,17 @@ const POICard = ({
     );
   }
 
-  // Add this function to your component
+  // Handle image loading errors
   const handleImageError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
     e.currentTarget.src = getDefaultImage(type || 'attraction');
   };
+
+  // Load detail image when dialog opens
+  useEffect(() => {
+    if (showDetails && detailImageRef.current && image_url) {
+      detailImageRef.current.src = getProxiedImageUrl(image_url, type || 'attraction');
+    }
+  }, [showDetails, image_url, type]);
 
   return (
     <>
@@ -145,11 +193,16 @@ const POICard = ({
           {/* Image Section with Type Indicator */}
           <div className="relative overflow-hidden aspect-[4/3]">
             <img
-              src={image_url ? image_url.startsWith('http') ? image_url : `https:${image_url}` : getDefaultImage(type || 'attraction')}
+              ref={imageRef}
+              src={shouldLoadImage 
+                ? getProxiedImageUrl(image_url, type || 'attraction')
+                : getDefaultImage(type || 'attraction')
+              }
               alt={name}
               className="w-full h-full object-cover transition-transform duration-300"
               style={{ transform: isHovered ? 'scale(1.05)' : 'scale(1)' }}
-              onError={(e) => handleImageError(e)}
+              onError={handleImageError}
+              onLoad={() => setImageLoaded(true)}
             />
             <div className="absolute top-2 left-2 flex items-center bg-white bg-opacity-90 rounded-full px-2 py-0.5 text-xs">
               {getTypeIcon(type || 'attraction')}
@@ -253,10 +306,11 @@ const POICard = ({
             {/* Image */}
             <div className="overflow-hidden rounded-md">
               <img
-                src={image_url ? image_url.startsWith('http') ? image_url : `https:${image_url}` : getDefaultImage(type || 'attraction')}
+                ref={detailImageRef}
+                src={getDefaultImage(type || 'attraction')} 
                 alt={name}
                 className="w-full h-48 object-cover"
-                onError={(e) => handleImageError(e)}
+                onError={handleImageError}
               />
             </div>
             
