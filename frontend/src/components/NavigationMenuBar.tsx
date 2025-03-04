@@ -133,7 +133,7 @@ export function NavigationMenuBar() {
                                     navigate('/home');
                                     // Wait for navigation to complete before scrolling
                                     setTimeout(() => {
-                                        const tripsElement = document.getElementById('trips-container');
+                                        const tripsElement = document.getElementById('trips-section');
                                         if (tripsElement) {
                                             tripsElement.scrollIntoView({ behavior: 'smooth' });
                                         }

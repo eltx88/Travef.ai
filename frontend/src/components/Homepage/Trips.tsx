@@ -140,7 +140,7 @@ export const Itineraries: FC = () => {
               <ChevronLeft className="w-5 h-5" />
             </Button>
 
-            <div id="trips-container" className="flex gap-4 overflow-hidden px-8 scroll-smooth">
+            <div className="flex gap-4 overflow-hidden px-8 scroll-smooth">
               {sortTrips(trips).map((trip) => (
                 <div key={trip.trip_doc_id}>
                     <TripCard trip={trip} onDelete={triggerRefresh} />
