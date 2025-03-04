@@ -4,6 +4,7 @@ import LearnMore from "@/components/LearnMore";
 import LoginPopup from "@/components/Forms/LoginForm";
 import SignupPopup from "@/components/Forms/SignupForm";
 import { Outlet } from "react-router-dom";
+import Footer from "@/components/Footer";
 function LandingPage() {
   return (
     <>
@@ -44,14 +45,7 @@ function LandingPage() {
       <div className="absolute inset-0 z-0">
         <AnimatedMountains />
       </div>
-      <footer className="bg-blue-600 text-white py-4 text-center relative z-10">
-        <p className="text-sm">© 2024 Travefai. All rights reserved.</p>
-        <div className="flex justify-center space-x-4">
-          <a href="/privacy-policy" className="text-sm hover:underline">Privacy Policy</a>
-          <a href="/terms-of-service" className="text-sm hover:underline">Terms of Service</a>
-          <a href="/contact" className="text-sm hover:underline">Contact Us</a>
-        </div>
-      </footer>
+      <Footer />
     </div>
     </>
   );

@@ -22,7 +22,7 @@ export class TripGenerationService {
     this.apiClient = apiClient;
   }
 
-async generateTrip(tripData: TripData, attractionpois: MinimalPOI[], foodpois: MinimalPOI[]): Promise<GeneratedTrip> {
+async generateTrip(tripData: TripData, attractionpois: MinimalPOI[], foodpois: MinimalPOI[], cafePOIs: MinimalPOI[]): Promise<GeneratedTrip> {
   try {
       const payload = {
           trip_data: {
@@ -38,9 +38,10 @@ async generateTrip(tripData: TripData, attractionpois: MinimalPOI[], foodpois: M
               custom_food_preferences: Array.from(tripData.customFoodPreferences)
           },
           foodpois: foodpois,
-          attractionpois: attractionpois
+          attractionpois: attractionpois,
+          cafepois: cafePOIs
       };
-            
+      console.log(payload);
       const response = await this.apiClient.postTripGeneration(payload);
       return { itinerary: response.itinerary };
   } catch (error) {

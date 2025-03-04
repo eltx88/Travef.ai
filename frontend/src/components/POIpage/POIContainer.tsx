@@ -7,12 +7,14 @@ import { usePOIData } from '@/components/hooks/usePOIData';
 import searchCitiesData from 'cities.json';
 import POITabs from '@/components/POIpage/POITabs';
 import CitySearch from '../CitySearchBar';
-import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, Pen } from 'lucide-react';
 import { poiCacheService } from '../hooks/poiCacheService';
+import { Pen } from 'lucide-react';
 
 interface POIContainerProps {
     onPOIsUpdate: (pois: POI[]) => void;
+    onAllPOIsUpdate: (pois: POI[]) => void;
+    onTabChange: (tab: TabType) => void;
+    searchTerm?: string;
 }
 
 type TabType = 'saved' | 'explore';
@@ -20,37 +22,41 @@ type CategoryType = POIType | 'all';
 
 const citiesData: SearchCity[] = searchCitiesData as SearchCity[];
 
-const POIContainer = ({ onPOIsUpdate }: POIContainerProps) => {
+const POIContainer = ({ onPOIsUpdate, onAllPOIsUpdate, onTabChange, searchTerm = ''}: POIContainerProps) => {
     const navigate = useNavigate();
     const routerLocation = useRouterLocation();
-    const { currentCity, coordinates, updateLocation } = useLocation();
+    const { currentCity, currentCountry, coordinates, updateLocation } = useLocation();
     const { user, loading: authLoading } = useAuthStore();
     const fetchInProgressRef = useRef(false);
     const [isEditing, setIsEditing] = useState(false);
     const [nameFilter, setNameFilter] = useState('');
+    const [ratingFilter, setRatingFilter] = useState<number | null>(null); // New rating filter state
     const [activeTab, setActiveTab] = useState<TabType>('saved');
     const [isNewCity, setIsNewCity] = useState(false);
     const [savedCategoryFilter, setSavedCategoryFilter] = useState<CategoryType>('all');
-    const [exploreCategoryFilter, setExploreCategoryFilter] = useState<POIType>('hotel');
+    const [exploreCategoryFilter, setExploreCategoryFilter] = useState<POIType>('attraction');
     const categoryFilter = activeTab === 'saved' ? savedCategoryFilter : exploreCategoryFilter;
     const {
         loading,
         error,
         fetchSavedPOIs,
         fetchExplorePOIs,
-        explorePagination,
-        savedPagination,
         setLoading,
         savePOI,
         unsavePOI,
         isPoiSaved,
         refreshSaved,
         setRefreshSaved,
-    } = usePOIData(user, currentCity);
+        savedPois,
+        explorePois
+    } = usePOIData(user, currentCity, currentCountry);
 
-    const currentPagination = activeTab === 'saved' ? savedPagination : explorePagination;
-    const { nextPage, prevPage, totalPages, currentPage, currentItems } = currentPagination;
-
+    useEffect(() => {
+        if (searchTerm) {
+            setNameFilter(searchTerm);
+        }
+    }, [searchTerm]);
+    
     // Effect for initial data load and auth
     useEffect(() => {
         if (!user || !currentCity || authLoading || fetchInProgressRef.current) return;
@@ -66,7 +72,12 @@ const POIContainer = ({ onPOIsUpdate }: POIContainerProps) => {
                     // Check if cache is still valid (10 minutes)
                     if (Date.now() - timestamp < 10 * 60 * 1000) {
                         // Use cached data instead of making API call
-                        return;
+                        console.log('Using cached POI data for', currentCity);
+                        // Update the saved POIs state with cached data
+                        if (data && Array.isArray(data)) {
+                            onPOIsUpdate(data);
+                            return;
+                        }
                     }
                 }
                 
@@ -86,6 +97,7 @@ const POIContainer = ({ onPOIsUpdate }: POIContainerProps) => {
 
     useEffect(() => {
         const city = routerLocation.state?.city;
+        const country = routerLocation.state?.country;
         if (city && !routerLocation.state?.initialized) {
             const cityData = citiesData.find(
                 (searchCity: SearchCity) => searchCity.name.toLowerCase() === city.toLowerCase()
@@ -94,6 +106,7 @@ const POIContainer = ({ onPOIsUpdate }: POIContainerProps) => {
             if (cityData) {
                 updateLocation(
                     city,
+                    country,
                     Number(cityData.lng),
                     Number(cityData.lat)
                 );
@@ -109,7 +122,9 @@ const POIContainer = ({ onPOIsUpdate }: POIContainerProps) => {
         if (fetchInProgressRef.current) return;
         
         setActiveTab(newTab);
+        onTabChange(newTab);
         setNameFilter('');
+        setRatingFilter(null);
         
         const fetchData = async () => {
             try {
@@ -165,6 +180,11 @@ const POIContainer = ({ onPOIsUpdate }: POIContainerProps) => {
         }
     }, [activeTab, fetchExplorePOIs, isNewCity]);
 
+    // Handler for rating filter changes
+    const handleRatingFilterChange = useCallback((rating: number | null) => {
+        setRatingFilter(rating);
+    }, []);
+
     const handleLoadResults = useCallback(async () => {
         if (fetchInProgressRef.current) return;
     
@@ -206,6 +226,7 @@ const POIContainer = ({ onPOIsUpdate }: POIContainerProps) => {
                 
                 await updateLocation(
                     newCity,
+                    cityData.country,
                     Number(cityData.lng),
                     Number(cityData.lat)
                 );
@@ -213,6 +234,7 @@ const POIContainer = ({ onPOIsUpdate }: POIContainerProps) => {
                 navigate(routerLocation.pathname, {
                     state: {
                         city: newCity,
+                        country: cityData.country,
                         lat: Number(cityData.lat),
                         lng: Number(cityData.lng),
                         initialized: true
@@ -222,6 +244,7 @@ const POIContainer = ({ onPOIsUpdate }: POIContainerProps) => {
 
                 setIsEditing(false);
                 setNameFilter('');
+                setRatingFilter(null); // Reset rating filter when changing city
             } finally {
                 fetchInProgressRef.current = false;
                 setLoading(false);
@@ -233,121 +256,120 @@ const POIContainer = ({ onPOIsUpdate }: POIContainerProps) => {
         routerLocation.pathname,
         activeTab,
         fetchSavedPOIs,
-        setLoading
+        setLoading,
+        currentCountry
     ]);
 
-    //Filtering logic
-    const filteredItems = useMemo(() => {
-        return currentItems.filter(poi => {
-            const matchesName = poi.name.toLowerCase().includes(nameFilter.toLowerCase());
-            const matchesCategory = categoryFilter === 'all' || poi.type === categoryFilter;
-            return matchesName && matchesCategory;
-        });
-    }, [currentItems, nameFilter, categoryFilter]);
+    // Get all POIs regardless of pagination or filtering
+    const allPOIs = useMemo(() => {
+        return activeTab === 'saved' ? savedPois : explorePois;
+    }, [activeTab, savedPois, explorePois]);
 
+    // Update displayed (filtered) POIs
+    const filteredPOIs = useMemo(() => {
+        // Apply filters to the POIs
+        let filtered = activeTab === 'saved' ? savedPois : explorePois;
+        
+        // Apply name filter
+        if (nameFilter) {
+            filtered = filtered.filter(poi => 
+                poi.name.toLowerCase().includes(nameFilter.toLowerCase())
+            );
+        }
+        
+        // Apply rating filter
+        if (ratingFilter !== null) {
+            filtered = filtered.filter(poi => 
+                poi.rating !== undefined && poi.rating >= ratingFilter
+            );
+        }
+        
+        // Apply category filter for saved tab
+        if (activeTab === 'saved' && savedCategoryFilter !== 'all') {
+            filtered = filtered.filter(poi => 
+                poi.type === savedCategoryFilter
+            );
+        }
+        
+        return filtered;
+    }, [savedPois, explorePois, activeTab, nameFilter, ratingFilter, savedCategoryFilter]);
+
+    // Update parent component with filtered POIs
     useEffect(() => {
-        onPOIsUpdate(filteredItems);
-    }, [filteredItems, onPOIsUpdate]);
+        onPOIsUpdate(filteredPOIs);
+    }, [filteredPOIs, onPOIsUpdate]);
 
-    const showPagination = filteredItems.length > 0;
-    
+    // Update all POIs for the map
+    useEffect(() => {
+        if (onAllPOIsUpdate) {
+            onAllPOIsUpdate(allPOIs);
+        }
+    }, [allPOIs, onAllPOIsUpdate]);
+
     //Create trip button navigation
     const handleCreateTrip = () => {
         navigate('/createtrip', {
-          state: { 
-            city: currentCity,
-            lat: coordinates.lat,
-            lng: coordinates.lng
-          }
+            state: { 
+                city: currentCity,
+                country: currentCountry,
+                lat: coordinates.lat,
+                lng: coordinates.lng
+            }
         });
-      };
-
+    };
     return (
-        <div className="h-full w-full bg-white p-6 rounded-lg overflow-y-auto">
-            {isEditing ? (
-                <div className="mb-6">
-                    <CitySearch
-                        initialValue={currentCity}
-                        onSubmit={(city) => handleCityChange(city.name)}
-                        className="max-w-md"
-                        inputClassName="text-2xl font-semibold h-12 bg-transparent"
-                        showButton={true}
-                        autoFocus={true}
-                    />
-                </div>
-            ) : (
-                <div className="flex items-center gap-2 mb-4">
-                    <h2 className="text-2xl font-semibold">{currentCity}</h2>
-                    <button 
-                        onClick={() => setIsEditing(true)}
-                        className="p-1 hover:bg-gray-100 rounded-full transition-colors"
-                    >
-                        <Pen className="w-4 h-4 text-gray-500 hover:text-gray-700" />
-                    </button>
-                    <button 
-                        onClick={handleCreateTrip}
-                        className="bg-blue-600 ml-auto hover:bg-blue-700 text-white font-medium px-3 rounded-lg transition-colors"
-                    >
-                        Create trip
-                    </button>
-                </div>
-            )}
-
-            <POITabs
-                activeTab={activeTab}
-                onTabChange={handleTabChange}
-                nameFilter={nameFilter}
-                categoryFilter={categoryFilter}
-                onNameFilterChange={setNameFilter}
-                onCategoryFilterChange={handleCategoryChange}
-                loading={loading}
-                error={error}
-                pois={filteredItems}
-                isNewCity={isNewCity}
-                onLoadResults={handleLoadResults}
-                onSavePOI={savePOI}
-                onUnsavePOI={unsavePOI}
-                isPoiSaved={isPoiSaved}
-            />
-
-            {showPagination && (
-                <div className="mt-6 flex items-center justify-between border-t pt-4">
-                    <div className="flex items-center gap-2">
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={prevPage}
-                            disabled={currentPage === 1 || loading}
-                        >
-                            <ChevronLeft className="h-4 w-4 mr-1" />
-                            Previous
-                        </Button>
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={nextPage}
-                            disabled={currentPage === totalPages || loading}
-                        >
-                            Next
-                            <ChevronRight className="h-4 w-4 ml-1" />
-                        </Button>
+        <div className="h-full w-full bg-white rounded-lg flex flex-col overflow-hidden">
+            <div className="sticky top-0 bg-white z-10 p-6 pb-2">
+                {isEditing ? (
+                    <div className="mb-4">
+                        <CitySearch
+                            initialValue={currentCity}
+                            onSubmit={(city) => handleCityChange(city.name)}
+                            className="max-w-md"
+                            inputClassName="text-2xl font-semibold h-12 bg-transparent"
+                            showButton={true}
+                            autoFocus={true}
+                        />
                     </div>
-                    <span className="text-sm text-gray-500">
-                        Page {currentPage} of {totalPages}
-                    </span>
-                </div>
-            )}
+                ) : (
+                    <div className="flex items-center gap-2 mb-4">
+                        <h2 className="text-2xl font-semibold">{currentCity}, {currentCountry}</h2>
+                        <button 
+                            onClick={() => setIsEditing(true)}
+                            className="p-1 hover:bg-gray-100 rounded-full transition-colors"
+                        >
+                            <Pen className="w-4 h-4 text-gray-500 hover:text-gray-700" />
+                        </button>
+                        <button 
+                            onClick={handleCreateTrip}
+                            className="bg-blue-600 ml-auto hover:bg-blue-700 text-white font-medium px-3 rounded-lg transition-colors"
+                        >
+                            Create trip
+                        </button>
+                    </div>
+                )}
+            </div>
 
-            {/* {showLoadMore && (
-                <Button
-                    variant="outline"
-                    className="w-full mt-4"
-                    onClick={handleLoadMore}
-                    disabled={loading}
-                >
-                    {loading ? 'Loading...' : 'Load More Results'}
-                </Button>
-            )} */}
+            <div className="flex-1 overflow-y-auto px-6">
+                <POITabs
+                    activeTab={activeTab}
+                    onTabChange={handleTabChange}
+                    nameFilter={nameFilter}
+                    categoryFilter={categoryFilter}
+                    ratingFilter={ratingFilter}
+                    onNameFilterChange={setNameFilter}
+                    onCategoryFilterChange={handleCategoryChange}
+                    onRatingFilterChange={handleRatingFilterChange}
+                    loading={loading}
+                    error={error}
+                    pois={filteredPOIs}
+                    isNewCity={isNewCity}
+                    onLoadResults={handleLoadResults}
+                    onSavePOI={savePOI}
+                    onUnsavePOI={unsavePOI}
+                    isPoiSaved={isPoiSaved}
+                />
+            </div>
         </div>
     );
 };

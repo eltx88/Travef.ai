@@ -29,7 +29,7 @@ export function NavigationMenuBar() {
     };
 
     return(
-        <header className="relative z-10 flex items-center justify-between m-0 pt-0 px-7 bg-slate-100">
+        <header className="relative z-50 flex items-center justify-between m-0 pt-0 px-7 bg-slate-100">
             <div>
                 <a href="/" className="font-outfit font-bold text-2xl text-blue-600">Travefai</a>
             </div>
@@ -126,7 +126,22 @@ export function NavigationMenuBar() {
                         </NavigationMenuItem>
 
                         <NavigationMenuItem>
-                            <NavigationMenuTrigger className="text-lg bg-transparent hover:bg-slate-200">Trips</NavigationMenuTrigger>
+                            <NavigationMenuTrigger 
+                                className="text-lg bg-transparent hover:bg-slate-200"
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    navigate('/home');
+                                    // Wait for navigation to complete before scrolling
+                                    setTimeout(() => {
+                                        const tripsElement = document.getElementById('trips-section');
+                                        if (tripsElement) {
+                                            tripsElement.scrollIntoView({ behavior: 'smooth' });
+                                        }
+                                    }, 100);
+                                }}
+                            >
+                                Trips
+                            </NavigationMenuTrigger>
                             <NavigationMenuContent>
                                 <NavigationMenuLink asChild>
                                     <div className="w-[400px] p-4 bg-white shadow-lg rounded-md">

@@ -1,4 +1,4 @@
-import type { POI, WikidataImageResponse, ExploreParams, TripData, ItineraryPOI, FetchedTripDetails, ItineraryPOIDB, ItineraryPOIChanges, UserTrip, GooglePlaceDetails, POIType } from '../Types/InterfaceTypes';
+import type { POI, WikidataImageResponse, ExploreParams, TripData, ItineraryPOI, FetchedTripDetails, ItineraryPOIDB, ItineraryPOIChanges, UserTrip, GooglePlaceDetails, POIType, ExploreGoogleParams } from '../Types/InterfaceTypes';
 
 interface ApiClientConfig {
   getIdToken: () => Promise<string>;
@@ -56,7 +56,7 @@ class ApiClient {
       type: `${poi.type}`,
     }));
   }
-
+  
   async getExplorePOIs({
     city,
     category = 'accommodation',
@@ -91,6 +91,69 @@ class ApiClient {
       });
     }
     return pois;
+  }
+
+  //Called by search bar
+  async getGoogleExplorePOIs({
+    type,
+    coordinates,
+    poitype,
+    city,
+    country
+  }: ExploreGoogleParams): Promise<POI[]> {
+    const queryParams = new URLSearchParams({
+      type: type.join(','),
+      latitude: coordinates.lat.toString(),
+      longitude: coordinates.lng.toString(),
+      radius: '2000',
+      max_results: '20'
+    });
+    
+    try {
+      const pois = await this.fetchWithAuth(`/googleplaces/explore?${queryParams.toString()}`);
+      
+      // Make sure pois is an array before proceeding
+      if (!Array.isArray(pois)) {
+        console.error('Expected pois to be an array but got:', typeof pois);
+        return [];
+      }
+      
+      const processedPois: POI[] = pois.map((poi: any) => {
+        // Handle cuisine - ensure it's an array
+        const cuisineArray = poi.cuisine ? 
+          (Array.isArray(poi.cuisine) ? poi.cuisine : [poi.cuisine]) : 
+          undefined;
+        
+        return {
+          id: poi.place_id || '',
+          place_id: poi.place_id || '',
+          name: poi.name || '',
+          coordinates: {
+            lat: poi.location?.latitude || 0,
+            lng: poi.location?.longitude || 0
+          },
+          address: poi.formatted_address || '',
+          city: city,
+          country: country,
+          type: poitype,
+          rating: poi.rating,
+          user_ratings_total: poi.user_ratings_total,
+          cuisine: cuisineArray,
+          description: poi.description || '',
+          categories: Array.isArray(poi.types) ? poi.types : [],
+          image_url: poi.photo_url || '',
+          website: poi.website || '',
+          phone: poi.phone || '',
+          opening_hours: poi.opening_hours || '',
+          price_level: poi.price_level
+        };
+      });
+      
+      return processedPois;
+    } catch (error) {
+      console.error('Error fetching nearby places:', error);
+      return [];
+    }
   }
 
   async createOrGetPOI(poiData: POI): Promise<string> {
@@ -238,16 +301,94 @@ async getNearbyPlacesByTypes(
     }
   }
   
-  async createOrGetTrip(userId: string, tripData: TripData, itineraryPOIs: ItineraryPOI[], unusedPOIs: ItineraryPOI[]) {
+  async createOrUpdateTrip(userId: string, trip_doc_id: string, tripData: TripData, itineraryPOIs: ItineraryPOI[], unusedPOIs: ItineraryPOI[]) {
     try {
-      const tripId = `trip_data_${userId}_${tripData.city}_${tripData.createdDT.toISOString()}`;
-      const response = await this.fetchWithAuth(`/user/history/saved-trips/check/${tripId}`);
-      console.log("response:       ",response, tripId);
-      
+      // if trip_doc_id is empty, create a new trip
+      if (trip_doc_id === "") {
+        console.log("creating new trip because trip_doc_id is empty");
+        const processedItineraryPOIs = await Promise.all(
+          itineraryPOIs.map(async (poi) => {
+            // Create or get POI document
+            const poiDocId = await this.createOrGetPOI({
+              place_id: poi.place_id,
+              name: poi.name,
+              coordinates: poi.coordinates,
+              address: poi.address,
+              city: poi.city,
+              country: poi.country,
+              type: poi.type,
+              id: poi.id
+            });
+    
+            return {
+              PointID: poiDocId,
+              place_id: poi.place_id,
+              StartTime: poi.StartTime,
+              EndTime: poi.EndTime,
+              timeSlot: poi.timeSlot,
+              day: poi.day,
+              duration: poi.duration
+            };
+          })
+        );
 
-      if (response.exists) {
-        // Get current trip state from backend
-        const backendTripDetails = await this.getTripDetails(response.trip_doc_id);
+        const processedUnusedPOIs = await Promise.all(
+          unusedPOIs.map(async (poi) => {
+            const poiDocId = await this.createOrGetPOI({
+              place_id: poi.place_id,
+              name: poi.name,
+              coordinates: poi.coordinates,
+              address: poi.address,
+              city: poi.city,
+              country: poi.country,
+              type: poi.type,
+              id: poi.id
+            });
+            return {
+              PointID: poiDocId,
+              place_id: poi.place_id
+            };
+          })
+        );
+        const tripDocId = await this.fetchWithAuth('/trip/create', {
+          method: 'POST',
+          body: JSON.stringify({
+            tripData: {
+              ...tripData,
+              userId: userId,
+              interests: Array.from(tripData.interests),
+              customInterests: Array.from(tripData.customInterests),
+              foodPreferences: Array.from(tripData.foodPreferences),
+              customFoodPreferences: Array.from(tripData.customFoodPreferences),
+              fromDT: tripData.fromDT?.toISOString(),
+              toDT: tripData.toDT?.toISOString()
+            },
+            itineraryPOIs: processedItineraryPOIs,
+            unusedPOIs: processedUnusedPOIs
+          })
+        });
+        console.log("params",  JSON.stringify({
+          user_id: userId,
+          city: tripData.city.toLowerCase(),
+          country: tripData.country.toLowerCase(),
+          fromDT: tripData.fromDT?.toISOString(),
+          toDT: tripData.toDT?.toISOString(),
+          monthlyDays: tripData.monthlyDays
+        }));
+        await this.fetchWithAuth(`/user/history/saved-trips/${tripDocId}`, {
+          method: 'POST',
+          body: JSON.stringify({
+            user_id: userId,
+            city: tripData.city.toLowerCase(),
+            country: tripData.country.toLowerCase(),
+            fromDT: tripData.fromDT?.toISOString(),
+            toDT: tripData.toDT?.toISOString(),
+            monthlyDays: tripData.monthlyDays
+          })
+        });
+      } else {
+          // Get current trip state from backend
+        const backendTripDetails = await this.getTripDetails(trip_doc_id);
   
         // Process all changes
         const changes = this.processPOIChanges(
@@ -272,7 +413,7 @@ async getNearbyPlacesByTypes(
             tripDataChanged) {
   
           // Send update request
-          await this.fetchWithAuth(`/trip/update/${response.trip_doc_id}`, {
+          await this.fetchWithAuth(`/trip/update/${trip_doc_id}`, {
             method: 'PUT',
             body: JSON.stringify({
               tripDataChanged: tripDataChanged ? {
@@ -288,89 +429,11 @@ async getNearbyPlacesByTypes(
           });
   
           // After successful update, update our backend reference
-          const updatedBackendDetails = await this.getTripDetails(response.trip_doc_id);
+          const updatedBackendDetails = await this.getTripDetails(trip_doc_id);
           backendTripDetails.itineraryPOIs = updatedBackendDetails.itineraryPOIs;
           backendTripDetails.unusedPOIs = updatedBackendDetails.unusedPOIs;
           backendTripDetails.tripData = updatedBackendDetails.tripData;
         }
-        return response.trip_doc_id;
-      } else {
-          const processedItineraryPOIs = await Promise.all(
-            itineraryPOIs.map(async (poi) => {
-              // Create or get POI document
-              const poiDocId = await this.createOrGetPOI({
-                place_id: poi.place_id,
-                name: poi.name,
-                coordinates: poi.coordinates,
-                address: poi.address,
-                city: poi.city,
-                country: poi.country,
-                type: poi.type,
-                id: poi.id
-              });
-      
-              return {
-                PointID: poiDocId,
-                place_id: poi.place_id,
-                StartTime: poi.StartTime,
-                EndTime: poi.EndTime,
-                timeSlot: poi.timeSlot,
-                day: poi.day,
-                duration: poi.duration
-              };
-            })
-          );
-
-          const processedUnusedPOIs = await Promise.all(
-            unusedPOIs.map(async (poi) => {
-              const poiDocId = await this.createOrGetPOI({
-                place_id: poi.place_id,
-                name: poi.name,
-                coordinates: poi.coordinates,
-                address: poi.address,
-                city: poi.city,
-                country: poi.country,
-                type: poi.type,
-                id: poi.id
-              });
-              return {
-                PointID: poiDocId,
-                place_id: poi.place_id
-              };
-            })
-          );
-          
-          const tripDocId = await this.fetchWithAuth('/trip/create', {
-            method: 'POST',
-            body: JSON.stringify({
-              tripId: tripId,
-              tripData: {
-                ...tripData,
-                userId: userId,
-                interests: Array.from(tripData.interests),
-                customInterests: Array.from(tripData.customInterests),
-                foodPreferences: Array.from(tripData.foodPreferences),
-                customFoodPreferences: Array.from(tripData.customFoodPreferences),
-                fromDT: tripData.fromDT?.toISOString(),
-                toDT: tripData.toDT?.toISOString()
-              },
-              itineraryPOIs: processedItineraryPOIs,
-              unusedPOIs: processedUnusedPOIs
-            })
-          });
-          await this.fetchWithAuth(`/user/history/saved-trips/${tripDocId}`, {
-            method: 'POST',
-            body: JSON.stringify({
-              user_id: userId,
-              trip_id: tripId,
-              city: tripData.city,
-              country: tripData.country,
-              fromDT: tripData.fromDT?.toISOString(),
-              toDT: tripData.toDT?.toISOString(),
-              monthlyDays: tripData.monthlyDays
-            })
-          });
-          return tripDocId;
       }
     } catch (error) {
       console.error('Error in creating or updating trip:', error);
@@ -478,6 +541,18 @@ async getNearbyPlacesByTypes(
         console.error('Error fetching user\'s trips:', error);
         throw error;
       }
+  }
+
+  async deleteTrip(trip_doc_id: string) {
+    try {
+      await this.fetchWithAuth(`/trip/delete-with-history/${trip_doc_id}`, {
+        method: 'DELETE',
+      });
+
+    } catch (error) {
+      console.error('Error deleting trip:', error);
+      throw error;
+    }
   }
 
   // this function takes the original POIs and returns the POIs with the Google place details merged

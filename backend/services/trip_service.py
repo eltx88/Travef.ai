@@ -35,7 +35,6 @@ class TripService(FirebaseService):
                 'createdDT': firestore.SERVER_TIMESTAMP,
                 'lastModifiedDT': firestore.SERVER_TIMESTAMP,
                 'userId': request.tripData.userId,
-                'trip_id': request.tripId,
                 'version': 1
             }
             trip_ref.set(trip_data)

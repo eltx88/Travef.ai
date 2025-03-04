@@ -8,15 +8,17 @@ interface CacheData {
   data: POI[];
   timestamp: number;
   city: string;
+  country: string;
 }
 
 export const poiCacheService = {
-  set: (key: string, data: POI[], city: string) => {
+  set: (key: string, data: POI[], city: string, country: string) => {
     try {
       const cacheData: CacheData = {
         data,
         timestamp: Date.now(),
-        city
+        city,
+        country
       };
       localStorage.setItem(`${CACHE_PREFIX}_${key}`, JSON.stringify(cacheData));
     } catch (error) {

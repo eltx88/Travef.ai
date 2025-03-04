@@ -21,6 +21,7 @@ export function TripDetails({ tripData, onEdit }: TripDetailsProps) {
     try {
       updateLocation(
         tripData.city,
+        tripData.country,
         tripData.coordinates.lng,
         tripData.coordinates.lat
       );
@@ -63,7 +64,7 @@ export function TripDetails({ tripData, onEdit }: TripDetailsProps) {
         {/* Destination */}
         <div className="space-y-2">
           <h3 className="text-lg font-semibold">Destination</h3>
-          <p className="text-xl text-blue-600">{tripData.city}</p>
+          <p className="text-xl text-blue-600">{tripData.city}, {tripData.country}</p>
         </div>
 
         {/* Dates */}

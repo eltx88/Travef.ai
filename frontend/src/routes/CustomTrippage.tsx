@@ -12,6 +12,7 @@ import MapContainer from "@/components/Containers/MapContainer";
 import { LocationProvider } from '@/contexts/LocationContext';
 import { useNavigate } from 'react-router-dom';
 import { POI } from '@/Types/InterfaceTypes';
+import Footer from '@/components/Footer';
 
 function CustomTripPageContent() {
   const navigate = useNavigate();
@@ -94,7 +95,6 @@ function CustomTripPageContent() {
   if (error) {
     return <RetryButtonServerFail isOpen={true} failedCategories={{ food: true, attraction: true }} onRetry={retry} />;
   }
-
   return (
     <main id="main-container" className="flex flex-grow p-4 relative">
       <div className="relative" style={{ width: `${containerWidth}%`, height: 'calc(100vh - 140px)', position: 'sticky', top: '1rem'}}>
@@ -128,7 +128,25 @@ function CustomTripPageContent() {
           transition: isResizing ? 'none' : 'width 0.2s ease-out'
         }}
       >
-        <MapContainer isResizing={isResizing} pois={displayedPOIs} savedPois={savedPOIs} />
+        {displayedPOIs.length > 0 && (
+          <MapContainer 
+            isResizing={isResizing} 
+            pois={displayedPOIs.filter(poi => 
+              poi.coordinates && 
+              typeof poi.coordinates.lat === 'number' && 
+              !isNaN(poi.coordinates.lat) &&
+              typeof poi.coordinates.lng === 'number' && 
+              !isNaN(poi.coordinates.lng)
+            )} 
+            savedPois={savedPOIs.filter(poi => 
+              poi.coordinates && 
+              typeof poi.coordinates.lat === 'number' && 
+              !isNaN(poi.coordinates.lat) &&
+              typeof poi.coordinates.lng === 'number' && 
+              !isNaN(poi.coordinates.lng)
+            )} 
+          />
+        )}
       </div>
       {isGenerating && <LoadingOverlay />}
     </main>
@@ -136,21 +154,13 @@ function CustomTripPageContent() {
 }
 
 function CustomTripPage() {
+  
   return (
     <LocationProvider>
       <div className="flex flex-col min-h-screen bg-gray-100">
         <NavigationMenuBar />
         <CustomTripPageContent />
-        <footer className="bg-blue-600 text-white py-1">
-          <div className="container mx-auto px-4">
-            <p className="text-sm text-center">© {new Date().getFullYear()} Travefai. All rights reserved.</p>
-            <div className="flex justify-center space-x-4 mt-2">
-              <a href="/privacy-policy" className="text-sm hover:underline">Privacy Policy</a>
-              <a href="/terms-of-service" className="text-sm hover:underline">Terms of Service</a>
-              <a href="/contact" className="text-sm hover:underline">Contact Us</a>
-            </div>
-          </div>
-        </footer>
+        <Footer />
       </div>
     </LocationProvider>
   );

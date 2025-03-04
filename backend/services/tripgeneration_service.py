@@ -204,6 +204,8 @@ class TripGenerationService:
                     existing_breakfast_places.append(poi)
                 elif poi.type == 'restaurant':
                     existing_restaurant_places.append(poi)
+
+            existing_breakfast_places = request.cafepois
             existing_attraction_places = request.attractionpois
 
             # Calculate additional places needed (prevent negative numbers)

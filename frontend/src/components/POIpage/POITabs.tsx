@@ -9,8 +9,10 @@ interface POITabsProps {
     onTabChange: (tab: 'saved' | 'explore') => void;
     nameFilter: string;
     categoryFilter: any;
+    ratingFilter: number | null;
     onNameFilterChange: (value: string) => void;
     onCategoryFilterChange: (value: any) => void;
+    onRatingFilterChange: (value: number | null) => void;
     loading: boolean;
     error: string | null;
     pois: POI[];
@@ -26,8 +28,10 @@ const POITabs = ({
     onTabChange,
     nameFilter,
     categoryFilter,
+    ratingFilter,
     onNameFilterChange,
     onCategoryFilterChange,
+    onRatingFilterChange,
     loading,
     error,
     pois,
@@ -56,8 +60,10 @@ const POITabs = ({
             <POIFilters
                 nameFilter={nameFilter}
                 categoryFilter={categoryFilter}
+                ratingFilter={ratingFilter}
                 onNameFilterChange={onNameFilterChange}
                 onCategoryFilterChange={onCategoryFilterChange}
+                onRatingFilterChange={onRatingFilterChange}
                 tabType={activeTab}
                 loading={loading}
             />

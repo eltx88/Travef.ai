@@ -1,4 +1,5 @@
 import os
+import re
 import requests
 from typing import List, Optional, Dict
 from models.googleplaces import Place
@@ -7,6 +8,47 @@ class GooglePlacesService:
     def __init__(self):
         self.api_key = os.environ.get("GOOGLE_PLACES_API_KEY")
         self.base_url = "https://places.googleapis.com/v1/places"
+
+    def getExplorePOIs(
+        self,
+        latitude: float,
+        longitude: float,
+        radius: float = 2000,
+        type: Optional[str] = None,
+        max_results: int = 20
+    ) -> List[Place]:
+        """
+        Perform an Explore Search for the Search Query using the Places API.
+        """
+        types = type.split(',')
+        places = []
+        existing_place_ids = set() 
+        
+        for type in types:
+            if len(places) >= 30:
+                break
+            
+            suggested_places = self.nearby_search(
+                            latitude=latitude,
+                            longitude=longitude,
+                            radius=radius,
+                            type=type,
+                            max_results=20
+                        )
+
+            for place in suggested_places:
+                if place.place_id in existing_place_ids:
+                    continue
+                # Check primary type matches
+                if type == "cafe" and place.primary_type not in ["cafe", "coffee_shop", "bakery"]:
+                    continue
+                elif type == "restaurant" and not re.search(r'restaurant$', place.primary_type):
+                    continue
+                
+                places.append(place)
+                existing_place_ids.add(place.place_id)
+        
+        return places
 
     def nearby_search(
         self,
@@ -23,7 +65,7 @@ class GooglePlacesService:
         
         # Construct the request body according to new API format
         request_body = {
-            "includedTypes": [type] if type else ["restaurant"],  # Default to restaurant if no type specified
+            "includedTypes": [type] if type else ["restaurant"],  
             "maxResultCount": max_results,
             "locationRestriction": {
                 "circle": {
@@ -49,32 +91,57 @@ class GooglePlacesService:
                 "places.types,"
                 "places.photos,"
                 "places.primaryType,"
-                "places.businessStatus"
+                "places.businessStatus,"
+                "places.websiteUri,"
+                "places.editorialSummary,"
+                "places.regularOpeningHours,"
+                "places.priceLevel"
             )
         }
         try:
             response = requests.post(url, json=request_body, headers=headers)
             response.raise_for_status()
             data = response.json()
-            
             places = []
             for result in data.get("places", []):
-                place = Place(
-                    place_id=result.get("id"),
-                    name=result.get("displayName", {}).get("text", ""),
-                    formatted_address=result.get("formattedAddress"),
-                    types=result.get("types", []),
-                    primary_type=result.get("primaryType"),
-                    rating=result.get("rating"),
-                    user_ratings_total=result.get("userRatingCount"),
-                    photo_name=result.get("photos", [{}])[0].get("name") if result.get("photos") else None,
-                    location={
-                        "latitude": result.get("location", {}).get("latitude"),
-                        "longitude": result.get("location", {}).get("longitude")
-                    },
-                    business_status=result.get("businessStatus")
-                )
-                places.append(place)
+                try:
+                    # Format opening hours if available
+                    formatted_hours = None
+                    if "regularOpeningHours" in result:
+                        weekday_texts = result.get("regularOpeningHours", {}).get("weekdayDescriptions", [])
+                        formatted_hours = "\n".join(weekday_texts) if weekday_texts else None
+                    
+                    # Extract first photo if available
+                    photo_name = None
+                    if result.get("photos") and len(result.get("photos")) > 0:
+                        photo_name = result.get("photos")[0].get("name")
+                    
+                    place = Place(
+                        place_id=result.get("id"),
+                        name=result.get("displayName", {}).get("text", ""),
+                        formatted_address=result.get("formattedAddress"),
+                        types=result.get("types", []),
+                        primary_type=result.get("primaryType"),
+                        rating=result.get("rating"),
+                        user_ratings_total=result.get("userRatingCount"),
+                        photo_name=photo_name,
+                        location={
+                            "latitude": result.get("location", {}).get("latitude"),
+                            "longitude": result.get("location", {}).get("longitude")
+                        },
+                        website=result.get("websiteUri"),
+                        phone=result.get("nationalPhoneNumber"),
+                        description=result.get("editorialSummary", {}).get("text") if "editorialSummary" in result else None,
+                        opening_hours=formatted_hours,
+                        price_level=result.get("priceLevel"),
+                        business_status=result.get("businessStatus"),
+                        cuisine=result.get("cuisine")
+                    )
+                    places.append(place)
+                except Exception as e:
+                    print(f"Error processing place result: {str(e)}")
+                    # Continue processing other results even if one fails
+                    continue
 
             return places
 

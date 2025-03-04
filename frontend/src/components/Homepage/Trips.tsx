@@ -18,10 +18,14 @@ type FilterOption = 'alphabetical' | 'date' | 'days';
 export const Itineraries: FC = () => {
     const [trips, setTrips] = useState<UserTrip[]>([]);
     const [loading, setLoading] = useState(true);
+    const [shouldRefresh, setShouldRefresh] = useState<boolean>(false);
     const { user } = useAuthStore();
     const [filterOption, setFilterOption] = useState<FilterOption>('date');
     const [scrollPosition, setScrollPosition] = useState(0);
     const navigate = useNavigate();
+    const triggerRefresh = (refresh: boolean) => {
+        setShouldRefresh(refresh);
+    };
 
     useEffect(() => {
         const fetchTrips = async () => {
@@ -39,10 +43,13 @@ export const Itineraries: FC = () => {
             console.error('Error fetching trips:', error);
           } finally {
             setLoading(false);
+            if (shouldRefresh) {
+                setShouldRefresh(false);
+            }
           }
         };
         fetchTrips();
-    }, [user]);
+    }, [user, shouldRefresh]);
 
     // Function to handle scrolling
     const scroll = (direction: 'left' | 'right') => {
@@ -83,11 +90,11 @@ export const Itineraries: FC = () => {
 
     return (
         <div className="w-max-9xl py-12 bg-white rounded-3xl">
-            <div className="flex justify-between items-start mb-6 px-4 max-w-7xl mx-auto">
-                <div className="flex items-start gap-4">
-                    <h2 className="text-4xl font-semibold">Trips</h2>
+            <div className="mb-6 px-8">
+                <div className="flex items-center gap-4">
+                    <h2 className="text-4xl font-semibold">Trips</h2>       
                     <Button
-                        className=" text-xl py-4 px-3 rounded-full transition-all duration-300 ease-in-out hover:rounded-full bg-blue-300 hover:bg-blue-300"
+                        className="text-xl py-4 px-3 rounded-full transition-all duration-300 ease-in-out hover:rounded-full bg-blue-300 hover:bg-blue-300"
                         onClick={addItinerary}
                     >
                         <svg
@@ -133,9 +140,11 @@ export const Itineraries: FC = () => {
               <ChevronLeft className="w-5 h-5" />
             </Button>
 
-            <div id="trips-container" className="flex gap-4 overflow-hidden px-8 scroll-smooth">
+            <div className="flex gap-4 overflow-hidden px-8 scroll-smooth">
               {sortTrips(trips).map((trip) => (
-                <TripCard key={trip.trip_doc_id} trip={trip} />
+                <div key={trip.trip_doc_id}>
+                    <TripCard trip={trip} onDelete={triggerRefresh} />
+                </div>
               ))}
             </div>
 

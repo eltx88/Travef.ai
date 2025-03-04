@@ -1,19 +1,20 @@
-import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useBlocker } from 'react-router-dom';
 import { NavigationMenuBar } from "@/components/NavigationMenuBar";
 import type { TripData, ItineraryPOI } from '@/Types/InterfaceTypes';
 import { useEffect, useState, useCallback } from 'react';
 import ItineraryPoints from '@/components/EditTrippage/ItineraryPoints';
 import ItineraryView from '@/components/EditTrippage/ItineraryView';
-import { tripCacheService } from '@/components/hooks/tripCacheService';
 import { toast } from 'react-hot-toast';
 import ApiClient from '@/Api/apiClient';
 import { useAuthStore } from '@/firebase/firebase';
+import Footer from '../components/Footer';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface LocationState {
   itineraryPOIs: ItineraryPOI[];
   unusedPOIs: ItineraryPOI[];
   tripData: TripData;
-  timeStamp: number;
+  trip_doc_id: string;
 }
 
 interface ItineraryState {
@@ -22,15 +23,48 @@ interface ItineraryState {
   lastModified: number;
 }
 
+// Custom usePrompt hook to inform user when they try to leave the page with unsaved changes
+function usePrompt(message: string, when = true) {
+  const blocker = useBlocker(when);
+  
+  useEffect(() => {
+    if (blocker.state === 'blocked') {
+      const confirmed = window.confirm(message);
+      if (confirmed) {
+        blocker.proceed();
+      } else {
+        blocker.reset();
+      }
+    }
+  }, [blocker, message]);
+
+  // Modern approach for beforeunload event
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (when) {
+        e.preventDefault();
+        return message;
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [when, message]);
+}
+
 function EditTripPage() {
   const location = useLocation();
   const navigate = useNavigate();
-  const params = useParams<{ city?: string; country?: string; createdTimestamp?: string }>();
   const { user } = useAuthStore();
+  const [trip_doc_id, setTripDocId] = useState<string>("");
+  const [itineraryStateChange, setItineraryStateChange] = useState<boolean>(false);
   const [itineraryState, setItineraryState] = useState<ItineraryState | null>(null);
   const [tripData, setTripData] = useState<TripData | null>(null);
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLeftExpanded, setIsLeftExpanded] = useState(false);
+  const [isRightExpanded, setIsRightExpanded] = useState(false);
+  
   const apiClient = new ApiClient({
     getIdToken: async () => {
       if (!user) throw new Error('Not authenticated');
@@ -41,138 +75,70 @@ function EditTripPage() {
   // Initialize data from location state or URL params
   useEffect(() => {
     const initializeFromState = (locationState: LocationState) => {
-      setTripData(locationState.tripData);
-      
-      // Check for fresher cache
-      const hasFresherCache = tripCacheService.isCacheFresher(
-        locationState.tripData, 
-        locationState.timeStamp
-      );
-      
-      if (hasFresherCache) {
-        // Use cache (it's fresher than navigation state)
-        const cachedData = tripCacheService.get(locationState.tripData);
-        if (cachedData) {
-          setItineraryState({
-            itineraryPOIs: cachedData.itineraryPOIs,
-            unusedPOIs: cachedData.unusedPOIs,
-            lastModified: cachedData.lastModified
-          });
-          toast.success("Loaded your latest changes");
-          return true;
-        }
+      if (locationState.trip_doc_id) {
+        setTripDocId(locationState.trip_doc_id);
       }
-      
-      // Use incoming state 
+
+      setTripData(locationState.tripData);
       setItineraryState({
         itineraryPOIs: locationState.itineraryPOIs,
         unusedPOIs: locationState.unusedPOIs,
-        lastModified: locationState.timeStamp
-      });
-      
-      // Initialize cache
-      tripCacheService.set(locationState.tripData, {
-        itineraryPOIs: locationState.itineraryPOIs,
-        unusedPOIs: locationState.unusedPOIs,
-        lastModified: locationState.timeStamp
+        lastModified: Date.now()
       });
       return true;
-    };
-    
-    const initializeFromParams = () => {
-      if (!params.city || !params.country || !params.createdTimestamp) return false;
-      
-      try {
-        const city = decodeURIComponent(params.city);
-        const country = decodeURIComponent(params.country);
-        const createdDT = new Date(parseInt(params.createdTimestamp));
-        
-        // Try to recover from cache
-        const cachedData = tripCacheService.getByTripParams(city, country, createdDT);
-        
-        if (cachedData) {
-          setTripData(cachedData.tripData);
-          setItineraryState({
-            itineraryPOIs: cachedData.itineraryPOIs,
-            unusedPOIs: cachedData.unusedPOIs,
-            lastModified: cachedData.lastModified
-          });
-          toast.success("Recovered your trip data");
-          return true;
-        }
-      } catch (error) {
-        console.error("Error parsing URL parameters:", error);
-      }
-      return false;
-    };
+    }
 
     const initialize = async () => {
       let success = false;
       
-      // Try to initialize from location state (normal navigation)
-      if (location.state?.tripData) {
+      if (location.state) {
         success = initializeFromState(location.state as LocationState);
-      }
-      
-      // If that fails, try to initialize from URL params (page refresh)
+      } 
+
       if (!success) {
-        success = initializeFromParams();
-      }
-      
-      // If all initialization methods fail, redirect home
-      if (!success) {
-        toast.error("Could not load trip data");
+        toast.error("Failed to load trip data");
         navigate('/home');
         return;
       }
-      
+
       setIsLoading(false);
     };
-    
-    initialize();
-  }, [location.state, params, navigate]);
 
-  // ===== State Modification Functions =====
+    initialize();
+  }, [location.state, navigate]);
+
   
-  // Helper to update state and cache consistently
-  const updateStateAndCache = useCallback((
+  // Helper to update state consistently
+  const updateState = useCallback((
     newItineraryPOIs: ItineraryPOI[],
     newUnusedPOIs: ItineraryPOI[]
   ) => {
     if (!tripData) return;
     
-    const now = Date.now();
-    
     // Update state
     setItineraryState(prev => {
       if (!prev) return prev;
+      setItineraryStateChange(true);
       return {
         itineraryPOIs: newItineraryPOIs,
         unusedPOIs: newUnusedPOIs,
-        lastModified: now
+        lastModified: Date.now()
       };
-    });
-    
-    // Update cache
-    tripCacheService.update(tripData, {
-      itineraryPOIs: newItineraryPOIs,
-      unusedPOIs: newUnusedPOIs,
-      lastModified: now
     });
   }, [tripData]);
 
   // Update itinerary POIs (for drag and drop)
   const updateItineraryPOIs = useCallback((updatedPOIs: ItineraryPOI[]) => {
     if (!itineraryState) return;
-    updateStateAndCache(updatedPOIs, itineraryState.unusedPOIs);
-  }, [itineraryState, updateStateAndCache]);
+    updateState(updatedPOIs, itineraryState.unusedPOIs);
+  }, [itineraryState, updateState]);
 
   // Delete POI from Saved POIs
   const deleteSavedPOI = useCallback((deletedPOI: ItineraryPOI) => {
     if (!itineraryState) return;
     const newUnusedPOIs = itineraryState.unusedPOIs.filter(p => p.id !== deletedPOI.id);
-    updateStateAndCache(itineraryState.itineraryPOIs, newUnusedPOIs);
-  }, [itineraryState, updateStateAndCache]);
+    updateState(itineraryState.itineraryPOIs, newUnusedPOIs);
+  }, [itineraryState, updateState]);
 
   // Delete POI from itinerary
   const deleteItineraryPOI = useCallback((deletedPOI: ItineraryPOI) => {
@@ -190,8 +156,8 @@ function EditTripPage() {
     const newItineraryPOIs = itineraryState.itineraryPOIs.filter(poi => poi.id !== deletedPOI.id);
     const newUnusedPOIs = [...itineraryState.unusedPOIs, modifiedPOI];
     
-    updateStateAndCache(newItineraryPOIs, newUnusedPOIs);
-  }, [itineraryState, updateStateAndCache]);
+    updateState(newItineraryPOIs, newUnusedPOIs);
+  }, [itineraryState, updateState]);
 
   // Add POI to itinerary
   const handleAddToItinerary = useCallback((poi: ItineraryPOI, day: number) => {
@@ -213,8 +179,8 @@ function EditTripPage() {
     
     const newItineraryPOIs = [...itineraryState.itineraryPOIs, updatedPOI];
     const newUnusedPOIs = itineraryState.unusedPOIs.filter(p => p.id !== poi.id);
-    updateStateAndCache(newItineraryPOIs, newUnusedPOIs);
-  }, [itineraryState, updateStateAndCache]);
+    updateState(newItineraryPOIs, newUnusedPOIs);
+  }, [itineraryState, updateState]);
 
   // Find free time slot helper
   const findFreeTimeSlot = (day: number, itineraryPOIs: ItineraryPOI[]) => {
@@ -298,15 +264,14 @@ function EditTripPage() {
       setIsSaving(true);
       const savingToast = toast.loading("Saving your itinerary...");
       
-      await apiClient.createOrGetTrip(
+      await apiClient.createOrUpdateTrip(
         user.uid,
+        trip_doc_id,
         tripData,
         itineraryState.itineraryPOIs,
         itineraryState.unusedPOIs
       );
 
-      // Clear cache after successful save
-      tripCacheService.clear(tripData);    
       toast.dismiss(savingToast);
       toast.success("Itinerary saved successfully!");
       navigate('/home');
@@ -328,6 +293,27 @@ function EditTripPage() {
     }
   };
 
+  // New toggle handlers
+  const toggleLeftContainer = useCallback(() => {
+    setIsLeftExpanded(prev => !prev);
+    setIsRightExpanded(false);
+  }, []);
+
+  const toggleRightContainer = useCallback(() => {
+    setIsRightExpanded(prev => !prev);
+    setIsLeftExpanded(false);
+  }, []);
+
+  // Calculate container widths based on expanded states
+  const leftContainerWidth = isLeftExpanded ? 85 : isRightExpanded ? 15 : 40;
+  const rightContainerWidth = isRightExpanded ? 85 : isLeftExpanded ? 15 : 60;
+
+  // Use the custom hook to prompt when navigating away with unsaved changes
+  usePrompt(
+    "You have unsaved changes. Are you sure you want to leave this page?",
+    itineraryStateChange
+  );
+
   // Show loading state
   if (isLoading || !itineraryState || !tripData) {
     return (
@@ -337,41 +323,103 @@ function EditTripPage() {
     );
   }
   
-  // Render page
   return (
     <div className="flex flex-col min-h-screen bg-blue-100">
-      <NavigationMenuBar />
-      <main className="flex-grow p-4">
-        <div className="flex h-full gap-4">          
-        <ItineraryPoints
-            tripData={tripData}
-            itineraryPOIs={itineraryState.itineraryPOIs}
-            unusedPOIs={itineraryState.unusedPOIs}
-            onAddToItinerary={handleAddToItinerary}
-            onDeleteSavedPOI={deleteSavedPOI}
-          />
-          <ItineraryView
-            itineraryPOIs={itineraryState.itineraryPOIs}
-            tripData={tripData}
-            updateItineraryPOIs={updateItineraryPOIs}
-            deleteItineraryPOI={deleteItineraryPOI}
-            saveItinerary={handleSaveItinerary}
-            isSaving={isSaving}
-          />
-        </div>
-      </main>
-      <footer className="bg-blue-600 text-white py-1">
-        <div className="container mx-auto px-4">
-          <p className="text-sm text-center">© 2024 Travefai. All rights reserved.</p>
-          <div className="flex justify-center space-x-4 mt-2">
-            <a href="/privacy-policy" className="text-sm hover:underline">Privacy Policy</a>
-            <a href="/terms-of-service" className="text-sm hover:underline">Terms of Service</a>
-            <a href="/contact" className="text-sm hover:underline">Contact Us</a>
+      <NavigationMenuBar/>
+      <main id="main-container" className="flex-grow p-4 relative">
+        <div className="flex h-full w-full">
+          {/* Left Container - Points of Interest */}
+          <div 
+            className="h-[calc(100vh-7rem)] overflow-hidden"
+            style={{ 
+              width: `${leftContainerWidth}%`,
+              transition: 'width 0.3s ease-out',
+              flexShrink: 0,
+              flexGrow: 0
+            }}
+          >
+            <div className="h-full w-full">
+              <ItineraryPoints
+                tripData={tripData}
+                itineraryPOIs={itineraryState.itineraryPOIs}
+                unusedPOIs={itineraryState.unusedPOIs}
+                onAddToItinerary={handleAddToItinerary}
+                onDeleteSavedPOI={deleteSavedPOI}
+                isRightExpanded={isRightExpanded}
+              />
+            </div>
+          </div>
+          
+          {/* Resize Controls */}
+          <div className="flex items-center justify-center z-10 px-1">
+            {isLeftExpanded ? (
+              <button
+                className="w-6 h-24 bg-white rounded-md shadow-md flex items-center justify-center hover:bg-gray-100 focus:outline-none transition-colors"
+                onClick={() => {
+                  setIsLeftExpanded(false);
+                  setIsRightExpanded(false);
+                }}
+                aria-label="Reset view"
+              >
+                <ChevronRight className="w-5 h-5 text-blue-600" />
+              </button>
+            ) : isRightExpanded ? (
+              <button
+                className="w-6 h-24 bg-white rounded-md shadow-md flex items-center justify-center hover:bg-gray-100 focus:outline-none transition-colors"
+                onClick={() => {
+                  setIsLeftExpanded(false);
+                  setIsRightExpanded(false);
+                }}
+                aria-label="Reset view"
+              >
+                <ChevronLeft className="w-5 h-5 text-blue-600" />
+              </button>
+            ) : (
+              <div className="flex flex-col gap-4">
+                <button
+                  className="w-6 h-24 bg-white rounded-l-md shadow-md flex items-center justify-center hover:bg-gray-100 focus:outline-none transition-colors"
+                  onClick={toggleLeftContainer}
+                  aria-label="Expand left container"
+                >
+                  <ChevronRight className="w-5 h-5 text-blue-600" />
+                </button>
+                
+                <button
+                  className="w-6 h-24 bg-white rounded-r-md shadow-md flex items-center justify-center hover:bg-gray-100 focus:outline-none transition-colors"
+                  onClick={toggleRightContainer}
+                  aria-label="Expand right container"
+                >
+                  <ChevronLeft className="w-5 h-5 text-blue-600" />
+                </button>
+              </div>
+            )}
+          </div>
+  
+          {/* Right Container - Itinerary View */}
+          <div
+            className="h-[calc(100vh-7rem)] bg-white rounded-lg shadow-md overflow-hidden"
+            style={{ 
+              width: `${rightContainerWidth}%`,
+              transition: 'width 0.3s ease-out',
+              flexShrink: 0,
+              flexGrow: 0
+            }}
+          >
+            <ItineraryView
+              itineraryPOIs={itineraryState.itineraryPOIs}
+              tripData={tripData}
+              updateItineraryPOIs={updateItineraryPOIs}
+              deleteItineraryPOI={deleteItineraryPOI}
+              saveItinerary={handleSaveItinerary}
+              isSaving={isSaving}
+            />
           </div>
         </div>
-      </footer>
+      </main>
+      <Footer />
     </div>
   );
 }
+
 
 export default EditTripPage;

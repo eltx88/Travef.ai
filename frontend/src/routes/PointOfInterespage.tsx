@@ -4,6 +4,7 @@ import MapContainer from "@/components/Containers/MapContainer";
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { LocationProvider } from '@/contexts/LocationContext';
 import type { POI } from '@/Types/InterfaceTypes';
+import Footer from "@/components/Footer";
 
 // Define interface for map functions
 interface MapFunctions {
@@ -14,23 +15,33 @@ function PointOfInterest() {
     const [containerWidth, setContainerWidth] = useState<number>(40);
     const [isResizing, setIsResizing] = useState(false);
     const resizeTimeoutRef = useRef<NodeJS.Timeout>();
-    const [displayedPOIs, setDisplayedPOIs] = useState<POI[]>([]);
+    const [allPOIs, setAllPOIs] = useState<POI[]>([]);
     const previousPOIsRef = useRef<string>('');
+    const previousAllPOIsRef = useRef<string>('');
+    const [searchTerm, setSearchTerm] = useState<string>('');
+    type TabType = 'saved' | 'explore';
+    const [activeTab, setActiveTab] = useState<TabType>('saved');
 
     // Refs for map instance and functions
     const mapInstanceRef = useRef<mapboxgl.Map | null>(null);
     const mapFunctionsRef = useRef<MapFunctions | null>(null);
-  
-    // Memoize the POIs update handler
-    const handlePOIsUpdate = useCallback((pois: POI[]) => {
-        const poisString = JSON.stringify(pois);
-        if (previousPOIsRef.current !== poisString) {
-            console.log('PointOfInterestPage received POIs update:', pois);
-            setDisplayedPOIs(pois);
-            previousPOIsRef.current = poisString;
-        }
-    }, []); 
 
+    // Fnction to handle POIs updates
+    const handlePOIsUpdate = useCallback((pois: POI[], isAllUpdate: boolean = false) => {
+        const poisString = JSON.stringify(pois);
+        if (isAllUpdate) {
+            if (previousAllPOIsRef.current !== poisString) {
+                setAllPOIs(pois);
+                previousAllPOIsRef.current = poisString;
+            }
+        } else {
+            if (previousPOIsRef.current !== poisString) {
+                previousPOIsRef.current = poisString;
+                setAllPOIs(pois);
+            }
+        }
+    }, []);
+    
     const startResizing = useCallback((mouseDownEvent: React.MouseEvent) => {
         mouseDownEvent.preventDefault();
         setIsResizing(true);
@@ -86,21 +97,38 @@ function PointOfInterest() {
         };
     }, [isResizing, resize, stopResizing]);
 
+    // Add event listener for searchForPoi event
+    useEffect(() => {
+        const handleSearchForPoi = (event: CustomEvent) => {
+            if (event.detail && event.detail.name) {
+                setSearchTerm(event.detail.name);
+            }
+        };
+
+        document.addEventListener('searchForPoi', handleSearchForPoi as EventListener);
+        
+        return () => {
+            document.removeEventListener('searchForPoi', handleSearchForPoi as EventListener);
+        };
+    }, []);
+
     // Memoize the POIContainer and MapContainer
     const memoizedPOIContainer = useMemo(() => (
         <POIContainer 
-            onPOIsUpdate={handlePOIsUpdate}
+            onPOIsUpdate={(pois) => handlePOIsUpdate(pois, false)}
+            onAllPOIsUpdate={(pois) => handlePOIsUpdate(pois, true)}
+            onTabChange={(tab) => setActiveTab(tab)}
+            searchTerm={searchTerm}
         />
-    ), [handlePOIsUpdate]);
+    ), [handlePOIsUpdate, searchTerm]);
 
     const memoizedMapContainer = useMemo(() => (
         <MapContainer 
             isResizing={isResizing} 
-            pois={displayedPOIs}
-            savedPois={[]}
+            pois={activeTab === 'explore' ? allPOIs : []}
+            savedPois={activeTab === 'saved' ? allPOIs : []}
         />
-    ), [isResizing, displayedPOIs, handleMapCreate]);
-
+    ), [isResizing, allPOIs, handleMapCreate]);
     return (
         <LocationProvider>
             <div className="flex flex-col min-h-screen bg-gray-100">
@@ -112,10 +140,12 @@ function PointOfInterest() {
                     style={{ userSelect: isResizing ? 'none' : 'auto' }}
                 >
                     <div
-                        className="relative"
+                        className="relative h-[calc(100vh-7rem)]"
                         style={{ width: `${containerWidth}%` }}
                     >
-                        {memoizedPOIContainer}
+                        <div className="h-full overflow-hidden">
+                            {memoizedPOIContainer}
+                        </div>
                     </div>
     
                     <div
@@ -145,17 +175,7 @@ function PointOfInterest() {
                         {memoizedMapContainer}
                     </div>
                 </main>
-    
-                <footer className="bg-blue-600 text-white py-1">
-                    <div className="container mx-auto px-4">
-                        <p className="text-sm text-center">© {new Date().getFullYear()} Travefai. All rights reserved.</p>
-                        <div className="flex justify-center space-x-4 mt-2">
-                            <a href="/privacy-policy" className="text-sm hover:underline">Privacy Policy</a>
-                            <a href="/terms-of-service" className="text-sm hover:underline">Terms of Service</a>
-                            <a href="/contact" className="text-sm hover:underline">Contact Us</a>
-                        </div>
-                    </div>
-                </footer>
+                <Footer />
             </div>
         </LocationProvider>
     );

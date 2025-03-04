@@ -1,14 +1,17 @@
 import { NavigationMenuBar } from "@/components/NavigationMenuBar";
 import Searchbar from "@/components/Homepage/SearchbarHomepage";
 import Itineraries from "@/components/Homepage/Trips";
+import { LocationProvider } from "@/contexts/LocationContext";
+
 function HomePage() {
   return (
+    <LocationProvider>
     <div className="flex flex-col min-h-screen bg-blue-600">
       <NavigationMenuBar />
       
       <main className="top-60 flex flex-grow flex-col items-center justify-start relative p-4">
           <Searchbar />
-          <div className="w-full mt-44 animate-fade-in-down opacity-0">
+          <div className="w-full mt-96 animate-fade-in-down opacity-0" id="trips-section">
             <Itineraries />
           </div>
       </main>
@@ -24,6 +27,7 @@ function HomePage() {
         </div>
       </footer>
     </div>
+    </LocationProvider>
   );
 }
 

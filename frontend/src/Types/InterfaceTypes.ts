@@ -97,6 +97,17 @@ export interface ExploreParams {
   limit?: number;
 }
 
+export interface ExploreGoogleParams {
+  type: string[];
+  coordinates: { 
+    lat: number; 
+    lng: number;
+  };
+  poitype: POIType;
+  city: string;
+  country: string;
+}
+
 //Groq Query interfaces
 export interface ChatMessage {
   role: 'system' | 'user' | 'assistant';

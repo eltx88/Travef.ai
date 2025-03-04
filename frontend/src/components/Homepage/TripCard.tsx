@@ -2,18 +2,30 @@
 import { FC } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Calendar } from "lucide-react";
+import { Calendar, Trash2 } from "lucide-react";
 import type { ItineraryPOI, UserTrip } from '@/Types/InterfaceTypes';
 import ApiClient from '@/Api/apiClient';
 import { useAuthStore } from '@/firebase/firebase';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 interface TripCardsProps {
   trip: UserTrip;
+  onDelete: (refresh: boolean) => void;
 }
 
-const TripCard: FC<TripCardsProps> = ({ trip }) => {
+const TripCard: FC<TripCardsProps> = ({ trip, onDelete }) => {
     const { user } = useAuthStore();
     const apiClient = new ApiClient({
         getIdToken: async () => {
@@ -24,26 +36,27 @@ const TripCard: FC<TripCardsProps> = ({ trip }) => {
     const navigate = useNavigate();
 
   return (
-    <Card className="w-[300px] flex-shrink-0 bg-white shadow-lg hover:shadow-lg transition-shadow items-center hover:bg-blue-100">
-      <CardContent className="p-4">
-        <div className="space-y-4">
-          <h2 className="font-semibold text-xl capitalize text-center">{trip.city}, {trip.country}</h2>
-          <p className="text-gray-600 text-center">{trip.monthlyDays} days</p>
+    <Card className="w-[300px] flex-shrink-0 bg-white shadow-lg hover:shadow-xl transition-all duration-300 items-center hover:bg-gray-200 overflow-hidden">
+      <CardContent className="p-4 w-full">
+        <div className="space-y-4 group">
+          <h2 className="font-semibold text-2xl capitalize text-center transition-transform duration-300 group-hover:scale-110">{trip.city}, {trip.country.toUpperCase()}</h2>
+          <p className="text-gray-600 text-center transition-transform duration-300 group-hover:scale-110">{trip.monthlyDays} days</p>
           <div className="flex gap-2 text-gray-600">
-            <div className="flex items-center space-y-1 px-10 text-sm text-center">
-              <Calendar className="h-4 w-4 mr-1" />
-              <p className="inline">
-                {trip.fromDT.toLocaleDateString("en-UK")} - {trip.toDT.toLocaleDateString("en-UK")}
-              </p>
+            <div className="flex items-center space-y-2 px-3 text-m w-full transition-transform duration-300 group-hover:scale-110">
+              <Calendar className="h-6 w-5 mr-2" />
+              <h3 className="inline">
+                {trip.fromDT.getDate() + " " + trip.fromDT.toLocaleString('default', { month: 'long' }) + " " + trip.fromDT.getFullYear()} to {trip.toDT.getDate() + " " + trip.toDT.toLocaleString('default', { month: 'long' }) + " " + trip.toDT.getFullYear()}
+              </h3>
             </div>
         </div>
 
           <Button 
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white transition-transform duration-300 group-hover:scale-105"
             onClick={async () => {
                 try {
                     // Fetch trip details
                     const tripDetails = await apiClient.getTripDetails(trip.trip_doc_id);
+                
                     // Fetch saved POI details
                     const [savedItineraryPOIs, savedUnusedPOIs] = await Promise.all([
                       apiClient.getSavedPOIDetails(tripDetails.itineraryPOIs.map(poi => poi.PointID)),
@@ -87,13 +100,14 @@ const TripCard: FC<TripCardsProps> = ({ trip }) => {
                         duration: -1
                       } as ItineraryPOI;
                     });
+
                     // Navigate to edit page with the enhanced data
-                    navigate(`/edit-trip/${encodeURIComponent(tripDetails.tripData.city)}/${encodeURIComponent(tripDetails.tripData.country)}/${tripDetails.tripData.createdDT.getTime()}`, {
+                    navigate('/edit-trip', {
                       state: {
                         itineraryPOIs: finalItineraryPOIs,
                         unusedPOIs: finalUnusedPOIs,
                         tripData: tripDetails.tripData,
-                        timeStamp: Date.now()
+                        trip_doc_id: trip.trip_doc_id
                       }
                     });
                   } catch (error) {
@@ -104,6 +118,41 @@ const TripCard: FC<TripCardsProps> = ({ trip }) => {
           >
             View Trip
           </Button>
+          
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button className="w-full bg-red-600 hover:bg-red-700 text-white transition-transform duration-300 group-hover:scale-105">
+                <Trash2 className="h-6 w-6" />
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Are you sure you want to delete your trip to {trip.city.charAt(0).toUpperCase() + trip.city.slice(1)}?</AlertDialogTitle>
+                <AlertDialogDescription className="text-red-600">
+                  This action cannot be undone
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  className="bg-red-600 hover:bg-red-700 text-white"
+                  onClick={async () => {
+                    try {
+                      const loadingToast = toast.loading("Deleting trip...");
+                      await apiClient.deleteTrip(trip.trip_doc_id);
+                      toast.dismiss(loadingToast);
+                      toast.success('Trip deleted successfully!');
+                      onDelete(true);
+                    } catch (error) {
+                      toast.error(`Failed to delete trip: ${error}`);
+                    }
+                  }}
+                >
+                  Delete
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       </CardContent>
     </Card>

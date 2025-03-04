@@ -28,7 +28,7 @@ function MapContainer({ isResizing, pois, savedPois }: MapContainerProps) {
         switch (type.toLowerCase()) {
             case 'hotel':
                 el.innerHTML = `
-                    <svg width="32" height="32" viewBox="0 0 24 24" fill="#FF0000" stroke="#333" stroke-width="1.5" xmlns="http://www.w3.org/2000/svg">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="#FF0000" stroke="#333" stroke-width="0.3" xmlns="http://www.w3.org/2000/svg">
                         <path d="M13.376 24h-2.752l-.282-.248C10 23.455 2 16.38 2 10a10 10 0 0 1 20 0c0 6.38-8 13.455-8.342 13.752z"/>
                         <path fill="#FFFFFF" d="M18 14H6V7.382l2.255-1.127L9.382 4h5.236l1.127 2.255L18 7.382zM8 12h8V8.618l-1.745-.873L13.382 6h-2.764l-.873 1.745L8 8.618z"/>
                         <path fill="#FFFFFF" d="M11 9h2v2h-2z"/>
@@ -37,7 +37,7 @@ function MapContainer({ isResizing, pois, savedPois }: MapContainerProps) {
 
             case 'restaurant':
                 el.innerHTML = `
-                    <svg width="32" height="32" viewBox="0 0 24 24" fill="#FF0000" stroke="#333" stroke-width="1.5" xmlns="http://www.w3.org/2000/svg">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="#FF0000" stroke="#333" stroke-width="0.3" xmlns="http://www.w3.org/2000/svg">
                         <path d="M13.376 24h-2.752l-.282-.248C10 23.455 2 16.38 2 10a10 10 0 0 1 20 0c0 6.38-8 13.455-8.342 13.752z"/>
                         <path fill="#FFFFFF" d="M16 12h-2v-1a2 2 0 0 0-4 0v1H8v-1a4 4 0 0 1 8 0z"/>
                         <path fill="#FFFFFF" d="M7 11h10v2H7zM11 6h2v2h-2z"/>
@@ -46,7 +46,7 @@ function MapContainer({ isResizing, pois, savedPois }: MapContainerProps) {
 
             case 'attraction':
                 el.innerHTML = `
-                    <svg width="32" height="32" viewBox="0 0 24 24" fill="#FF0000" stroke="#333" stroke-width="1.5" xmlns="http://www.w3.org/2000/svg">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="#FF0000" stroke="#333" stroke-width="0.3" xmlns="http://www.w3.org/2000/svg">
                         <path d="M13.376 24h-2.752l-.283-.248C10 23.455 2 16.38 2 10a10 10 0 0 1 20 0c0 6.38-8 13.455-8.341 13.752z"/>
                         <path fill="#FFFFFF" d="M15 12H9V6h6zm-4-2h2V8h-2z"/>
                         <path fill="#FFFFFF" d="M11 11h2v4h-2z"/>
@@ -55,9 +55,13 @@ function MapContainer({ isResizing, pois, savedPois }: MapContainerProps) {
                 break;
 
             default:
-                el.innerHTML = `<svg width="24" height="24" viewBox="0 0 24 24" fill="#6b7280">
-                                <circle cx="12" cy="12" r="10" />
-                                </svg>`;
+                el.innerHTML = `<svg fill="#FF0560" width="32" height="32" viewBox="0 0 24 24" version="1.2" xmlns="http://www.w3.org/2000/svg" overflow="inherit">
+                    <path d="M13.376 24h-2.752l-.283-.248C10 23.455 2 16.38 2 10a10 10 0 0 1 20 0c0 6.38-8 13.455-8.341 13.752z" 
+                            stroke="black" stroke-width="0.6" fill="#FF0000"/>
+                    <path d="M37 7h-28v27c0 2.2 1.8 4 4 4h20c2.2 0 4-1.8 4-4v-5c6.076 0 11-4.925 11-11s-4.924-11-11-11zm0 17v-12c3.314 0 6 2.686 6 6 0 3.313-2.686 6-6 6zm-35 16v2.301c0 1.896 2.069 2.699 4.6 2.699h36.8c2.53 0 4.6-.803 4.6-2.699v-2.301h-46z" 
+                            transform="translate(5.5, 4) scale(0.25)" 
+                            stroke="black" stroke-width="0.9" fill="#FFFFFF"/>
+                    </svg>`;
         }
         
         return el;
@@ -67,11 +71,10 @@ function MapContainer({ isResizing, pois, savedPois }: MapContainerProps) {
     const createSavedCustomMarker = useCallback((type: string) => {
         const el = document.createElement('div');
         el.className = 'custom-marker';
-        
         switch (type.toLowerCase()) {
             case 'hotel':
                 el.innerHTML = `
-                    <svg width="32" height="32" viewBox="0 0 24 24" fill="#FFD700" stroke="#333" stroke-width="1.5" xmlns="http://www.w3.org/2000/svg">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="#FFD700" stroke="#333" stroke-width="0.3" xmlns="http://www.w3.org/2000/svg">
                         <path d="M13.376 24h-2.752l-.282-.248C10 23.455 2 16.38 2 10a10 10 0 0 1 20 0c0 6.38-8 13.455-8.342 13.752z"/>
                         <path fill="#FFFFFF" d="M18 14H6V7.382l2.255-1.127L9.382 4h5.236l1.127 2.255L18 7.382zM8 12h8V8.618l-1.745-.873L13.382 6h-2.764l-.873 1.745L8 8.618z"/>
                         <path fill="#FFFFFF" d="M11 9h2v2h-2z"/>
@@ -80,7 +83,7 @@ function MapContainer({ isResizing, pois, savedPois }: MapContainerProps) {
             
             case 'restaurant':
                 el.innerHTML = `
-                    <svg width="32" height="32" viewBox="0 0 24 24" fill="#FFD700" stroke="#333" stroke-width="1.5" xmlns="http://www.w3.org/2000/svg">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="#FFD700" stroke="#333" stroke-width="0.3" xmlns="http://www.w3.org/2000/svg">
                         <path d="M13.376 24h-2.752l-.282-.248C10 23.455 2 16.38 2 10a10 10 0 0 1 20 0c0 6.38-8 13.455-8.342 13.752z"/>
                         <path fill="#FFFFFF" d="M16 12h-2v-1a2 2 0 0 0-4 0v1H8v-1a4 4 0 0 1 8 0z"/>
                         <path fill="#FFFFFF" d="M7 11h10v2H7zM11 6h2v2h-2z"/>
@@ -89,7 +92,7 @@ function MapContainer({ isResizing, pois, savedPois }: MapContainerProps) {
             
             case 'attraction':
                 el.innerHTML = `
-                    <svg width="32" height="32" viewBox="0 0 24 24" fill="#FFD700" stroke="#333" stroke-width="1.5" xmlns="http://www.w3.org/2000/svg">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="#FFD700" stroke="#333" stroke-width="0.3" xmlns="http://www.w3.org/2000/svg">
                         <path d="M13.376 24h-2.752l-.283-.248C10 23.455 2 16.38 2 10a10 10 0 0 1 20 0c0 6.38-8 13.455-8.341 13.752z"/>
                         <path fill="#FFFFFF" d="M15 12H9V6h6zm-4-2h2V8h-2z"/>
                         <path fill="#FFFFFF" d="M11 11h2v4h-2z"/>
@@ -97,19 +100,61 @@ function MapContainer({ isResizing, pois, savedPois }: MapContainerProps) {
                     </svg>`;
                 break;
 
+            case 'cafe':
+                el.innerHTML = `
+                    <svg fill="#FF0560" width="32" height="32" viewBox="0 0 24 24" version="1.2" xmlns="http://www.w3.org/2000/svg" overflow="inherit">
+                    <path d="M13.376 24h-2.752l-.283-.248C10 23.455 2 16.38 2 10a10 10 0 0 1 20 0c0 6.38-8 13.455-8.341 13.752z" 
+                            stroke="black" stroke-width="0.6" fill="#FFD700"/>
+                    <path d="M37 7h-28v27c0 2.2 1.8 4 4 4h20c2.2 0 4-1.8 4-4v-5c6.076 0 11-4.925 11-11s-4.924-11-11-11zm0 17v-12c3.314 0 6 2.686 6 6 0 3.313-2.686 6-6 6zm-35 16v2.301c0 1.896 2.069 2.699 4.6 2.699h36.8c2.53 0 4.6-.803 4.6-2.699v-2.301h-46z" 
+                            transform="translate(5.5, 4) scale(0.25)" 
+                            stroke="black" stroke-width="0.9" fill="#FFFFFF"/>
+                    </svg>`;
+                break;
+
             default:
-                el.innerHTML = `<svg width="24" height="24" viewBox="0 0 24 24" fill="#6b7280">
-                                <circle cx="12" cy="12" r="10" />
-                                </svg>`;
+                el.innerHTML = `<svg fill="#FF0560" width="32" height="32" viewBox="0 0 24 24" version="1.2" xmlns="http://www.w3.org/2000/svg" overflow="inherit">
+                    <path d="M13.376 24h-2.752l-.283-.248C10 23.455 2 16.38 2 10a10 10 0 0 1 20 0c0 6.38-8 13.455-8.341 13.752z" 
+                            stroke="black" stroke-width="0.6" fill="#FFD700"/>
+                    <path d="M37 7h-28v27c0 2.2 1.8 4 4 4h20c2.2 0 4-1.8 4-4v-5c6.076 0 11-4.925 11-11s-4.924-11-11-11zm0 17v-12c3.314 0 6 2.686 6 6 0 3.313-2.686 6-6 6zm-35 16v2.301c0 1.896 2.069 2.699 4.6 2.699h36.8c2.53 0 4.6-.803 4.6-2.699v-2.301h-46z" 
+                            transform="translate(5.5, 4) scale(0.25)" 
+                            stroke="black" stroke-width="0.9" fill="#FFFFFF"/>
+                    </svg>`;
         }
         
         return el;
     }, []);
 
+    // Event handler for POI name clicks
+    useEffect(() => {
+        const handleSearchClick = (e: MouseEvent) => {
+            const target = e.target as HTMLElement;
+            const searchLink = target.closest('.search-poi-link');
+            
+            if (searchLink) {
+                e.preventDefault();
+                const poiName = searchLink.getAttribute('data-poi-name');
+                
+                if (poiName) {
+                    // Dispatch custom event to notify parent components
+                    const event = new CustomEvent('searchForPoi', {
+                        detail: { name: poiName },
+                        bubbles: true,
+                    });
+                    document.dispatchEvent(event);
+                }
+            }
+        };
+        
+        document.addEventListener('click', handleSearchClick);
+        
+        return () => {
+            document.removeEventListener('click', handleSearchClick);
+        };
+    }, []);
+
     // Initialize map
     useEffect(() => {
         if (!mapContainer.current || map.current) return;
-
         map.current = new mapboxgl.Map({
             container: mapContainer.current,
             style: 'mapbox://styles/mapbox/streets-v12',
@@ -155,17 +200,23 @@ function MapContainer({ isResizing, pois, savedPois }: MapContainerProps) {
             }
             setMapLoaded(false);
         };
-    }, []); 
+    }, [coordinates]); 
 
     const createPopup = useCallback((poi: POI, isSaved: boolean = false) => {
+        const escapedName = poi.name.replace(/"/g, '&quot;');
+        
         return new mapboxgl.Popup({ offset: 25 })
             .setHTML(`
                 <div class="p-2">
-                    <h3 class="font-bold text-base">${poi.name}</h3>
+                    <h3 class="font-bold text-base">
+                        <a href="#" class="text-blue-600 hover:underline flex items-center search-poi-link" data-poi-name="${escapedName}">
+                            ${poi.name}
+                        </a>
+                    </h3>
                     <p class="text-sm mt-1">${poi.address}</p>
-                    <p class="text-sm text-gray-600 mt-1">${poi.type}</p>
-                    ${poi.duration ? `<p class="text-sm mt-1">Duration: ${poi.duration} hours</p>` : ''}
-                    ${isSaved ? '<p class="text-sm text-yellow-600 mt-1">★ Saved</p>' : ''}
+                    <p class="text-sm mt-1 text-yellow-400">${poi.rating ? `Rating: ${poi.rating} ★` : ''}</p>
+                    <p class="text-sm text-gray-600 mt-1">${poi.type.charAt(0).toUpperCase() + poi.type.slice(1)}</p>
+                    ${isSaved ? '<p class="text-sm text-blue-300 mt-1">Saved</p>' : ''}
                 </div>
             `);
     }, []);
@@ -245,7 +296,6 @@ function MapContainer({ isResizing, pois, savedPois }: MapContainerProps) {
         const timeoutId = setTimeout(() => map.current?.resize(), 0);
         return () => clearTimeout(timeoutId);
     }, [isResizing, mapLoaded]);
-
     return (
         <div className="relative h-full w-full bg-gray-100 rounded-lg overflow-hidden">
             <div 
