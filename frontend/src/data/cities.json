@@ -3,84 +3,84 @@
       {
           "city": "Paris",
           "image_link": "https://images.unsplash.com/photo-1431274172761-fca41d930114?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-          "country": "France",
+          "country": "FR",
           "lat": 48.8566,
           "lng": 2.3522
       },
       {
           "city": "New York",
           "image_link": "https://upload.wikimedia.org/wikipedia/commons/4/47/New_york_times_square-terabass.jpg",
-          "country": "United States",
+          "country": "US",
           "lat": 40.7128,
           "lng": -74.0060
       },
       {
           "city": "Tokyo",
           "image_link": "https://images.unsplash.com/photo-1503899036084-c55cdd92da26?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8dG9reW98ZW58MHx8MHx8fDA%3D",
-          "country": "Japan",
+          "country": "JP",
           "lat": 35.6895,
           "lng": 139.6917
       },
       {
           "city": "London",
           "image_link": "https://images.unsplash.com/photo-1526129318478-62ed807ebdf9?q=80&w=1974&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-          "country": "United Kingdom",
+          "country": "GB",
           "lat": 51.5074,
           "lng": -0.1278
       },
       {
           "city": "Sydney",
           "image_link": "https://images.unsplash.com/photo-1549180030-48bf079fb38a?q=80&w=2127&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-          "country": "Australia",
+          "country": "AU",
           "lat": -33.8688,
           "lng": 151.2093
       },
       {
           "city": "Rome",
           "image_link": "https://images.unsplash.com/photo-1526161202719-67a7615a3979?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8OHx8cm9tZXxlbnwwfHwwfHx8MA%3D%3D",
-          "country": "Italy",
+          "country": "IT",
           "lat": 41.9028,
           "lng": 12.4964
       },
       {
           "city": "Dubai",
           "image_link": "https://images.unsplash.com/photo-1518684079-3c830dcef090?q=80&w=1974&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-          "country": "United Arab Emirates",
+          "country": "AE",
           "lat": 25.2048,
           "lng": 55.2708
       },
       {
           "city": "Berlin",
           "image_link": "https://images.unsplash.com/photo-1587330979470-3595ac045ab0?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-          "country": "Germany",
+          "country": "DE",
           "lat": 52.5200,
           "lng": 13.4050
       },
       {
           "city": "Moscow",
           "image_link": "https://images.unsplash.com/photo-1520106212299-d99c443e4568?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8M3x8bW9zY293fGVufDB8fDB8fHww",
-          "country": "Russia",
+          "country": "RU",
           "lat": 55.7558,
           "lng": 37.6176
       },
       {
           "city": "Beijing",
           "image_link": "https://plus.unsplash.com/premium_photo-1676469292218-95d6c3a036bc?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MXx8YmVpamluZ3xlbnwwfHwwfHx8MA%3D%3D",
-          "country": "China",
+          "country": "CN",
           "lat": 39.9042,
           "lng": 116.4074
       },
       {
           "city": "Cairo",
           "image_link": "https://images.unsplash.com/photo-1644166498629-93fb54b286ee?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTB8fGNhaXJvfGVufDB8fDB8fHww",
-          "country": "Egypt",
+          "country": "EG",
           "lat": 30.0444,
           "lng": 31.2357
       },
       {
           "city": "Bangkok",
           "image_link": "https://images.unsplash.com/photo-1508009603885-50cf7c579365?q=80&w=1950&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-          "country": "Thailand",
+          "country": "TH",
           "lat": 13.7563,
           "lng": 100.5018
       }

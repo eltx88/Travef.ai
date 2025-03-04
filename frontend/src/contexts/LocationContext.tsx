@@ -39,9 +39,9 @@ const getLocationCache = (): LocationCache | null => {
     }
 };
 
-const setLocationCache = (city: string, coordinates: Coordinates) => {
+const setLocationCache = (city: string, country: string, coordinates: Coordinates) => {
     try {
-        localStorage.setItem(LOCATION_CACHE_KEY, JSON.stringify({ city, coordinates }));
+        localStorage.setItem(LOCATION_CACHE_KEY, JSON.stringify({ city, country, coordinates }));
     } catch (error) {
         console.error('Location cache storage error:', error);
     }
@@ -77,13 +77,13 @@ export function LocationProvider({ children }: LocationProviderProps) {
         setCurrentCity(city);
         setCurrentCountry(country);
         setCoordinates(newCoordinates);
-        setLocationCache(city, newCoordinates);
+        setLocationCache(city, country, newCoordinates);
     };
 
     const updateCoordinates = (coords: Partial<Coordinates>) => {
         const newCoordinates = { ...coordinates, ...coords };
         setCoordinates(newCoordinates);
-        setLocationCache(currentCity, newCoordinates);
+        setLocationCache(currentCity, currentCountry, newCoordinates);
     };
 
     return (

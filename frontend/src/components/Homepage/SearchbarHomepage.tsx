@@ -19,16 +19,13 @@ const Searchbar: React.FC = () => {
   const navigate = useNavigate();
   const carousel = useRef<HTMLDivElement>(null);
   const controls = useCarouselAnimation(carousel);
-
   const handleCitySubmit = (city: SearchCity): void => {
-    console.log(city.country,city.lat,city.lng);
-      navigate(`/poi`, {
-        
+    navigate(`/poi`, {
           state: {
               city: city.name,
+              country: city.country,
               lat: city.lat,
-              lng: city.lng,
-              country: city.country
+              lng: city.lng
           }
       });
   };
