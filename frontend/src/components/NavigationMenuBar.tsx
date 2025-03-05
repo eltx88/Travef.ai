@@ -147,7 +147,29 @@ export function NavigationMenuBar({ hasUnsavedChanges = false, clearUnsavedChang
                         <NavigationMenuItem>
                             <NavigationMenuTrigger 
                                 className="text-lg bg-transparent hover:bg-slate-200"
-                                onClick={(e) => handleNavigation(e, '/home')}
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    
+                                    // Check if we're already on the homepage
+                                    if (window.location.pathname === '/home' || window.location.pathname === '/') {
+                                        // Scroll to the trips section smoothly
+                                        const tripsSection = document.getElementById('trips-section');
+                                        if (tripsSection) {
+                                            tripsSection.scrollIntoView({ 
+                                                behavior: 'smooth',
+                                                block: 'start'
+                                            });
+                                            
+                                            // Make the section visible by removing opacity-0 class
+                                            tripsSection.classList.remove('opacity-0');
+                                        }
+                                    } else {
+                                        // If not on homepage, navigate to homepage and then scroll
+                                        // Store a flag in sessionStorage to indicate we need to scroll
+                                        sessionStorage.setItem('scrollToTrips', 'true');
+                                        handleNavigation(e, '/home');
+                                    }
+                                }}
                             >
                                 Trips
                             </NavigationMenuTrigger>

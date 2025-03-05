@@ -251,7 +251,7 @@ const ItineraryPoints = ({
             />
 
             <h3 className="text-lg font-medium sticky top-0 bg-white z-10 pb-2">
-              Saved Restaurants
+              Saved Restaurants and Cafes
             </h3>
             <div className={`grid ${isRightExpanded ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'} gap-4`}>
               {paginatedSavedRestaurants.map((poi) => (

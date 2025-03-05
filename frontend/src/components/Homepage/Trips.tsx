@@ -1,4 +1,4 @@
-import {useState, FC, useEffect} from "react";
+import {useState, FC, useEffect, useRef} from "react";
 import { Select,
   SelectTrigger,
   SelectContent,
@@ -15,7 +15,11 @@ import ApiClient from "@/Api/apiClient";
 
 type FilterOption = 'alphabetical' | 'date' | 'days';
 
-export const Itineraries: FC = () => {
+interface ItinerariesProps {
+  setGlobalLoading: (loading: boolean, message?: string) => void;
+}
+
+export const Itineraries: FC<ItinerariesProps> = ({ setGlobalLoading }) => {
     const [trips, setTrips] = useState<UserTrip[]>([]);
     const [loading, setLoading] = useState(true);
     const [shouldRefresh, setShouldRefresh] = useState<boolean>(false);
@@ -27,11 +31,15 @@ export const Itineraries: FC = () => {
         setShouldRefresh(refresh);
     };
 
+    // Use a ref to prevent duplicate API calls
+    const fetchInProgress = useRef(false);
+
     useEffect(() => {
         const fetchTrips = async () => {
-          if (!user) return;
+          if (!user || fetchInProgress.current) return;
           
           try {
+            fetchInProgress.current = true;
             setLoading(true);
             const apiClient = new ApiClient({
               getIdToken: async () => user.getIdToken()
@@ -46,8 +54,10 @@ export const Itineraries: FC = () => {
             if (shouldRefresh) {
                 setShouldRefresh(false);
             }
+            fetchInProgress.current = false;
           }
         };
+        
         fetchTrips();
     }, [user, shouldRefresh]);
 
@@ -140,10 +150,14 @@ export const Itineraries: FC = () => {
               <ChevronLeft className="w-5 h-5" />
             </Button>
 
-            <div className="flex gap-4 overflow-hidden px-8 scroll-smooth">
+            <div className="flex gap-4 overflow-hidden px-8 scroll-smooth" id="trips-container">
               {sortTrips(trips).map((trip) => (
                 <div key={trip.trip_doc_id}>
-                    <TripCard trip={trip} onDelete={triggerRefresh} />
+                    <TripCard 
+                      trip={trip} 
+                      onDelete={triggerRefresh} 
+                      setGlobalLoading={setGlobalLoading}
+                    />
                 </div>
               ))}
             </div>
