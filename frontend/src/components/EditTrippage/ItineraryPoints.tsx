@@ -4,7 +4,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import type { TripData, ItineraryPOI } from '@/Types/InterfaceTypes';
 import { cn } from "@/lib/utils";
 import ItineraryPOICard from './ItineraryPOICard';
-import { Calendar } from 'lucide-react';
+import { Calendar, Star, Landmark, UtensilsCrossed } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 type TabType = 'itinerary' | 'saved' | 'search';
@@ -32,6 +32,11 @@ const ItineraryPoints = ({
   const [currentItineraryPage, setCurrentItineraryPage] = useState(1);
   const [currentSavedAttractionsPage, setCurrentSavedAttractionsPage] = useState(1);
   const [currentSavedRestaurantsPage, setCurrentSavedRestaurantsPage] = useState(1);
+  const [searchCategory, setSearchCategory] = useState<'attraction' | 'restaurant'>('attraction');
+  const [searchNameFilter, setSearchNameFilter] = useState('');
+  const [searchRatingFilter, setSearchRatingFilter] = useState<number | null>(null);
+  const [searchSortByRating, setSearchSortByRating] = useState(false);
+  const [currentSearchPage, setCurrentSearchPage] = useState(1);
   const itemsPerPage = 6;
   
   const savedAttractions = unusedPOIs.filter(poi => poi.type === 'attraction');
@@ -275,7 +280,142 @@ const ItineraryPoints = ({
       case 'search':
         return (
           <div className="space-y-4">
-            {/* Implement search functionality here */}
+            <div className="flex flex-col space-y-4">
+              <div className="flex gap-4 items-center">
+                <Select 
+                  defaultValue="attraction"
+                  onValueChange={(value) => setSearchCategory(value as 'attraction' | 'restaurant')}
+                >
+                  <SelectTrigger className="w-48">
+                    <SelectValue placeholder="Category" />
+                  </SelectTrigger>
+                  <SelectContent className="z-[100] bg-white">
+                    <SelectItem value="attraction">
+                      <div className="flex items-center">
+                        <Landmark className="w-4 h-4 mr-2 text-blue-600" />
+                        <span>Attractions</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="restaurant">
+                      <div className="flex items-center">
+                        <UtensilsCrossed className="w-4 h-4 mr-2 text-orange-600" />
+                        <span>Restaurants & Cafes</span>
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+
+                <div className="flex-1 relative">
+                  <input
+                    type="text"
+                    placeholder="Search by name..."
+                    value={searchNameFilter}
+                    onChange={(e) => setSearchNameFilter(e.target.value)}
+                    className="w-full px-3 py-2 border rounded-md"
+                  />
+                  {searchNameFilter && (
+                    <button 
+                      onClick={() => setSearchNameFilter('')}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    >
+                      ×
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-500">Min Rating:</span>
+                  <Select 
+                    value={searchRatingFilter ? searchRatingFilter.toString() : "any"}
+                    onValueChange={(value) => setSearchRatingFilter(value === "any" ? null : Number(value))}
+                  >
+                    <SelectTrigger className="w-32">
+                      <SelectValue placeholder="Rating" />
+                    </SelectTrigger>
+                    <SelectContent className="z-[100] bg-white">
+                      <SelectItem value="any">Any Rating</SelectItem>
+                      <SelectItem value="3">
+                        <div className="flex items-center">
+                          <div className="flex mr-1">
+                            <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                            <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                            <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                            <Star className="w-4 h-4 fill-transparent text-gray-300" />
+                            <Star className="w-4 h-4 fill-transparent text-gray-300" />
+                          </div>
+                          <span className="text-sm">3.0+</span>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="3.5">
+                        <div className="flex items-center">
+                          <div className="flex mr-1">
+                            <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                            <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                            <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                            <Star className="w-4 h-4 fill-yellow-400/50 text-yellow-400" />
+                            <Star className="w-4 h-4 fill-transparent text-gray-300" />
+                          </div>
+                          <span className="text-sm">3.5+</span>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="4">
+                        <div className="flex items-center">
+                          <div className="flex mr-1">
+                            <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                            <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                            <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                            <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                            <Star className="w-4 h-4 fill-transparent text-gray-300" />
+                          </div>
+                          <span className="text-sm">4.0+</span>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="4.5">
+                        <div className="flex items-center">
+                          <div className="flex mr-1">
+                            <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                            <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                            <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                            <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                            <Star className="w-4 h-4 fill-yellow-400/50 text-yellow-400" />
+                          </div>
+                          <span className="text-sm">4.5+</span>
+                        </div>
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-500">Sort by rating</span>
+                  <input 
+                    type="checkbox" 
+                    checked={searchSortByRating}
+                    onChange={(e) => setSearchSortByRating(e.target.checked)}
+                    className="w-4 h-4"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-6">
+              {/* This will hold search results */}
+              <div className={`grid ${isRightExpanded ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'} gap-4`}>
+                {/* Your POI cards will go here */}
+                <div className="text-center text-gray-500 col-span-full py-8">
+                  Use filters above to search for places to add to your itinerary
+                </div>
+              </div>
+              
+              {/* Pagination for search results */}
+              <PaginationControls 
+                currentPage={currentSearchPage} 
+                setCurrentPage={setCurrentSearchPage} 
+                totalItems={0} // Replace with actual search results count when implemented
+              />
+            </div>
           </div>
         );
     }
@@ -342,7 +482,7 @@ const ItineraryPoints = ({
                 "text-gray-600 hover:text-blue-700"
               )}
             >
-              Search
+              Add
             </TabsTrigger>
           </TabsList>
         </div>
