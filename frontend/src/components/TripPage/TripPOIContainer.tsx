@@ -27,6 +27,7 @@ interface TripPOIContainerProps {
   searchTerm?: string;
   categoryFilter?: POIType;
   onCategoryChange?: (category: POIType) => void;
+  onFilteredPOIsChange?: (filteredPOIs: POI[]) => void;
 }
 
 const ITEMS_PER_PAGE = 6;
@@ -133,7 +134,8 @@ const TripPOIContainer = ({
   setIsGenerating,
   searchTerm = '',
   categoryFilter = 'attraction',
-  onCategoryChange
+  onCategoryChange,
+  onFilteredPOIsChange
 }: TripPOIContainerProps) => {
   // Separate page states for explore and saved POIs
   const [currentExploreAttractionPage, setCurrentExploreAttractionPage] = useState(0);
@@ -620,6 +622,13 @@ const TripPOIContainer = ({
       onCategoryChange(category);
     }
   };
+
+  // Notify parent when filtered POIs change
+  useEffect(() => {
+    if (onFilteredPOIsChange) {
+      onFilteredPOIsChange(allVisiblePOIs);
+    }
+  }, [allVisiblePOIs, onFilteredPOIsChange]);
 
   return (
     <div className="h-full w-full bg-white rounded-lg overflow-y-auto">

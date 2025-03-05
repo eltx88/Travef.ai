@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { NavigationMenuBar } from "@/components/NavigationMenuBar";
 import { useLocation } from 'react-router-dom';
 import { useTripPreferencesPOIData } from '@/components/hooks/useTripPreferencesPOIData';
@@ -33,6 +33,7 @@ function CustomTripPageContent() {
   const [savedPOIs, setSavedPOIs] = useState<POI[]>([]);
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [currentCategory, setCurrentCategory] = useState<POIType>("attraction");
+  const [filteredPOIs, setFilteredPOIs] = useState<POI[]>([]);
 
   const { loading, error, retry } = useTripPreferencesPOIData(
     tripData, 
@@ -44,6 +45,14 @@ function CustomTripPageContent() {
       setSavedPOIs(savedPois);
     }
   );
+
+  // Initialize filteredPOIs with combined displayedPOIs and savedPOIs
+  useEffect(() => {
+    const combinedPOIs = [...displayedPOIs, ...savedPOIs].filter(
+      poi => poi.type === currentCategory
+    );
+    setFilteredPOIs(combinedPOIs);
+  }, [displayedPOIs, savedPOIs, currentCategory]);
 
   useEffect(() => {
     const handleSearchForPoi = (event: CustomEvent) => {
@@ -103,13 +112,9 @@ function CustomTripPageContent() {
     };
   }, [isResizing, resize, stopResizing]);
 
-  const categoryFilteredPOIs = useMemo(() => {
-    return displayedPOIs.filter(poi => poi.type === currentCategory);
-  }, [displayedPOIs, currentCategory]);
-  
-  const categoryFilteredSavedPOIs = useMemo(() => {
-    return savedPOIs.filter(poi => poi.type === currentCategory);
-  }, [savedPOIs, currentCategory]);
+  const handleFilteredPOIsChange = useCallback((filteredPOIs: POI[]) => {
+    setFilteredPOIs(filteredPOIs);
+  }, []);
 
   if (loading) {
     return <LoadingGlobe />;
@@ -129,6 +134,7 @@ function CustomTripPageContent() {
           searchTerm={searchTerm}
           categoryFilter={currentCategory}
           onCategoryChange={setCurrentCategory}
+          onFilteredPOIsChange={handleFilteredPOIsChange}
         />
       </div>
 
@@ -157,8 +163,8 @@ function CustomTripPageContent() {
         {displayedPOIs.length > 0 && (
           <MapContainer 
             isResizing={isResizing} 
-            pois={categoryFilteredPOIs}
-            savedPois={categoryFilteredSavedPOIs}
+            pois={filteredPOIs.filter(poi => !savedPOIs.some(sp => sp.place_id === poi.place_id))}
+            savedPois={filteredPOIs.filter(poi => savedPOIs.some(sp => sp.place_id === poi.place_id))}
           />
         )}
       </div>
