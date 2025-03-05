@@ -49,13 +49,12 @@ export const useTripPreferencesPOIData = (
     if (validCache) {
       return filterUniquePOIs(validCache, savedPoisData);
     }
-
-    const fetchedPOIs = await apiClient.getExplorePOIs({
-      city: tripData.city,
+    const fetchedPOIs = await apiClient.getGoogleExplorePOIs({
+      type: [category],
       coordinates: tripData.coordinates,
-      category,
-      type: type === 'food' ? 'restaurant' : 'attraction',
-      limit: 30
+      poitype: type === 'food' ? 'restaurant' : 'attraction',
+      city: tripData.city,
+      country: tripData.country,      
     });
 
     poiCacheService.set(cacheKey, fetchedPOIs, tripData.city, tripData.country);
@@ -100,13 +99,12 @@ export const useTripPreferencesPOIData = (
 
         // Initialize CategoryMapper if not already done
         if (!categoryMapperRef.current) {
-          categoryMapperRef.current = new CategoryMapper();
+          categoryMapperRef.current= new CategoryMapper();
         }
 
         // Get category mappings
         const { foodCategories, attractionCategories } = 
           await categoryMapperRef.current.getCategoryMappings(tripData);
-
         let foodPOIs: POI[] = [];
         let attractionPOIs: POI[] = [];
         let hasFetchError = false;

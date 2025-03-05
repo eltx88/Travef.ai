@@ -1,0 +1,227 @@
+{
+    "art_gallery": {
+      "values": ["art gallery", "gallery", "art", "arts", "art galleries", "galleries"]
+    },
+    "art_studio": {
+      "values": ["art studio", "artist studio", "studio", "art space"]
+    },
+    "auditorium": {
+      "values": ["auditorium", "hall", "venue", "concert venue"]
+    },
+    "cultural_landmark": {
+      "values": ["cultural landmark", "landmark", "cultural site", "heritage"]
+    },
+    "historical_place": {
+      "values": ["historical place", "historic site", "historical site", "historic place", "history"]
+    },
+    "monument": {
+      "values": ["monument", "memorial", "statue", "historic monument"]
+    },
+    "museum": {
+      "values": ["museum", "exhibition", "museums", "gallery"]
+    },
+    "performing_arts_theater": {
+      "values": ["theater", "theatre", "performing arts", "playhouse", "stage", "drama"]
+    },
+    "sculpture": {
+      "values": ["sculpture", "art installation", "statue", "sculptural work", "public art"]
+    },
+    "library": {
+      "values": ["library", "public library", "book library", "reading room"]
+    },
+    "preschool": {
+      "values": ["preschool", "nursery", "kindergarten", "early learning"]
+    },
+    "primary_school": {
+      "values": ["primary school", "elementary school", "grade school", "primary education"]
+    },
+    "school": {
+      "values": ["school", "educational institution", "academy", "learning center"]
+    },
+    "secondary_school": {
+      "values": ["secondary school", "high school", "middle school", "secondary education"]
+    },
+    "university": {
+      "values": ["university", "college", "campus", "higher education", "academia"]
+    },
+    "adventure_sports_center": {
+      "values": ["adventure sports", "outdoor sports", "adventure center", "extreme sports"]
+    },
+    "amusement_center": {
+      "values": ["amusement center", "entertainment center", "fun center", "entertainment venue"]
+    },
+    "amusement_park": {
+      "values": ["amusement park", "theme park", "fun park", "themepark", "amusementpark"]
+    },
+    "aquarium": {
+      "values": ["aquarium", "marine park", "underwater zoo", "sea life", "ocean life"]
+    },
+    "banquet_hall": {
+      "values": ["banquet hall", "reception hall", "event hall", "function room"]
+    },
+    "barbecue_area": {
+      "values": ["barbecue area", "bbq spot", "grill area", "bbq", "barbecue"]
+    },
+    "botanical_garden": {
+      "values": ["garden", "botanical garden", "botanic garden", "plant garden", "botanical", "flora"]
+    },
+    "bowling_alley": {
+      "values": ["bowling alley", "bowling", "lanes", "ten pin"]
+    },
+    "casino": {
+      "values": ["casino", "gambling", "gaming", "game house"]
+    },
+    "childrens_camp": {
+      "values": ["children's camp", "kids camp", "youth camp", "summer camp"]
+    },
+    "comedy_club": {
+      "values": ["comedy club", "stand up comedy", "comedy venue", "comedy house"]
+    },
+    "community_center": {
+      "values": ["community center", "civic center", "community hall", "neighborhood center"]
+    },
+    "concert_hall": {
+      "values": ["concert hall", "music venue", "concert venue", "performance hall"]
+    },
+    "convention_center": {
+      "values": ["convention center", "conference center", "expo center", "exhibition center"]
+    },
+    "cultural_center": {
+      "values": ["cultural center", "cultural centre", "arts center", "arts centre", "culture"]
+    },
+    "cycling_park": {
+      "values": ["cycling park", "bike park", "cycling area", "biking trails", "cycling"]
+    },
+    "dance_hall": {
+      "values": ["dance hall", "dance club", "ballroom", "dancing venue"]
+    },
+    "dog_park": {
+      "values": ["dog park", "dog run", "pet park", "off-leash area", "pet exercise area"]
+    },
+    "event_venue": {
+      "values": ["event venue", "venue", "event space", "function venue"]
+    },
+    "ferris_wheel": {
+      "values": ["ferris wheel", "observation wheel", "big wheel", "giant wheel"]
+    },
+    "garden": {
+      "values": ["garden", "gardens", "public garden", "botanical gardens", "flower garden"]
+    },
+    "hiking_area": {
+      "values": ["hiking area", "hiking trail", "trekking", "hiking", "trails", "walking trails"]
+    },
+    "historical_landmark": {
+      "values": ["historical landmark", "historic landmark", "heritage site", "historical site"]
+    },
+    "internet_cafe": {
+      "values": ["internet cafe", "cyber cafe", "net cafe", "gaming cafe"]
+    },
+    "karaoke": {
+      "values": ["karaoke", "karaoke bar", "singing venue", "karaoke lounge"]
+    },
+    "marina": {
+      "values": ["marina", "harbor", "boat dock", "yacht club", "port"]
+    },
+    "movie_rental": {
+      "values": ["movie rental", "video rental", "dvd rental", "film rental"]
+    },
+    "movie_theater": {
+      "values": ["movie theater", "cinema", "theater", "theatre", "multiplex", "movies"]
+    },
+    "national_park": {
+      "values": ["national park", "national reserve", "national monument", "state park", "nature reserve"]
+    },
+    "night_club": {
+      "values": ["night club", "nightclub", "club", "discotheque", "dance club"]
+    },
+    "observation_deck": {
+      "values": ["observation deck", "viewpoint", "lookout", "vista", "panorama", "scenic", "view"]
+    },
+    "off_roading_area": {
+      "values": ["off roading area", "off road trail", "4x4 track", "off-road driving"]
+    },
+    "opera_house": {
+      "values": ["opera house", "opera", "opera theater", "lyric theater"]
+    },
+    "park": {
+      "values": ["park", "public park", "recreational area", "green space", "urban park"]
+    },
+    "philharmonic_hall": {
+      "values": ["philharmonic hall", "symphony hall", "concert hall", "philharmonic"]
+    },
+    "picnic_ground": {
+      "values": ["picnic ground", "picnic area", "picnic spot", "picnic", "picnic site"]
+    },
+    "planetarium": {
+      "values": ["planetarium", "astronomy center", "space museum", "star theater"]
+    },
+    "plaza": {
+      "values": ["plaza", "square", "public square", "town square", "piazza"]
+    },
+    "roller_coaster": {
+      "values": ["roller coaster", "thrill ride", "coaster", "amusement ride"]
+    },
+    "skateboard_park": {
+      "values": ["skateboard park", "skate park", "skating area", "skatepark"]
+    },
+    "state_park": {
+      "values": ["state park", "provincial park", "regional park", "nature park"]
+    },
+    "tourist_attraction": {
+      "values": ["tourist attraction", "tourist spot", "tourism site", "attraction", "sightseeing"]
+    },
+    "video_arcade": {
+      "values": ["video arcade", "arcade", "game center", "gaming arcade"]
+    },
+    "visitor_center": {
+      "values": ["visitor center", "information center", "welcome center", "tourist information"]
+    },
+    "water_park": {
+      "values": ["water park", "waterpark", "aqua park", "water slides", "aquatic park"]
+    },
+    "wedding_venue": {
+      "values": ["wedding venue", "wedding location", "wedding hall", "ceremony venue"]
+    },
+    "wildlife_park": {
+      "values": ["wildlife park", "animal park", "safari park", "wildlife sanctuary"]
+    },
+    "wildlife_refuge": {
+      "values": ["wildlife refuge", "animal sanctuary", "nature reserve", "wildlife reserve"]
+    },
+    "zoo": {
+      "values": ["zoo", "zoological garden", "animal zoo", "zoological park"]
+    },
+    "asian_grocery_store": {
+      "values": ["asian grocery", "asian market", "asian food store", "oriental market"]
+    },
+    "department_store": {
+      "values": ["department store", "retail store", "large store", "emporium"]
+    },
+    "discount_store": {
+      "values": ["discount store", "outlet store", "bargain shop", "clearance store"]
+    },
+    "electronics_store": {
+      "values": ["electronics store", "tech store", "gadget shop", "technology store"]
+    },
+    "furniture_store": {
+      "values": ["furniture store", "home furnishings", "furniture shop", "home decor"]
+    },
+    "gift_shop": {
+      "values": ["gift shop", "souvenir store", "gift store", "souvenir shop"]
+    },
+    "grocery_store": {
+      "values": ["grocery store", "supermarket", "food market", "grocery"]
+    },
+    "market": {
+      "values": ["market", "marketplace", "bazaar", "outdoor market", "flea market"]
+    },
+    "shopping_mall": {
+      "values": ["shopping mall", "mall", "shopping center", "plaza", "shopping plaza"]
+    },
+    "unesco": {
+      "values": ["unesco", "world heritage", "unesco site", "world heritage site", "unesco heritage"]
+    },
+    "viewpoint": {
+      "values": ["viewpoint", "scenic view", "lookout", "vista", "panoramic view", "observation point"]
+    }
+  }

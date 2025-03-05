@@ -1,0 +1,194 @@
+{
+    "acai_shop": {
+      "values": ["acai", "acai bowl", "acai bar", "acai shop"]
+    },
+    "afghani_restaurant": {
+      "values": ["afghani", "afghan", "afghanistan cuisine", "afghan food"]
+    },
+    "african_restaurant": {
+      "values": ["african", "african cuisine", "african food"]
+    },
+    "american_restaurant": {
+      "values": ["american", "american food", "american cuisine", "usa food"]
+    },
+    "asian_restaurant": {
+      "values": ["asian", "asian fusion", "pan-asian", "asian cuisine"]
+    },
+    "bagel_shop": {
+      "values": ["bagel", "bagels", "bagel shop", "bagel store"]
+    },
+    "bakery": {
+      "values": ["bakery", "bakeries", "baked goods", "pastries"]
+    },
+    "bar": {
+      "values": ["bar", "tavern", "pub", "drinking place"]
+    },
+    "bar_and_grill": {
+      "values": ["bar and grill", "grill bar", "bar & grill"]
+    },
+    "barbecue_restaurant": {
+      "values": ["barbecue", "bbq", "barbeque", "grill", "smokehouse"]
+    },
+    "brazilian_restaurant": {
+      "values": ["brazilian", "brazil", "brazilian food", "brazilian cuisine"]
+    },
+    "breakfast_restaurant": {
+      "values": ["breakfast", "breakfast place", "breakfast spot", "morning food"]
+    },
+    "brunch_restaurant": {
+      "values": ["brunch", "brunch place", "brunch spot"]
+    },
+    "buffet_restaurant": {
+      "values": ["buffet", "all you can eat", "buffet restaurant", "self-service"]
+    },
+    "cafe": {
+      "values": ["cafe", "café", "coffeehouse", "coffee shop"]
+    },
+    "cafeteria": {
+      "values": ["cafeteria", "self-service", "canteen"]
+    },
+    "candy_store": {
+      "values": ["candy", "candy store", "sweet shop", "confectionery"]
+    },
+    "cat_cafe": {
+      "values": ["cat cafe", "cat coffee", "kitten cafe", "cat themed cafe"]
+    },
+    "chinese_restaurant": {
+      "values": ["chinese", "chinese food", "chinese cuisine", "china food"]
+    },
+    "chocolate_factory": {
+      "values": ["chocolate factory", "chocolate making", "chocolate production"]
+    },
+    "chocolate_shop": {
+      "values": ["chocolate", "chocolate shop", "chocolatier", "truffles"]
+    },
+    "coffee_shop": {
+      "values": ["coffee", "coffee shop", "cafe", "espresso bar"]
+    },
+    "confectionery": {
+      "values": ["confectionery", "sweet shop", "candy store", "sweets"]
+    },
+    "deli": {
+      "values": ["deli", "delicatessen", "sandwich shop", "gourmet shop"]
+    },
+    "dessert_restaurant": {
+      "values": ["dessert restaurant", "sweet restaurant", "dessert place"]
+    },
+    "dessert_shop": {
+      "values": ["dessert", "dessert shop", "sweet shop", "pastry shop"]
+    },
+    "diner": {
+      "values": ["diner", "american diner", "roadside diner", "greasy spoon"]
+    },
+    "dog_cafe": {
+      "values": ["dog cafe", "puppy cafe", "dog themed cafe", "dog friendly cafe"]
+    },
+    "donut_shop": {
+      "values": ["donut", "donuts", "doughnut", "donut shop"]
+    },
+    "fast_food_restaurant": {
+      "values": ["fast food", "quick service", "drive thru", "fast food restaurant"]
+    },
+    "fine_dining_restaurant": {
+      "values": ["fine dining", "gourmet restaurant", "upscale restaurant", "luxury dining"]
+    },
+    "food_court": {
+      "values": ["food court", "food hall", "dining hall", "eatery"]
+    },
+    "french_restaurant": {
+      "values": ["french", "french cuisine", "french food", "france"]
+    },
+    "greek_restaurant": {
+      "values": ["greek", "greek food", "greek cuisine", "greece", "greek restaurant"]
+    },
+    "hamburger_restaurant": {
+      "values": ["hamburger", "burger", "burger joint", "burger restaurant"]
+    },
+    "ice_cream_shop": {
+      "values": ["ice cream", "gelato", "ice cream parlor", "frozen desserts"]
+    },
+    "indian_restaurant": {
+      "values": ["indian", "indian food", "indian cuisine", "india"]
+    },
+    "indonesian_restaurant": {
+      "values": ["indonesian", "indonesian food", "indonesian cuisine", "indonesia"]
+    },
+    "italian_restaurant": {
+      "values": ["italian", "italian food", "italian cuisine", "italy"]
+    },
+    "japanese_restaurant": {
+      "values": ["japanese", "japanese food", "japanese cuisine", "japan"]
+    },
+    "juice_shop": {
+      "values": ["juice", "juice bar", "smoothie shop", "juice shop"]
+    },
+    "korean_restaurant": {
+      "values": ["korean", "korean food", "korean cuisine", "korea"]
+    },
+    "lebanese_restaurant": {
+      "values": ["lebanese", "lebanese food", "lebanese cuisine", "lebanon"]
+    },
+    "meal_delivery": {
+      "values": ["meal delivery", "food delivery", "delivery service", "delivered food"]
+    },
+    "meal_takeaway": {
+      "values": ["takeaway", "take out", "takeout", "to go", "carryout"]
+    },
+    "mediterranean_restaurant": {
+      "values": ["mediterranean", "mediterranean food", "mediterranean cuisine", "med food"]
+    },
+    "mexican_restaurant": {
+      "values": ["mexican", "mexican food", "mexican cuisine", "mexico"]
+    },
+    "middle_eastern_restaurant": {
+      "values": ["middle eastern", "middle east food", "arab cuisine", "middle eastern cuisine"]
+    },
+    "pizza_restaurant": {
+      "values": ["pizza", "pizzeria", "pizza place", "pizza restaurant"]
+    },
+    "pub": {
+      "values": ["pub", "public house", "english pub", "gastropub"]
+    },
+    "ramen_restaurant": {
+      "values": ["ramen", "ramen shop", "noodle house", "ramen bar"]
+    },
+    "restaurant": {
+      "values": ["restaurant", "eatery", "dining", "eating place"]
+    },
+    "sandwich_shop": {
+      "values": ["sandwich", "sandwich shop", "sub shop", "sandwich bar"]
+    },
+    "seafood_restaurant": {
+      "values": ["seafood", "fish restaurant", "seafood restaurant", "ocean cuisine"]
+    },
+    "spanish_restaurant": {
+      "values": ["spanish", "spanish food", "spanish cuisine", "spain"]
+    },
+    "steak_house": {
+      "values": ["steak", "steakhouse", "steak restaurant", "steak house"]
+    },
+    "sushi_restaurant": {
+      "values": ["sushi", "sushi bar", "sushi restaurant", "japanese sushi"]
+    },
+    "tea_house": {
+      "values": ["tea", "tea house", "tea room", "tea shop"]
+    },
+    "thai_restaurant": {
+      "values": ["thai", "thai food", "thai cuisine", "thailand"]
+    },
+    "turkish_restaurant": {
+      "values": ["turkish", "turkish food", "turkish cuisine", "turkey"]
+    },
+    "vegan_restaurant": {
+      "values": ["vegan", "plant based", "vegan restaurant", "vegan food"]
+    },
+    "vegetarian_restaurant": {
+      "values": ["vegetarian", "veggie", "vegetarian restaurant", "vegetarian food"]
+    },
+    "vietnamese_restaurant": {
+      "values": ["vietnamese", "vietnamese food", "vietnamese cuisine", "vietnam"]
+    },
+    "wine_bar": {
+      "values": ["wine bar", "wine place", "wine tasting", "vineyard"]
+    }
+  }
