@@ -311,27 +311,27 @@ class TripGenerationService:
 
             # Add selected and suggested attractions
             for poi in attractions:
-                all_attractions.append(format_place(poi, "Attraction"))
+                all_attractions.append(format_place(poi, "attraction"))
             for poi in suggested_attractions:
-                all_attractions.append(format_place(poi, "Attraction"))
+                all_attractions.append(format_place(poi, "attraction"))
 
             # Add selected and suggested restaurants
             for poi in restaurants:
-                all_restaurants.append(format_place(poi, "Restaurant"))
+                all_restaurants.append(format_place(poi, "restaurant"))
             for poi in suggested_restaurants:
-                all_restaurants.append(format_place(poi, "Restaurant"))
+                all_restaurants.append(format_place(poi, "restaurant"))
 
             # Add selected and suggested cafes
             for poi in cafes:
-                all_cafes.append(format_place(poi, "Cafe"))
+                all_cafes.append(format_place(poi, "cafe"))
             for poi in suggested_cafes:
-                all_cafes.append(format_place(poi, "Cafe"))
+                all_cafes.append(format_place(poi, "cafe"))
 
             # Create combined sections
-            attractions_section = "Available Attractions:\n" + "\n".join(all_attractions) if all_attractions else "No attractions available"
-            restaurants_section = "Available Restaurants:\n" + "\n".join(all_restaurants) if all_restaurants else "No restaurants available"
-            cafes_section = "Available Cafes:\n" + "\n".join(all_cafes) if all_cafes else "No cafes available"
-            
+            attractions_section = "Available attraction list:\n" + "\n".join(all_attractions) if all_attractions else "No attractions available"
+            restaurants_section = "Available restaurant list:\n" + "\n".join(all_restaurants) if all_restaurants else "No restaurants available"
+            cafes_section = "Available cafe list:\n" + "\n".join(all_cafes) if all_cafes else "No cafes available"
+            print(attractions_section)
             return f"""Create a detailed {num_days}-day itinerary for {request.trip_data.city}, {request.trip_data.country} {date_info}.
 
     {attractions_section}
@@ -433,10 +433,10 @@ class TripGenerationService:
     - Each place_id from the available attractions, restaurants and cafes MUST be used EXACTLY ONCE in the entire itinerary
     - DO NOT reuse any place_id or create new ones - only use place_ids from the available attractions, restaurants and cafes lists
     - Each place must appear in its designated type (cafe for breakfast, restaurant for lunch/dinner)
-    - Each Morning starts with breakfast from Available Cafes section (8:00-9:00)
-    - Each Afternoon starts with lunch from Available Restaurants section (12:00-14:00)
-    - Each Evening starts with dinner from Available Restaurants section (18:30-20:30)
-    - The "Unused" section must contain only place_ids from the available attractions, restaurants and cafes lists that were NOT used in the itinerary
+    - Each Morning starts with breakfast from Available cafe list (8:00-9:00)
+    - Each Afternoon starts with lunch from Available restaurant list (12:00-14:00)
+    - Each Evening starts with dinner from Available restaurant list (18:30-20:30)
+    - The "Unused" section must contain only place_ids from the available attractions, restaurants and cafes lists that were NOT used in the json itinerary
 
     3. Location-based planning:
     - Use the provided coordinates to optimize the route
@@ -456,7 +456,7 @@ class TripGenerationService:
 
     Before returning the response:
     - Verify NO DUPLICATE place_ids appear in the itinerary
-    - Verify that all place_ids in the itinerary match the provided lists exactly. If any mismatches are found, correct them before returning the response
+    - Verify that all place_ids and name in the itinerary match the available attraction, restaurant and cafe lists exactly. If any mismatches are found, correct them before returning the response
     - Confirm each place is used in its correct type (cafe/restaurant/attraction) and only 2 restaurants and 1 cafe per day are used
     - Any itinerary that contains mismatched or repeated place_ids will be considered invalid and must be corrected before submission."
     - Check the Unused section only contains truly unused places"""

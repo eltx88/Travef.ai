@@ -149,6 +149,22 @@ const ItineraryPOICard: FC<ItineraryPOICardProps> = ({ poi, dayOptions, onAddToI
                   {poi.timeSlot}
                 </span>
               )}
+              
+              {/* Google Maps Icon */}
+              {poi.place_id && (
+                <a 
+                  href={`https://www.google.com/maps/place/?q=place_id:${poi.place_id}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="ml-1 text-gray-500 hover:text-blue-600"
+                  onClick={(e) => e.stopPropagation()}
+                  title="View on Google Maps"
+                >
+                  <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" />
+                  </svg>
+                </a>
+              )}
             </div>
 
             {/* Time Slot Information */}
