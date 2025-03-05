@@ -57,6 +57,16 @@ function renderRatingStars(rating: number | undefined | null) {
   );
 }
 
+// Add this helper function to format the POI types
+const formatPoiType = (type: string): string => {
+  if (!type) return '';
+  // Split by underscore, capitalize each word, and join with space
+  return type
+    .split('_')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+};
+
 const getDefaultImage = (type: string) => {
   switch (type) {
     case 'restaurant':
@@ -85,7 +95,6 @@ const ItineraryPOICard: FC<ItineraryPOICardProps> = ({ poi, dayOptions, onAddToI
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [shouldLoadImage, setShouldLoadImage] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
-  const [imageError, setImageError] = useState(false);
   const imageRef = useRef<HTMLImageElement>(null);
 
   const openWebsite = (e: React.MouseEvent, url: string) => {
@@ -135,7 +144,6 @@ const ItineraryPOICard: FC<ItineraryPOICardProps> = ({ poi, dayOptions, onAddToI
   
   // Handle image loading errors
   const handleImageError = () => {
-    setImageError(true);
     setImageLoaded(true); // Important: still mark as loaded to remove spinner
   };
 
@@ -181,7 +189,7 @@ const ItineraryPOICard: FC<ItineraryPOICardProps> = ({ poi, dayOptions, onAddToI
             
             <div className="absolute top-2 left-2 flex items-center bg-white bg-opacity-90 rounded-full px-2 py-0.5 text-xs">
               {getTypeIcon(poi.type)}
-              <span className="capitalize">{poi.type}</span>
+              <span>{formatPoiType(poi.type)}</span>
             </div>
           </div>
 
@@ -455,12 +463,16 @@ const ItineraryPOICard: FC<ItineraryPOICardProps> = ({ poi, dayOptions, onAddToI
                       </div>
                     </HoverCardContent>
                 </HoverCard>
-                <Button 
-                  onClick={() => setIsDeleteDialogOpen(true)}
-                  className="w-full h-7 bg-red-600 hover:bg-red-700 text-white"
-                >
-                  Delete
-                </Button>
+                
+                {/* Only show delete button if onDeleteSavedPOI is provided */}
+                {onDeleteSavedPOI && (
+                  <Button 
+                    onClick={() => setIsDeleteDialogOpen(true)}
+                    className="w-full h-7 bg-red-600 hover:bg-red-700 text-white"
+                  >
+                    Delete
+                  </Button>
+                )}
               </div>
             )}
           </div>

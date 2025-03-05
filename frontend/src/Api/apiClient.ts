@@ -1,4 +1,4 @@
-import type { POI, WikidataImageResponse, ExploreParams, TripData, ItineraryPOI, FetchedTripDetails, ItineraryPOIDB, ItineraryPOIChanges, UserTrip, ExploreGoogleParams } from '../Types/InterfaceTypes';
+import type { POI, WikidataImageResponse, ExploreParams, TripData, ItineraryPOI, FetchedTripDetails, ItineraryPOIDB, ItineraryPOIChanges, UserTrip, ExploreGoogleParams, POIType } from '../Types/InterfaceTypes';
 
 interface ApiClientConfig {
   getIdToken: () => Promise<string>;
@@ -578,6 +578,88 @@ async getNearbyPlacesByTypes(
     } catch (error) {
       console.error('Error fetching batch place details:', error);
       return pois;
+    }
+  }
+
+  async getTextSearchPlaces(
+    text: string,
+    lat: number,
+    lng: number,
+    radius: number = 2000,
+    type?: string,
+    maxResults: number = 20,
+    openNow: boolean = false
+  ): Promise<POI[]> {
+    const queryParams = new URLSearchParams({
+      query: text,
+      latitude: lat.toString(),
+      longitude: lng.toString(),
+      radius: radius.toString(),
+      max_results: maxResults.toString()
+    });
+
+    if (type) {
+      queryParams.set('type', type);
+    }
+
+    if (openNow) {
+      queryParams.set('open_now', 'true');
+    }
+
+    try {
+      const places = await this.fetchWithAuth(`/googleplaces/textsearch?${queryParams.toString()}`);
+      
+      // Make sure places is an array before proceeding
+      if (!Array.isArray(places)) {
+        console.error('Expected places to be an array but got:', typeof places);
+        return [];
+      }
+      
+      // Process places into POI objects
+      const processedPlaces: POI[] = places.map((place: any) => {
+        const cuisineArray = place.cuisine ? 
+          (Array.isArray(place.cuisine) ? place.cuisine : [place.cuisine]) : 
+          undefined;
+        
+        // Determine standardized type based on primary_type
+        let standardizedType = 'attraction';
+        if (place.primary_type) {
+          if (place.primary_type.includes('_restaurant')) {
+            standardizedType = 'restaurant';
+          } else if (place.primary_type === 'cafe' || place.primary_type === 'coffee_shop') {
+            standardizedType = 'cafe';
+          }
+        }
+        
+        return {
+          id: place.place_id || '',
+          place_id: place.place_id || '',
+          name: place.name || '',
+          coordinates: {
+            lat: place.location?.latitude || 0,
+            lng: place.location?.longitude || 0
+          },
+          address: place.formatted_address || '',
+          city: '', // City info not directly available in text search results
+          country: '', // Country info not directly available in text search results
+          type: standardizedType as POIType, // Using our standardized type mapping
+          rating: place.rating,
+          user_ratings_total: place.user_ratings_total,
+          cuisine: cuisineArray,
+          description: place.description || '',
+          categories: Array.isArray(place.types) ? place.types : [],
+          image_url: place.photo_url || '',
+          website: place.website || '',
+          phone: place.phone || '',
+          opening_hours: place.opening_hours || '',
+          price_level: place.price_level
+        };
+      });
+      
+      return processedPlaces;
+    } catch (error) {
+      console.error('Error fetching text search places:', error);
+      return [];
     }
   }
 

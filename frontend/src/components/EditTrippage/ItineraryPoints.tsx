@@ -1,11 +1,14 @@
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState, useEffect, useCallback } from 'react';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import type { TripData, ItineraryPOI } from '@/Types/InterfaceTypes';
 import { cn } from "@/lib/utils";
 import ItineraryPOICard from './ItineraryPOICard';
-import { Calendar, Star, Landmark, UtensilsCrossed } from 'lucide-react';
+import { Calendar, Star, Landmark, UtensilsCrossed, Search, Loader2 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import ApiClient from '@/Api/apiClient';
+import { useAuthStore } from '@/firebase/firebase';
+import { toast } from 'react-hot-toast';
 
 type TabType = 'itinerary' | 'saved' | 'search';
 
@@ -37,6 +40,10 @@ const ItineraryPoints = ({
   const [searchRatingFilter, setSearchRatingFilter] = useState<number | null>(null);
   const [searchSortByRating, setSearchSortByRating] = useState(false);
   const [currentSearchPage, setCurrentSearchPage] = useState(1);
+  const [searchText, setSearchText] = useState('');
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchResults, setSearchResults] = useState<ItineraryPOI[]>([]);
+  const { user } = useAuthStore();
   const itemsPerPage = 6;
   
   const savedAttractions = unusedPOIs.filter(poi => poi.type === 'attraction');
@@ -47,6 +54,14 @@ const ItineraryPoints = ({
     Array.from({ length: tripData.monthlyDays }, (_, i) => i + 1),
     [tripData.monthlyDays]
   );
+
+  // Create API client
+  const apiClient = new ApiClient({
+    getIdToken: async () => {
+      if (!user) throw new Error('Not authenticated');
+      return user.getIdToken();
+    }
+  });
 
   // Filter and sort itinerary POIs using memoization
   const filteredItineraryPOIs = useMemo(() => {
@@ -97,6 +112,134 @@ const ItineraryPoints = ({
     return savedRestaurants.slice(startIndex, endIndex);
   }, [savedRestaurants, currentSavedRestaurantsPage, itemsPerPage]);
 
+  // Handle search submission
+  const handleSearch = useCallback(async () => {
+    if (!searchText.trim()) {
+      toast.error("Please enter a search term");
+      return;
+    }
+    
+    if (!tripData.coordinates) {
+      toast.error("Location coordinates are missing");
+      return;
+    }
+    
+    try {
+      setIsSearching(true);
+      
+      // Get the coordinates from trip data
+      const { lat, lng } = tripData.coordinates;
+      
+      // Make the API call without type filtering - we'll filter results client-side
+      const results = await apiClient.getTextSearchPlaces(
+        searchText,
+        lat,
+        lng,
+        2000, // radius
+        undefined, // Don't send type filter to API, we'll filter results client-side
+        20, // maxResults
+        false // openNow
+      );
+      
+      // Create a Set of existing place_ids for efficient lookup
+      const existingPlaceIds = new Set([
+        ...itineraryPOIs.map(poi => poi.place_id),
+        ...unusedPOIs.map(poi => poi.place_id)
+      ].filter(id => id));
+      
+      // Only filter out duplicates, don't filter by category here
+      const filteredResults = results.filter(poi => 
+        !existingPlaceIds.has(poi.place_id)
+      );
+      
+      // Convert POI results to ItineraryPOI format
+      const formattedResults: ItineraryPOI[] = filteredResults.map(poi => {
+        return {
+          ...poi,
+          id: poi.id || poi.place_id || '',
+          place_id: poi.place_id || '',
+          PointID: poi.id || '',
+          StartTime: -1,
+          EndTime: -1,
+          day: -1,
+          duration: -1,
+          timeSlot: '',
+          type: poi.type, // Already contains the standardized type
+          city: tripData.city,
+          country: tripData.country
+        };
+      });
+      
+      // Store raw results without filtering or sorting
+      setSearchResults(formattedResults);
+      setCurrentSearchPage(1);
+      
+      if (formattedResults.length === 0) {
+        toast.error("No results found. Try adjusting your search terms.");
+      }
+    } catch (error) {
+      console.error("Search error:", error);
+      toast.error("Failed to search places. Please try again.");
+    } finally {
+      setIsSearching(false);
+    }
+  }, [
+    searchText, 
+    tripData.coordinates,
+    tripData.city,
+    tripData.country, 
+    apiClient,
+    itineraryPOIs,
+    unusedPOIs
+  ]);
+
+  // Apply name filter, rating filter, and sorting to search results
+  const filteredSearchResults = useMemo(() => {
+    // First apply all filters to search results
+    let filtered = searchResults;
+    
+    // Apply category filter - this ensures consistent filtering with other filters
+    if (searchCategory === 'attraction') {
+      filtered = filtered.filter(poi => poi.type === 'attraction');
+    } else if (searchCategory === 'restaurant') {
+      filtered = filtered.filter(poi => poi.type === 'restaurant' || poi.type === 'cafe');
+    }
+    
+    // Apply name filter if provided
+    if (searchNameFilter) {
+      const lowerCaseFilter = searchNameFilter.toLowerCase();
+      filtered = filtered.filter(
+        poi => poi.name.toLowerCase().includes(lowerCaseFilter)
+      );
+    }
+    
+    // Apply rating filter if set
+    if (searchRatingFilter) {
+      filtered = filtered.filter(poi => (poi.rating || 0) >= searchRatingFilter);
+    }
+    
+    // Apply sorting by rating if enabled
+    let sortedResults = [...filtered];
+    if (searchSortByRating) {
+      sortedResults.sort((a, b) => (b.rating || 0) - (a.rating || 0));
+    }
+    
+    return sortedResults;
+  }, [
+    searchResults, 
+    searchCategory,  // Add searchCategory to the dependency array
+    searchNameFilter, 
+    searchRatingFilter, 
+    searchSortByRating
+  ]);
+
+  // Then apply pagination to filtered results
+  const paginatedSearchResults = useMemo(() => {
+    const startIndex = (currentSearchPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return filteredSearchResults.slice(startIndex, endIndex);
+  }, [filteredSearchResults, currentSearchPage, itemsPerPage]);
+
   // Reset pagination when filters change
   useEffect(() => {
     setCurrentItineraryPage(1);
@@ -107,7 +250,20 @@ const ItineraryPoints = ({
     setCurrentItineraryPage(1);
     setCurrentSavedAttractionsPage(1);
     setCurrentSavedRestaurantsPage(1);
+    setCurrentSearchPage(1);
   }, [activeTab]);
+
+  // Reset pagination when search filters change
+  useEffect(() => {
+    setCurrentSearchPage(1);
+  }, [searchNameFilter, searchRatingFilter, searchSortByRating]);
+
+  // Handle Enter key press in search box
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleSearch();
+    }
+  };
 
   // Add pagination component
   const PaginationControls = ({ 
@@ -308,7 +464,7 @@ const ItineraryPoints = ({
                 <div className="flex-1 relative">
                   <input
                     type="text"
-                    placeholder="Search by name..."
+                    placeholder="Filter by name..."
                     value={searchNameFilter}
                     onChange={(e) => setSearchNameFilter(e.target.value)}
                     className="w-full px-3 py-2 border rounded-md"
@@ -322,6 +478,41 @@ const ItineraryPoints = ({
                     </button>
                   )}
                 </div>
+              </div>
+
+              {/* Search bar for text search */}
+              <div className="flex gap-2 mt-2">
+                <div className="flex-1 relative">
+                  <input
+                    type="text"
+                    placeholder={`Search for places in ${tripData.city.charAt(0).toUpperCase() + tripData.city.slice(1)}...`}
+                    value={searchText}
+                    onChange={(e) => setSearchText(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    className="w-full px-3 py-2 border rounded-md"
+                    disabled={isSearching}
+                  />
+                  {searchText && !isSearching && (
+                    <button 
+                      onClick={() => setSearchText('')}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    >
+                      ×
+                    </button>
+                  )}
+                </div>
+                <button
+                  onClick={handleSearch}
+                  disabled={isSearching || !searchText.trim()}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-blue-300 flex items-center gap-2"
+                >
+                  {isSearching ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Search className="w-4 h-4" />
+                  )}
+                  Search
+                </button>
               </div>
 
               <div className="flex items-center justify-between">
@@ -401,20 +592,41 @@ const ItineraryPoints = ({
             </div>
 
             <div className="mt-6">
-              {/* This will hold search results */}
-              <div className={`grid ${isRightExpanded ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'} gap-4`}>
-                {/* Your POI cards will go here */}
-                <div className="text-center text-gray-500 col-span-full py-8">
-                  Use filters above to search for places to add to your itinerary
+              {/* Search results */}
+              {isSearching ? (
+                <div className="flex flex-col items-center justify-center py-12">
+                  <Loader2 className="w-12 h-12 text-blue-600 animate-spin mb-4" />
+                  <p className="text-gray-600">Searching for places...</p>
                 </div>
-              </div>
+              ) : filteredSearchResults.length > 0 ? (
+                <div className={`grid ${isRightExpanded ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'} gap-4`}>
+                  {paginatedSearchResults.map((poi) => (
+                    <ItineraryPOICard
+                      key={poi.id}
+                      poi={poi}
+                      dayOptions={dayOptions}
+                      onAddToItinerary={onAddToItinerary}
+                    />
+                  ))}
+                </div>
+              ) : searchText && !isSearching ? (
+                <div className="text-center text-gray-500 py-8">
+                  No results found. Try adjusting your search terms.
+                </div>
+              ) : (
+                <div className="text-center text-gray-500 py-8">
+                  Enter a search term to find places to add to your itinerary.
+                </div>
+              )}
               
               {/* Pagination for search results */}
-              <PaginationControls 
-                currentPage={currentSearchPage} 
-                setCurrentPage={setCurrentSearchPage} 
-                totalItems={0} // Replace with actual search results count when implemented
-              />
+              {filteredSearchResults.length > 0 && (
+                <PaginationControls 
+                  currentPage={currentSearchPage} 
+                  setCurrentPage={setCurrentSearchPage} 
+                  totalItems={filteredSearchResults.length}
+                />
+              )}
             </div>
           </div>
         );
