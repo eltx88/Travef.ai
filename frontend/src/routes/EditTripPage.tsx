@@ -1,4 +1,4 @@
-import { useLocation, useNavigate, useBlocker } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { NavigationMenuBar } from "@/components/NavigationMenuBar";
 import type { TripData, ItineraryPOI } from '@/Types/InterfaceTypes';
 import { useEffect, useState, useCallback } from 'react';
@@ -23,33 +23,19 @@ interface ItineraryState {
   lastModified: number;
 }
 
-// Custom usePrompt hook to inform user when they try to leave the page with unsaved changes
-function usePrompt(message: string, when = true) {
-  const blocker = useBlocker(when);
-  
-  useEffect(() => {
-    if (blocker.state === 'blocked') {
-      const confirmed = window.confirm(message);
-      if (confirmed) {
-        blocker.proceed();
-      } else {
-        blocker.reset();
-      }
-    }
-  }, [blocker, message]);
-
-  // Modern approach for beforeunload event
+// Custom hook to warn about unsaved changes - without using useBlocker
+function useUnsavedChangesWarning(hasUnsavedChanges: boolean) {
+  // Only handle beforeunload event (browser close/refresh)
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (when) {
+      if (hasUnsavedChanges) {
         e.preventDefault();
-        return message;
       }
     };
 
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, [when, message]);
+  }, [hasUnsavedChanges]);
 }
 
 function EditTripPage() {
@@ -57,7 +43,6 @@ function EditTripPage() {
   const navigate = useNavigate();
   const { user } = useAuthStore();
   const [trip_doc_id, setTripDocId] = useState<string>("");
-  const [itineraryStateChange, setItineraryStateChange] = useState<boolean>(false);
   const [itineraryState, setItineraryState] = useState<ItineraryState | null>(null);
   const [tripData, setTripData] = useState<TripData | null>(null);
   const [isSaving, setIsSaving] = useState<boolean>(false);
@@ -71,6 +56,19 @@ function EditTripPage() {
       return user.getIdToken();
     }
   });
+
+  // State to track unsaved changes
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  
+  // Use the custom hook
+  useUnsavedChangesWarning(hasUnsavedChanges);
+  
+  // Update the hasUnsavedChanges state whenever itinerary changes
+  useEffect(() => {
+    if (itineraryState && itineraryState.lastModified > 0) {
+      setHasUnsavedChanges(true);
+    }
+  }, [itineraryState]);
 
   // Initialize data from location state or URL params
   useEffect(() => {
@@ -118,7 +116,6 @@ function EditTripPage() {
     // Update state
     setItineraryState(prev => {
       if (!prev) return prev;
-      setItineraryStateChange(true);
       return {
         itineraryPOIs: newItineraryPOIs,
         unusedPOIs: newUnusedPOIs,
@@ -262,7 +259,6 @@ function EditTripPage() {
     
     try {
       setIsSaving(true);
-      const savingToast = toast.loading("Saving your itinerary...");
       
       await apiClient.createOrUpdateTrip(
         user.uid,
@@ -271,9 +267,7 @@ function EditTripPage() {
         itineraryState.itineraryPOIs,
         itineraryState.unusedPOIs
       );
-
-      toast.dismiss(savingToast);
-      toast.success("Itinerary saved successfully!");
+      setHasUnsavedChanges(false);
       navigate('/home');
     } catch (error) {
       console.error("Error saving itinerary:", error);
@@ -308,12 +302,6 @@ function EditTripPage() {
   const leftContainerWidth = isLeftExpanded ? 85 : isRightExpanded ? 15 : 40;
   const rightContainerWidth = isRightExpanded ? 85 : isLeftExpanded ? 15 : 60;
 
-  // Use the custom hook to prompt when navigating away with unsaved changes
-  usePrompt(
-    "You have unsaved changes. Are you sure you want to leave this page?",
-    itineraryStateChange
-  );
-
   // Show loading state
   if (isLoading || !itineraryState || !tripData) {
     return (
@@ -322,10 +310,9 @@ function EditTripPage() {
       </div>
     );
   }
-  
   return (
     <div className="flex flex-col min-h-screen bg-blue-100">
-      <NavigationMenuBar/>
+      <NavigationMenuBar hasUnsavedChanges={hasUnsavedChanges} clearUnsavedChanges={() => setHasUnsavedChanges(false)} />
       <main id="main-container" className="flex-grow p-4 relative">
         <div className="flex h-full w-full">
           {/* Left Container - Points of Interest */}

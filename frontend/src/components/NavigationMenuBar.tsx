@@ -17,7 +17,12 @@ import { useNavigate } from 'react-router-dom';
 import { auth } from '../firebase/firebase';
 import { signOut } from 'firebase/auth';
 
-export function NavigationMenuBar() {
+interface NavigationMenuBarProps {
+    hasUnsavedChanges?: boolean;
+    clearUnsavedChanges?: () => void;
+}
+
+export function NavigationMenuBar({ hasUnsavedChanges = false, clearUnsavedChanges = () => {} }: NavigationMenuBarProps) {
     const navigate = useNavigate();
     const handleLogout = async () => {
         try {
@@ -25,6 +30,20 @@ export function NavigationMenuBar() {
             navigate('/');
         } catch (error) {
             console.error('Error signing out:', error);
+        }
+    };
+
+    const handleNavigation = (e: React.MouseEvent, path: string) => {
+        if (hasUnsavedChanges) {
+            const confirmed = window.confirm("You have unsaved changes. Are you sure you want to leave?");
+            if (confirmed) {
+                clearUnsavedChanges();
+                navigate(path);
+            } else {
+                e.preventDefault();
+            }
+        } else {
+            navigate(path);
         }
     };
 
@@ -55,7 +74,7 @@ export function NavigationMenuBar() {
                         <NavigationMenuItem>
                             <NavigationMenuTrigger 
                                 className="text-lg bg-transparent hover:bg-slate-200 cursor-pointer"
-                                onClick={() => navigate('/home')}
+                                onClick={(e) => handleNavigation(e, '/home')}
                             >
                                 Home
                             </NavigationMenuTrigger>
@@ -91,7 +110,7 @@ export function NavigationMenuBar() {
                         <NavigationMenuItem>
                             <NavigationMenuTrigger 
                                 className="text-lg bg-transparent hover:bg-slate-200 cursor-pointer"
-                                onClick={() => navigate('/createtrip')}
+                                onClick={(e) => handleNavigation(e, '/createtrip')}
                             >
                                 Plan  
                             </NavigationMenuTrigger>
@@ -128,17 +147,7 @@ export function NavigationMenuBar() {
                         <NavigationMenuItem>
                             <NavigationMenuTrigger 
                                 className="text-lg bg-transparent hover:bg-slate-200"
-                                onClick={(e) => {
-                                    e.preventDefault();
-                                    navigate('/home');
-                                    // Wait for navigation to complete before scrolling
-                                    setTimeout(() => {
-                                        const tripsElement = document.getElementById('trips-section');
-                                        if (tripsElement) {
-                                            tripsElement.scrollIntoView({ behavior: 'smooth' });
-                                        }
-                                    }, 100);
-                                }}
+                                onClick={(e) => handleNavigation(e, '/home')}
                             >
                                 Trips
                             </NavigationMenuTrigger>
@@ -196,7 +205,7 @@ export function NavigationMenuBar() {
                 <DropdownMenuContent className="w-[1px] bg-white">
                     <DropdownMenuItem 
                         className="cursor-pointer"
-                        onClick={() => navigate('/profile')}
+                        onClick={(e) => handleNavigation(e, '/profile')}
                     >
                         Profile
                     </DropdownMenuItem>

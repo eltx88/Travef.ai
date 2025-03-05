@@ -181,7 +181,7 @@ class TripService(FirebaseService):
                 # Delete from itinerary collection
                 batch.delete(itinerary_collection.document(poi.PointID))
                 # Add to unused collection
-                batch.set(unused_collection.document(poi.PointID))
+                batch.set(unused_collection.document(poi.PointID), {})
 
             # Update complete unused POIs state
             existing_unused = unused_collection.stream()
@@ -189,7 +189,7 @@ class TripService(FirebaseService):
                 batch.delete(doc.reference)
 
             for poi in request.unusedPOIsState:
-                batch.set(unused_collection.document(poi.PointID))
+                batch.set(unused_collection.document(poi.PointID), {})
 
             # Commit all changes without await
             batch.commit()
