@@ -1,8 +1,8 @@
 // Create new file: components/TripCards.tsx
-import { FC } from 'react';
+import { FC, useState } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Calendar, Trash2 } from "lucide-react";
+import { Calendar, Trash2, Loader2 } from "lucide-react";
 import type { ItineraryPOI, UserTrip } from '@/Types/InterfaceTypes';
 import ApiClient from '@/Api/apiClient';
 import { useAuthStore } from '@/firebase/firebase';
@@ -23,17 +23,24 @@ import {
 interface TripCardsProps {
   trip: UserTrip;
   onDelete: (refresh: boolean) => void;
+  setGlobalLoading: (loading: boolean, message?: string) => void;
 }
 
-const TripCard: FC<TripCardsProps> = ({ trip, onDelete }) => {
+const TripCard: FC<TripCardsProps> = ({ trip, onDelete, setGlobalLoading }) => {
+    const [isLoading, setIsLoading] = useState(false);
     const { user } = useAuthStore();
     const apiClient = new ApiClient({
         getIdToken: async () => {
             if (!user) throw new Error('Not authenticated');
             return user.getIdToken();
         }
-      });
+    });
     const navigate = useNavigate();
+
+  // Format dates in a more compact way
+  const formatDate = (date: Date) => {
+    return `${date.getDate()} ${date.toLocaleString('default', { month: 'short' })} ${date.getFullYear()}`;
+  };
 
   return (
     <Card className="w-[300px] flex-shrink-0 bg-white shadow-lg hover:shadow-xl transition-all duration-300 items-center hover:bg-gray-200 overflow-hidden">
@@ -42,18 +49,21 @@ const TripCard: FC<TripCardsProps> = ({ trip, onDelete }) => {
           <h2 className="font-semibold text-2xl capitalize text-center transition-transform duration-300 group-hover:scale-110">{trip.city}, {trip.country.toUpperCase()}</h2>
           <p className="text-gray-600 text-center transition-transform duration-300 group-hover:scale-110">{trip.monthlyDays} days</p>
           <div className="flex gap-2 text-gray-600">
-            <div className="flex items-center space-y-2 px-3 text-m w-full transition-transform duration-300 group-hover:scale-110">
-              <Calendar className="h-6 w-5 mr-2" />
-              <h3 className="inline">
-                {trip.fromDT.getDate() + " " + trip.fromDT.toLocaleString('default', { month: 'long' }) + " " + trip.fromDT.getFullYear()} to {trip.toDT.getDate() + " " + trip.toDT.toLocaleString('default', { month: 'long' }) + " " + trip.toDT.getFullYear()}
+            <div className="flex items-center px-3 text-sm w-full transition-transform duration-300 group-hover:scale-110">
+              <Calendar className="h-5 w-5 mr-2 flex-shrink-0" />
+              <h3 className="truncate">
+                {formatDate(trip.fromDT)} to {formatDate(trip.toDT)}
               </h3>
             </div>
-        </div>
+          </div>
 
           <Button 
             className="w-full bg-blue-600 hover:bg-blue-700 text-white transition-transform duration-300 group-hover:scale-105"
             onClick={async () => {
                 try {
+                    setIsLoading(true);
+                    setGlobalLoading(true, "Loading trip details...");
+                    
                     // Fetch trip details
                     const tripDetails = await apiClient.getTripDetails(trip.trip_doc_id);
                 
@@ -113,10 +123,22 @@ const TripCard: FC<TripCardsProps> = ({ trip, onDelete }) => {
                   } catch (error) {
                     console.error('Error fetching trip details:', error);
                     toast.error(`Error fetching trip details: ${error}`);
+                  } finally {
+                    setIsLoading(false);
+                    setGlobalLoading(false);
+                    toast.dismiss("trip-loading");
                   }
             }}
+            disabled={isLoading}
           >
-            View Trip
+            {isLoading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Loading...
+              </>
+            ) : (
+              "View Trip"
+            )}
           </Button>
           
           <AlertDialog>

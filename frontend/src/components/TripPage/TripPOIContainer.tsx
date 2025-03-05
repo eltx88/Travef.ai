@@ -253,7 +253,7 @@ const TripPOIContainer = ({
     const selectedCafePOIs = allCafePOIs.filter(poi => selectedPOIs.has(poi.place_id));
     
     // Create shortened POIs for each category
-    const shortenedAttractionPOIs = selectedAttractionPOIs.map(poi => ({
+    const shortenedSelectedAttractionPOIs = selectedAttractionPOIs.map(poi => ({
       place_id: poi.place_id,
       name: poi.name,
       type: poi.type,
@@ -263,7 +263,7 @@ const TripPOIContainer = ({
       }
     }));
     
-    const shortenedFoodPOIs = selectedFoodPOIs.map(poi => ({
+    const shortenedSelectedFoodPOIs = selectedFoodPOIs.map(poi => ({
       place_id: poi.place_id,
       name: poi.name,
       type: poi.type,
@@ -273,7 +273,7 @@ const TripPOIContainer = ({
       }
     }));
     
-    const shortenedCafePOIs = selectedCafePOIs.map(poi => ({
+    const shortenedSelectedCafePOIs = selectedCafePOIs.map(poi => ({
       place_id: poi.place_id,
       name: poi.name,
       type: poi.type,
@@ -286,84 +286,104 @@ const TripPOIContainer = ({
     setIsGenerating(true);
 
     try {
+      const allSelectedPOIs = [...selectedAttractionPOIs, ...selectedFoodPOIs, ...selectedCafePOIs];
       const apiClient = new ApiClient({
         getIdToken: async () => user.getIdToken()
       });
       const generationService = new TripGenerationService(apiClient);
       const generatedTrip = await generationService.generateTrip(
         tripData, 
-        shortenedAttractionPOIs,
-        shortenedFoodPOIs,
-        shortenedCafePOIs
+        shortenedSelectedAttractionPOIs,
+        shortenedSelectedFoodPOIs,
+        shortenedSelectedCafePOIs
       );
       
-      // Process the itinerary
+      // Process the generated json itinerary and return itineraryPOIs and unusedPOIs
       const processedItinerary = processItinerary(
         generatedTrip.itinerary, 
         selectedFoodPOIs, 
         allVisiblePOIs
       );
-  
+
       // Remove duplicates from generated itinerary
       const uniqueItineraryPOIs = Array.from(
         new Map(processedItinerary.ItineraryPOIs.map(poi => [poi.place_id, poi])).values()
       );
-      
       const uniqueUnusedPOIs = Array.from(
         new Map(processedItinerary.unusedPOIs.map(poi => [poi.place_id, poi])).values()
       );
-      
-      // Enhance POIs with complete Google Places details
-      const loadingToast = toast.loading("Fetching destination details...");
-      
-      // Get enhanced details from Google Places API
-      const [enhancedItineraryPOIs, enhancedUnusedPOIs] = await Promise.all([
-        apiClient.getBatchPlaceDetails(uniqueItineraryPOIs, tripData.city, tripData.country),
-        apiClient.getBatchPlaceDetails(uniqueUnusedPOIs, tripData.city, tripData.country)
-      ]);
-      
-      toast.dismiss(loadingToast);
-      
-      // Merge scheduling information with google POI details for itinerary POIs
-      const finalItineraryPOIs = uniqueItineraryPOIs.map(schedulingInfo => {
-        const matchingPOI = enhancedItineraryPOIs.find(poi => poi.place_id === schedulingInfo.place_id);
+
+      // Create map for all returned POIs from trip generation service
+      const returnedPOIsMap = new Map<string, ItineraryPOI>();
+      uniqueItineraryPOIs.forEach(poi => returnedPOIsMap.set(poi.place_id, poi));
+      uniqueUnusedPOIs.forEach(poi => returnedPOIsMap.set(poi.place_id, poi));
+
+      // Find selected POIs that were not returned in either list
+      const missingPOIs = allSelectedPOIs.filter(poi => !returnedPOIsMap.has(poi.place_id));
+
+      // Convert missing POIs to ItineraryPOI format with default values
+      const missingItineraryPOIs = missingPOIs.map((poi: POI) => ({
+        ...poi,
+        day: -1,
+        timeSlot: "unused",
+        StartTime: -1,
+        EndTime: -1,
+        duration: -1
+      } as ItineraryPOI));
+
+      // Add missing POIs to uniqueUnusedPOIs
+      if (missingItineraryPOIs.length > 0) {
+        uniqueUnusedPOIs.push(...missingItineraryPOIs);
+      }
+
+      // Create a comprehensive map of all POIs we already have details for
+      const knownPOIsMap = new Map<string, POI | ItineraryPOI>();
+
+      // Add selected POIs to the known POIs map
+      allSelectedPOIs.forEach(poi => knownPOIsMap.set(poi.place_id, poi));
+
+      // Filter newly suggested POIs from the Trip Generation Service(ones we don't already have details for)
+      const itineraryPOIsToFetch = uniqueItineraryPOIs.filter(poi => !knownPOIsMap.has(poi.place_id));
+      const unusedPOIsToFetch = uniqueUnusedPOIs.filter(poi => !knownPOIsMap.has(poi.place_id));
+
+      // Get enhanced details only for POIs we don't already have
+      let enhancedItineraryPOIs = uniqueItineraryPOIs.map(poi => 
+        knownPOIsMap.has(poi.place_id) ? { ...knownPOIsMap.get(poi.place_id), ...poi } : poi
+      );
+      let enhancedUnusedPOIs = uniqueUnusedPOIs.map(poi => 
+        knownPOIsMap.has(poi.place_id) ? { ...knownPOIsMap.get(poi.place_id), ...poi } : poi
+      );
+
+      // Only fetch if there are new POIs to get details for
+      if (itineraryPOIsToFetch.length > 0 || unusedPOIsToFetch.length > 0) {
+        const [fetchedItineraryPOIs, fetchedUnusedPOIs] = await Promise.all([
+          itineraryPOIsToFetch.length > 0 
+            ? apiClient.getBatchPlaceDetails(itineraryPOIsToFetch, tripData.city, tripData.country) 
+            : [],
+          unusedPOIsToFetch.length > 0
+            ? apiClient.getBatchPlaceDetails(unusedPOIsToFetch, tripData.city, tripData.country)
+            : []
+        ]);
         
-        if (matchingPOI) {
-          return {
-            ...matchingPOI,
-            day: schedulingInfo.day,
-            timeSlot: schedulingInfo.timeSlot,
-            StartTime: schedulingInfo.StartTime,
-            EndTime: schedulingInfo.EndTime,
-            duration: schedulingInfo.duration
-          } as ItineraryPOI;
-        }
-        return schedulingInfo;
-      });
-      
-      // Apply unused properties to google POIs
-      const finalUnusedPOIs = uniqueUnusedPOIs.map(unusedInfo => {
-        const matchingPOI = enhancedUnusedPOIs.find(poi => poi.place_id === unusedInfo.place_id);
+        // Create a mapping of fetched POIs by place_id
+        const fetchedItineraryMap = new Map(fetchedItineraryPOIs.map(poi => [poi.place_id, poi]));
+        const fetchedUnusedMap = new Map(fetchedUnusedPOIs.map(poi => [poi.place_id, poi]));
         
-        if (matchingPOI) {
-          return {
-            ...matchingPOI,
-            day: -1,
-            timeSlot: "unused",
-            StartTime: -1,
-            EndTime: -1,
-            duration: -1
-          } as ItineraryPOI;
-        }
+        // Update final POI lists with fetched data when available
+        enhancedItineraryPOIs = enhancedItineraryPOIs.map(poi => 
+          fetchedItineraryMap.has(poi.place_id) ? { ...poi, ...fetchedItineraryMap.get(poi.place_id) } : poi
+        );
         
-        return unusedInfo;
-      });
-      
+        enhancedUnusedPOIs = enhancedUnusedPOIs.map(poi => 
+          fetchedUnusedMap.has(poi.place_id) ? { ...poi, ...fetchedUnusedMap.get(poi.place_id) } : poi
+        );
+      }
+
       // Navigate to edit trip with enhanced data
       navigate('/edit-trip', {
         state: {
-          itineraryPOIs: finalItineraryPOIs,
-          unusedPOIs: finalUnusedPOIs,
+          itineraryPOIs: enhancedItineraryPOIs,
+          unusedPOIs: enhancedUnusedPOIs,
           tripData: tripData,
           trip_doc_id: ""
         }

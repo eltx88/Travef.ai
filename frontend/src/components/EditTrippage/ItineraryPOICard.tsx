@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Phone, Mail, Clock, Info, Star, MapPin, Tag, Coffee, Utensils } from "lucide-react";
 import type { ItineraryPOI } from "@/Types/InterfaceTypes";
-import { FC, useMemo, useState } from "react";
+import { FC, useMemo, useState, useEffect, useRef } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@radix-ui/react-hover-card';
@@ -83,6 +83,10 @@ const ItineraryPOICard: FC<ItineraryPOICardProps> = ({ poi, dayOptions, onAddToI
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
   const [isHovered, setIsHovered] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [shouldLoadImage, setShouldLoadImage] = useState(false);
+  const [imageLoaded, setImageLoaded] = useState(false);
+  const [imageError, setImageError] = useState(false);
+  const imageRef = useRef<HTMLImageElement>(null);
 
   const openWebsite = (e: React.MouseEvent, url: string) => {
     e.preventDefault();
@@ -105,6 +109,47 @@ const ItineraryPOICard: FC<ItineraryPOICardProps> = ({ poi, dayOptions, onAddToI
     setIsDeleteDialogOpen(false);
   };
 
+  // More aggressive loading strategy with larger root margin
+  useEffect(() => {
+    if (!imageRef.current) return;
+    
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          setShouldLoadImage(true);
+          observer.disconnect();
+        }
+      },
+      { 
+        threshold: 0.1,
+        rootMargin: '200px' // Load images when they're within 200px of viewport
+      }
+    );
+    
+    observer.observe(imageRef.current);
+    
+    return () => {
+      observer.disconnect();
+    };
+  }, []);
+  
+  // Handle image loading errors
+  const handleImageError = () => {
+    setImageError(true);
+    setImageLoaded(true); // Important: still mark as loaded to remove spinner
+  };
+
+  // Decide what image to show
+  const imageSource = useMemo(() => {
+    if (!shouldLoadImage) return null;
+    
+    // Try original image first
+    if (poi.image_url) return poi.image_url;
+    
+    // Fall back to default image
+    return getDefaultImage(poi.type || 'attraction');
+  }, [shouldLoadImage, poi.image_url, poi.type]);
+
   return (
     <TooltipProvider delayDuration={300}>
       <Card 
@@ -114,17 +159,26 @@ const ItineraryPOICard: FC<ItineraryPOICardProps> = ({ poi, dayOptions, onAddToI
       >
         <CardContent className="p-0 flex flex-col h-full">
           {/* Image Section with Type Indicator */}
-          <div className="relative overflow-hidden aspect-[4/3]">
+          <div className="relative overflow-hidden aspect-[4/3] bg-gray-100">
+            {/* Loading spinner */}
+            {shouldLoadImage && !imageLoaded && (
+              <div className="absolute inset-0 flex items-center justify-center bg-gray-200">
+                <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+              </div>
+            )}
+            
+            {/* Image element - always present for the observer */}
             <img
-              src={poi.image_url || getDefaultImage(poi.type)}
+              ref={imageRef}
+              src={imageSource || getDefaultImage(poi.type)}
               alt={poi.name}
-              className="w-full h-full object-cover transition-transform duration-300"
-              style={{ transform: isHovered ? 'scale(1.05)' : 'scale(1)' }}
-              onError={(e) => {
-                const img = e.target as HTMLImageElement;
-                img.src = getDefaultImage(poi.type);
-              }}
+              className={`w-full h-full object-cover transition-all duration-300 ${
+                !imageLoaded ? 'opacity-0' : 'opacity-100'
+              } ${isHovered ? 'scale-105' : 'scale-100'}`}
+              onError={handleImageError}
+              onLoad={() => setImageLoaded(true)}
             />
+            
             <div className="absolute top-2 left-2 flex items-center bg-white bg-opacity-90 rounded-full px-2 py-0.5 text-xs">
               {getTypeIcon(poi.type)}
               <span className="capitalize">{poi.type}</span>
@@ -148,6 +202,22 @@ const ItineraryPOICard: FC<ItineraryPOICardProps> = ({ poi, dayOptions, onAddToI
                 >
                   {poi.timeSlot}
                 </span>
+              )}
+              
+              {/* Google Maps Icon */}
+              {poi.place_id && (
+                <a 
+                  href={`https://www.google.com/maps/place/?q=place_id:${poi.place_id}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="ml-1 text-gray-500 hover:text-blue-600"
+                  onClick={(e) => e.stopPropagation()}
+                  title="View on Google Maps"
+                >
+                  <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" />
+                  </svg>
+                </a>
               )}
             </div>
 

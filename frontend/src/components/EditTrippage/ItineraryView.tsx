@@ -59,6 +59,7 @@ const ItineraryView = ({
               <div className="absolute left-0 top-full mt-2 w-64 p-3 bg-white shadow-lg rounded-md border border-gray-200 text-sm text-gray-700 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10">
                 Drag and resize places to adjust timetable. 
                 Click and hold to move items, or resize the edges to adjust the duration.
+                Refresh the page to reset the itinerary.
               </div>
             </div>
           </div>

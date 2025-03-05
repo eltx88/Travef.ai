@@ -1,4 +1,4 @@
-import type { POI, WikidataImageResponse, ExploreParams, TripData, ItineraryPOI, FetchedTripDetails, ItineraryPOIDB, ItineraryPOIChanges, UserTrip, GooglePlaceDetails, POIType, ExploreGoogleParams } from '../Types/InterfaceTypes';
+import type { POI, WikidataImageResponse, ExploreParams, TripData, ItineraryPOI, FetchedTripDetails, ItineraryPOIDB, ItineraryPOIChanges, UserTrip, ExploreGoogleParams } from '../Types/InterfaceTypes';
 
 interface ApiClientConfig {
   getIdToken: () => Promise<string>;
@@ -277,7 +277,6 @@ async getNearbyPlacesByTypes(
         },
         itineraryPOIs: response.itineraryPOIs.map((poi: ItineraryPOIDB) => ({
           PointID: poi.PointID,
-          place_id: poi.place_id,
           StartTime: Number(poi.StartTime),
           EndTime: Number(poi.EndTime),
           day: Number(poi.day),
@@ -286,7 +285,6 @@ async getNearbyPlacesByTypes(
         })),
         unusedPOIs: response.unusedPOIs.map((poi: ItineraryPOIDB) => ({
           PointID: poi.PointID,
-          place_id: poi.place_id,
           StartTime: -1,
           EndTime: -1,
           day: -1,
@@ -305,7 +303,6 @@ async getNearbyPlacesByTypes(
     try {
       // if trip_doc_id is empty, create a new trip
       if (trip_doc_id === "") {
-        console.log("creating new trip because trip_doc_id is empty");
         const processedItineraryPOIs = await Promise.all(
           itineraryPOIs.map(async (poi) => {
             // Create or get POI document
@@ -322,7 +319,6 @@ async getNearbyPlacesByTypes(
     
             return {
               PointID: poiDocId,
-              place_id: poi.place_id,
               StartTime: poi.StartTime,
               EndTime: poi.EndTime,
               timeSlot: poi.timeSlot,
@@ -345,8 +341,7 @@ async getNearbyPlacesByTypes(
               id: poi.id
             });
             return {
-              PointID: poiDocId,
-              place_id: poi.place_id
+              PointID: poiDocId
             };
           })
         );
@@ -367,14 +362,6 @@ async getNearbyPlacesByTypes(
             unusedPOIs: processedUnusedPOIs
           })
         });
-        console.log("params",  JSON.stringify({
-          user_id: userId,
-          city: tripData.city.toLowerCase(),
-          country: tripData.country.toLowerCase(),
-          fromDT: tripData.fromDT?.toISOString(),
-          toDT: tripData.toDT?.toISOString(),
-          monthlyDays: tripData.monthlyDays
-        }));
         await this.fetchWithAuth(`/user/history/saved-trips/${tripDocId}`, {
           method: 'POST',
           body: JSON.stringify({
@@ -389,14 +376,10 @@ async getNearbyPlacesByTypes(
       } else {
           // Get current trip state from backend
         const backendTripDetails = await this.getTripDetails(trip_doc_id);
-  
         // Process all changes
         const changes = this.processPOIChanges(
-          { itineraryPOIs, unusedPOIs },
-          { 
-            itineraryPOIs: backendTripDetails.itineraryPOIs,
-            unusedPOIs: backendTripDetails.unusedPOIs
-          }
+          { itineraryPOIs: itineraryPOIs, unusedPOIs: unusedPOIs},
+          { itineraryPOIs: backendTripDetails.itineraryPOIs, unusedPOIs: backendTripDetails.unusedPOIs   }
         );
   
         // Check if trip data changed
@@ -427,12 +410,6 @@ async getNearbyPlacesByTypes(
               unusedPOIsState: changes.unusedPOIsState
             })
           });
-  
-          // After successful update, update our backend reference
-          const updatedBackendDetails = await this.getTripDetails(trip_doc_id);
-          backendTripDetails.itineraryPOIs = updatedBackendDetails.itineraryPOIs;
-          backendTripDetails.unusedPOIs = updatedBackendDetails.unusedPOIs;
-          backendTripDetails.tripData = updatedBackendDetails.tripData;
         }
       }
     } catch (error) {
@@ -449,7 +426,7 @@ async getNearbyPlacesByTypes(
           frontendPOI.timeSlot !== backendPOI.timeSlot;
   }
 
-  // Function to process POI changes
+  // Function to process POI changes , this is only called when there is already a trip in dB so PointID is always present
   private processPOIChanges(
     frontendData: {
       itineraryPOIs: ItineraryPOI[],
@@ -465,22 +442,22 @@ async getNearbyPlacesByTypes(
         schedulingUpdates: [],
         unusedPOIsState: []
       };
-  
-      // Create maps for easier lookup
-      const backendItineraryMap = new Map(backendData.itineraryPOIs.map(poi => [poi.place_id, poi]));
-      const backendUnusedMap = new Map(backendData.unusedPOIs.map(poi => [poi.place_id, poi]));
       
+      // Create maps for easier lookup
+      const backendItineraryMap = new Map(backendData.itineraryPOIs.map(poi => [poi.PointID, poi]));
+      const backendUnusedMap = new Map(backendData.unusedPOIs.map(poi => [poi.PointID, poi]));
+      const frontendItineraryMap = new Map(frontendData.itineraryPOIs.map(poi => [poi.PointID, poi]));
+
       // Check for POIs moved to itinerary and scheduling updates
-      frontendData.itineraryPOIs.forEach(frontendPOI => {
-        const backendItineraryPOI = backendItineraryMap.get(frontendPOI.place_id);
-        const backendUnusedPOI = backendUnusedMap.get(frontendPOI.place_id);
+      frontendItineraryMap.forEach(frontendPOI => {
+        const backendItineraryPOI = backendItineraryMap.get(frontendPOI.id);
+        const backendUnusedPOI = backendUnusedMap.get(frontendPOI.id);
         const duration = frontendPOI.EndTime - frontendPOI.StartTime;
   
         if (backendUnusedPOI) {
           // New POI moved from unused section to itinerary
           changes.movedToItinerary.push({
             PointID: backendUnusedPOI.PointID,
-            place_id: frontendPOI.place_id,
             StartTime: frontendPOI.StartTime,
             EndTime: frontendPOI.EndTime,
             day: frontendPOI.day,
@@ -491,7 +468,6 @@ async getNearbyPlacesByTypes(
           // POI scheduling details changed
           changes.schedulingUpdates.push({
             PointID: backendItineraryPOI.PointID,
-            place_id: frontendPOI.place_id,
             StartTime: frontendPOI.StartTime,
             EndTime: frontendPOI.EndTime,
             day: frontendPOI.day,
@@ -503,23 +479,21 @@ async getNearbyPlacesByTypes(
   
       // Track POIs moved back to unused
       backendData.itineraryPOIs.forEach(backendPOI => {
-        if (!frontendData.itineraryPOIs.some(poi => poi.place_id === backendPOI.place_id)) {
+        if (!frontendData.itineraryPOIs.some(poi => poi.PointID === backendPOI.PointID)) {
           changes.movedToUnused.push({
-            PointID: backendPOI.PointID,
-            place_id: backendPOI.place_id
+            PointID: backendPOI.PointID
           });
         }
       });
   
       // Set complete state of unused POIs
       frontendData.unusedPOIs.forEach(frontendPOI => {
-        const backendPOI = backendUnusedMap.get(frontendPOI.place_id) || 
-                          backendItineraryMap.get(frontendPOI.place_id);
+        const backendPOI = backendUnusedMap.get(frontendPOI.id) || 
+                          backendItineraryMap.get(frontendPOI.id);
         
         if (backendPOI) {
           changes.unusedPOIsState.push({
-            PointID: backendPOI.PointID,
-            place_id: frontendPOI.place_id
+            PointID: backendPOI.PointID
           });
         }
       });
@@ -566,19 +540,9 @@ async getNearbyPlacesByTypes(
       if (!pois || pois.length === 0) {
         return pois;
       }
-  
-      // Filter place IDs that are from Google (starting with "ChI")
-      const googlePois = pois.filter(poi => poi.place_id && poi.place_id.startsWith('ChI'));
-      
-      if (googlePois.length === 0) {
-        return pois; // Return original list if no Google POIs
-      }
-      
+    
       // Extract just the place IDs for the API request
-      const googlePlaceIds = googlePois.map(poi => poi.place_id);
-      
-      // Create a mapping of place_id to original POI for later merging
-      const poiMap = new Map(googlePois.map(poi => [poi.place_id, poi]));
+      const googlePlaceIds = pois.map(poi => poi.place_id);
       
       // Send the request to get place details in batch
       const response = await this.fetchWithAuth('/googleplaces/batch_details', {
@@ -586,48 +550,33 @@ async getNearbyPlacesByTypes(
         body: JSON.stringify(googlePlaceIds),
       });
       
-      // Create a map of enhanced POIs
-      const enhancedPois = new Map<string, POI>();
-      
-      // Process Google Places details and merge with original POIs
-      for (const [placeId, details] of Object.entries(response) as [string, GooglePlaceDetails][]) {
-        const originalPoi = poiMap.get(placeId);
-        
-        if (originalPoi) {
-          // Merge the original POI with Google data, preferring Google data when available
-          const enhancedPoi: POI = {
-            ...originalPoi,
-            name: details.name || originalPoi.name,
-            coordinates: details.coordinates || originalPoi.coordinates,
-            address: details.formatted_address || originalPoi.address,
-            city: originalPoi.city || city,
-            country: originalPoi.country || country,
-            rating: details.rating || originalPoi.rating,
-            cuisine: details.cuisine || originalPoi.cuisine,
-            description: details.description || originalPoi.description,
-            categories: details.types || originalPoi.categories,
-            image_url: details.image_url || originalPoi.image_url,
-            website: details.website || originalPoi.website,
-            phone: details.phone || originalPoi.phone,
-            opening_hours: details.opening_hours || originalPoi.opening_hours,
-            price_level: details.price_level || originalPoi.price_level
-          };
+      // Filter to include only POIs that have address not equal to ""
+      return pois
+        .filter(poi => response[poi.place_id])
+        .map(poi => {
+          const details = response[poi.place_id];
           
-          enhancedPois.set(placeId, enhancedPoi);
-        }
-      }
-      
-      // Create the final list by replacing original POIs with enhanced ones where available
-      return pois.map(poi => {
-        if (poi.place_id && poi.place_id.startsWith('ChI') && enhancedPois.has(poi.place_id)) {
-          return enhancedPois.get(poi.place_id)!;
-        }
-        return poi;
-      });
+          return {
+            ...poi,
+            name: details.name || poi.name,
+            coordinates: details.coordinates || poi.coordinates,
+            address: details.formatted_address || poi.address,
+            city: poi.city || city,
+            country: poi.country || country,
+            rating: details.rating || poi.rating,
+            cuisine: details.cuisine || poi.cuisine,
+            description: details.description || poi.description,
+            categories: details.types || poi.categories,
+            image_url: details.image_url || poi.image_url,
+            website: details.website || poi.website,
+            phone: details.phone || poi.phone,
+            opening_hours: details.opening_hours || poi.opening_hours,
+            price_level: details.price_level || poi.price_level
+          };
+        });
       
     } catch (error) {
       console.error('Error fetching batch place details:', error);
-      // Return original POIs if there's an error
       return pois;
     }
   }

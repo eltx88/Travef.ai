@@ -77,6 +77,16 @@ export default {
             transform: 'translateX(0)'
           },
         },
+        'fade-in': {
+          '0%': {
+            opacity: '0',
+            transform: 'translateY(100px)'
+          },
+          '100%': {
+            opacity: '1',
+            transform: 'translateY(0)'
+          }
+        },
         'fade-in-right': {
           '0%': {
             opacity: '0',
@@ -113,6 +123,7 @@ export default {
         }
       },
       animation: {
+        'fade-in': 'fadeIn 2s ease-in-out',
         'fade-in-down': 'fade-in-down 4s ease-out forwards',
         'fade-in-left': 'fade-in-left 2s ease-out forwards',
         'fade-in-right': 'fade-in-right 0.5s ease-out forwards',

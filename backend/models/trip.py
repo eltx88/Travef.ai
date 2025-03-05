@@ -24,7 +24,6 @@ class TripData(BaseModel):
 
 class ItineraryPOI(BaseModel):
     PointID: str
-    place_id: str
     StartTime: int
     EndTime: int
     timeSlot: str
@@ -33,7 +32,6 @@ class ItineraryPOI(BaseModel):
 
 class UnusedPOI(BaseModel):
     PointID: str
-    place_id: str
 
 class SaveTripRequest(BaseModel):
     tripData: TripData
@@ -73,7 +71,6 @@ class TripDataUpdate(BaseModel):
 
 class ItineraryPOIUpdate(BaseModel):
     PointID: str
-    place_id: str
     StartTime: int
     EndTime: int
     timeSlot: str
@@ -82,14 +79,13 @@ class ItineraryPOIUpdate(BaseModel):
 
 class UnusedPOIUpdate(BaseModel):
     PointID: str
-    place_id: str
 
 class TripUpdateRequest(BaseModel):
     tripDataChanged: Optional[TripDataUpdate]
-    movedToItinerary: List[ItineraryPOIUpdate]
-    movedToUnused: List[UnusedPOIUpdate]
-    schedulingUpdates: List[ItineraryPOIUpdate]
-    unusedPOIsState: List[UnusedPOIUpdate]
+    movedToItinerary: Optional[List[ItineraryPOIUpdate]]
+    movedToUnused: Optional[List[UnusedPOIUpdate]]
+    schedulingUpdates: Optional[List[ItineraryPOIUpdate]]
+    unusedPOIsState: Optional[List[UnusedPOIUpdate]]
 
     class Config:
         populate_by_name = True
