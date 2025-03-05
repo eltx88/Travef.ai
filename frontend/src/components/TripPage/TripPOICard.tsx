@@ -1,7 +1,8 @@
+import { useState, useEffect, useRef } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Plus, Check, Phone, Mail, Clock, Info } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Plus, Check, Info, MapPin, Coffee, Utensils, Star } from "lucide-react";
 import { useLocation } from '@/contexts/LocationContext';
 import type { POI } from '@/Types/InterfaceTypes';
 
@@ -12,14 +13,46 @@ interface TripPOICardProps {
   showAddButton?: boolean;
 }
 
-//TEMPORARY PLACEHOLDER IMAGES
-const DEFAULT_ATTRACTION_IMAGE = "https://fastly.picsum.photos/id/57/2448/3264.jpg?hmac=ewraXYesC6HuSEAJsg3Q80bXd1GyJTxekI05Xt9YjfQ";
-const DEFAULT_RESTAURANT_IMAGE = "https://fastly.picsum.photos/id/431/5000/3334.jpg?hmac=T2rL_gBDyJYpcr1Xm8Kv7L6bhwvmZS8nKT5w3ok58kA";
-const getImage = (type: string, image_url?: string) => {
-  if(image_url) {
-    return image_url;
+// TEMPORARY PLACEHOLDER IMAGES
+const DEFAULT_ATTRACTION_IMAGE = "https://images.unsplash.com/photo-1607434472257-d9f8e57a643d?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8bG9hZGluZ3xlbnwwfHwwfHx8MA%3D%3D";
+const DEFAULT_RESTAURANT_IMAGE = "https://images.unsplash.com/photo-1607434472257-d9f8e57a643d?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8bG9hZGluZ3xlbnwwfHwwfHx8MA%3D%3D";
+
+const getDefaultImage = (type: string) => {
+  switch (type) {
+    case 'restaurant':
+      return DEFAULT_RESTAURANT_IMAGE;
+    case 'cafe':
+      return DEFAULT_RESTAURANT_IMAGE;
+    default:
+      return DEFAULT_ATTRACTION_IMAGE;
   }
-  return type === 'restaurant' ? DEFAULT_RESTAURANT_IMAGE : DEFAULT_ATTRACTION_IMAGE;
+};
+
+const getTypeIcon = (type: string) => {
+  switch (type) {
+    case 'restaurant':
+      return <Utensils className="h-3.5 w-3.5 mr-1 text-blue-600" />;
+    case 'cafe':
+      return <Coffee className="h-3.5 w-3.5 mr-1 text-green-600" />;
+    default:
+      return <MapPin className="h-3.5 w-3.5 mr-1 text-red-600" />;
+  }
+};
+
+// Helper for proxying image URLs
+const getProxiedImageUrl = (url: string | undefined, type: string) => {
+  if (!url) return getDefaultImage(type || 'attraction');
+  
+  // If URL is already a proxied URL or blob URL, return it
+  if (url.startsWith('https://images.weserv.nl') || url.startsWith('blob:')) {
+    return url;
+  }
+
+  // Fix the URL protocol if missing
+  const fixedUrl = url.startsWith('http') ? url : `https:${url}`;
+  
+  // Use images.weserv.nl as a proxy with caching
+  return `https://images.weserv.nl/?url=${encodeURIComponent(fixedUrl)}&default=${encodeURIComponent(getDefaultImage(type || 'attraction'))}&n=-1`;
 };
 
 const TripPOICard = ({ 
@@ -29,177 +62,298 @@ const TripPOICard = ({
   showAddButton = true 
 }: TripPOICardProps) => {
   const { updateCoordinates } = useLocation();
+  const [isHovered, setIsHovered] = useState(false);
+  const [showDetails, setShowDetails] = useState(false);
+  const [shouldLoadImage, setShouldLoadImage] = useState(false);
+  const [imageLoaded, setImageLoaded] = useState(false);
+  const imageRef = useRef<HTMLImageElement>(null);
+
+  // Set up IntersectionObserver to detect when card is in viewport
+  useEffect(() => {
+    if (!imageRef.current) return;
+    
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          setShouldLoadImage(true);
+          observer.disconnect();
+        }
+      },
+      { threshold: 0.1 }
+    );
+    
+    observer.observe(imageRef.current);
+    
+    return () => {
+      observer.disconnect();
+    };
+  }, []);
 
   const handleCardClick = () => {
-    updateCoordinates({
-      lat: poi.coordinates.lat,
-      lng: poi.coordinates.lng,
-      zoom: 16
-    });
+    if (poi.coordinates?.lat && poi.coordinates?.lng) {
+      updateCoordinates({
+        lat: poi.coordinates.lat,
+        lng: poi.coordinates.lng,
+        zoom: 16
+      });
+    }
   };
 
-  const openWebsite = (e: React.MouseEvent, url: string) => {
-    e.stopPropagation();
-    window.open(url, '_blank');
+  // Function to generate Google Maps URL
+  const getGoogleMapsUrl = (id: string) => {
+    return `https://www.google.com/maps/place/?q=place_id:${id}`;
   };
+
+  // Handle image loading errors
+  const handleImageError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+    e.currentTarget.src = getDefaultImage(poi.type || 'attraction');
+  };
+
+  function renderRatingStars(rating: number | undefined | null, user_ratings_total: number | undefined | null) {
+    if (!rating) return null;
+    
+    const fullStars = Math.floor(rating);
+    const halfStar = rating % 1 >= 0.5;
+    const emptyStars = 5 - fullStars - (halfStar ? 1 : 0);
+    
+    return (
+      <div className="flex items-center mt-1">
+        {[...Array(fullStars)].map((_, i) => (
+          <Star key={`full-${i}`} className="w-3 h-3 text-yellow-500 fill-yellow-500" />
+        ))}
+        {halfStar && (
+          <span className="relative">
+            <Star className="w-3 h-3 text-yellow-500" />
+            <Star className="absolute top-0 left-0 w-3 h-3 text-yellow-500 fill-yellow-500 overflow-hidden" style={{ clipPath: 'polygon(0 0, 50% 0, 50% 100%, 0 100%)' }} />
+          </span>
+        )}
+        {[...Array(emptyStars)].map((_, i) => (
+          <Star key={`empty-${i}`} className="w-3 h-3 text-yellow-500" />
+        ))}
+        <span className="ml-1 text-xs text-gray-600">
+          {rating.toFixed(1)} ({user_ratings_total || 0})
+        </span>
+      </div>
+    );
+  }
 
   return (
-    <Card 
-      className="h-full bg-white shadow-md hover:shadow-lg transition-shadow cursor-pointer"
-      onClick={handleCardClick}
-    >
-      <CardContent className="p-4 flex flex-col h-full">
-        <div className="bg-gray-200 rounded-md aspect-[4/3] mb-4">
-          <div className="relative rounded-md overflow-hidden aspect-[4/3] mb-4">
+    <>
+      <Card 
+        className={`
+          h-full bg-white shadow-md hover:shadow-lg transition-shadow flex flex-col overflow-hidden
+          ${isSelected ? 'ring-2 ring-blue-500' : ''}
+        `}
+        onClick={handleCardClick}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+      >
+        <CardContent className="p-0 flex flex-col h-full">
+          {/* Image Section with Type Indicator */}
+          <div className="relative overflow-hidden aspect-[4/3]">
             <img
-              src={getImage(poi.type, poi.image_url)}
+              ref={imageRef}
+              src={shouldLoadImage 
+                ? getProxiedImageUrl(poi.image_url, poi.type || 'attraction')
+                : getDefaultImage(poi.type || 'attraction')
+              }
               alt={poi.name}
-              className="w-full h-full object-cover"
-              onError={(e) => {
-                const img = e.target as HTMLImageElement;
-                img.src = getImage(poi.type, poi.image_url);
-              }}
+              className="w-full h-full object-cover transition-transform duration-300"
+              style={{ transform: isHovered ? 'scale(1.05)' : 'scale(1)' }}
+              onError={handleImageError}
+              onLoad={() => setImageLoaded(true)}
             />
+            <div className="absolute top-2 left-2 flex items-center bg-white bg-opacity-90 rounded-full px-2 py-0.5 text-xs">
+              {getTypeIcon(poi.type || 'attraction')}
+              <span className="capitalize">{poi.type || 'attraction'}</span>
+            </div>
           </div>
-        </div>
-        
-        <div className="flex flex-col flex-grow">
-          <div className="flex items-start justify-between gap-2 mb-2">
-            <div className="min-w-0 flex-grow">
+          
+          {/* Content Section */}
+          <div className="flex flex-col flex-grow p-3">
+            {/* POI Name - removed Google Maps icon and Add button from here */}
+            <div className="min-w-0 mb-1">
               {poi.website ? (
                 <a 
                   href={poi.website}
                   target="_blank"
                   rel="noopener noreferrer"
-                  onClick={(e) => openWebsite(e, poi.website!)}
-                  className="font-semibold text-lg text-blue-600 hover:text-blue-800 truncate block"
+                  className="font-semibold text-sm truncate hover:text-blue-600 hover:underline"
+                  onClick={(e) => e.stopPropagation()}
                 >
                   {poi.name}
                 </a>
               ) : (
-                <h4 className="font-semibold text-lg truncate">{poi.name}</h4>
+                <h4 className="font-semibold text-sm truncate">{poi.name}</h4>
               )}
             </div>
-            {showAddButton && onSelect && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className={`rounded-full h-8 w-8 flex-shrink-0 ${
-                  isSelected ? 'bg-green-100 text-green-600 hover:bg-green-200' : 'hover:bg-gray-100'
-                }`}
+            
+            {renderRatingStars(poi.rating, poi.user_ratings_total)}
+
+            {/* Address */}
+            <div className="flex items-center gap-1 text-gray-600 text-xs mt-1">
+              <MapPin className="h-3 w-3" />
+              <p className="truncate">{poi.address}</p>
+            </div>
+            
+            {/* Action Buttons - Now all aligned together */}
+            <div className="mt-auto pt-2 flex justify-between items-center gap-2">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="text-xs text-blue-600 hover:text-blue-800 p-1 h-auto"
                 onClick={(e) => {
                   e.stopPropagation();
-                  onSelect(poi);
+                  setShowDetails(true);
                 }}
               >
-                {isSelected ? <Check className="h-5 w-5" /> : <Plus className="h-5 w-5" />}
+                <Info className="h-3.5 w-3.5 mr-1" />
+                More details
               </Button>
-            )}
-          </div>
-
-          <p className="text-gray-600 text-sm truncate mb-4">{poi.address}</p>
-
-          {/* Dialog remains the same */}
-          <div className="mt-auto">
-            <Dialog>
-              <DialogTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <Info className="h-4 w-4 mr-2" />
-                  More Details
-                </Button>
-                </DialogTrigger>
-            <DialogContent className="max-w-md bg-white p-4 rounded-md">
-              <DialogHeader>
-                <DialogTitle>{poi.name}</DialogTitle>
-              </DialogHeader>
               
-              <div className="space-y-4 mt-4">
-                {poi.website && (
-                  <div>
-                    <h4 className="font-medium mb-1">Website</h4>
-                    <a 
-                      href={poi.website}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-sm text-blue-600 hover:text-blue-800 hover:underline break-all"
-                    >
-                      {poi.website}
-                    </a>
-                  </div>
-                )}
-                  
-                {poi.description && (
-                  <div>
-                    <h4 className="font-medium mb-1">About</h4>
-                    <p className="text-sm text-gray-600">{poi.description}</p>
-                  </div>
+              <div className="flex items-center gap-2 ml-auto">
+                {/* Google Maps Link moved here */}
+                {poi.place_id && (
+                  <a 
+                    href={getGoogleMapsUrl(poi.place_id)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-gray-500 hover:text-blue-600"
+                    onClick={(e) => e.stopPropagation()}
+                    title="View on Google Maps"
+                  >
+                    <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" />
+                    </svg>
+                  </a>
                 )}
 
-                {poi.opening_hours && (
-                  <div className="flex items-start gap-2">
-                    <Clock className="h-5 w-5 text-gray-500 mt-0.5" />
-                    <div>
-                      <h4 className="font-medium mb-1">Opening Hours</h4>
-                      <p className="text-sm text-gray-600">{poi.opening_hours}</p>
-                    </div>
-                  </div>
-                )}
-
-                {poi.cuisine && poi.cuisine.length > 0 && (
-                  <div>
-                    <h4 className="font-medium mb-1">Cuisine</h4>
-                    <div className="flex flex-wrap gap-2">
-                      {poi.cuisine.map((cuisine, index) => (
-                        <span 
-                          key={index}
-                          className="px-2 py-1 bg-blue-100 text-blue-800 text-sm rounded-full"
-                        >
-                          {cuisine}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {(poi.phone || poi.email) && (
-                  <div className="space-y-2">
-                    <h4 className="font-medium">Contact</h4>
-                    {poi.phone && (
-                      <div className="flex items-center gap-2">
-                        <Phone className="h-4 w-4 text-gray-500" />
-                        <a 
-                          href={`tel:${poi.phone}`}
-                          className="text-sm text-blue-600 hover:text-blue-800"
-                        >
-                          {poi.phone}
-                        </a>
-                      </div>
-                    )}
-                    {poi.email && (
-                      <div className="flex items-center gap-2">
-                        <Mail className="h-4 w-4 text-gray-500" />
-                        <a 
-                          href={`mailto:${poi.email}`}
-                          className="text-sm text-blue-600 hover:text-blue-800"
-                        >
-                          {poi.email}
-                        </a>
-                      </div>
-                    )}
-                  </div>
+                {/* Add Button moved here */}
+                {showAddButton && onSelect && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className={`rounded-full h-7 w-7 flex-shrink-0 p-0 ${
+                      isSelected ? 'bg-green-100 text-green-600 hover:bg-green-200' : 'hover:bg-gray-100'
+                    }`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onSelect(poi);
+                    }}
+                    title={isSelected ? "Remove from itinerary" : "Add to itinerary"}
+                  >
+                    {isSelected ? <Check className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+                  </Button>
                 )}
               </div>
-            </DialogContent>
-          </Dialog>
+            </div>
           </div>
-        </div>
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+
+      {/* Details Dialog */}
+      <Dialog open={showDetails} onOpenChange={setShowDetails}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-semibold flex items-center">
+              {poi.name}
+              {/* Google Maps Icon in Dialog */}
+              {poi.place_id && (
+                <a 
+                  href={getGoogleMapsUrl(poi.place_id)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="ml-1.5 text-gray-500 hover:text-blue-600"
+                  title="View on Google Maps"
+                >
+                  <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" />
+                  </svg>
+                </a>
+              )}
+            </DialogTitle>
+            <DialogDescription className="flex items-center text-sm text-gray-600">
+              {getTypeIcon(poi.type || 'attraction')}
+              <span className="capitalize ml-1">{poi.type || 'attraction'}</span>
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            {/* Image */}
+            <div className="overflow-hidden rounded-md">
+              <img
+                src={getProxiedImageUrl(poi.image_url, poi.type || 'attraction')}
+                alt={poi.name}
+                className="w-full aspect-[4/3] object-cover"
+                onError={handleImageError}
+              />
+            </div>
+            
+            {/* Address */}
+            <div className="space-y-1">
+              <h4 className="font-medium text-sm">Address</h4>
+              <p className="text-sm text-gray-600">{poi.address}</p>
+              {poi.city && poi.country && (
+                <p className="text-sm text-gray-600">{poi.city}, {poi.country}</p>
+              )}
+            </div>
+            
+            {/* Description */}
+            {poi.description && (
+              <div className="space-y-1">
+                <h4 className="font-medium text-sm">Description</h4>
+                <p className="text-sm text-gray-600">{poi.description}</p>
+              </div>
+            )}
+            
+            {/* Opening Hours */}
+            {poi.opening_hours && (
+              <div className="space-y-1">
+                <h4 className="font-medium text-sm">Opening Hours</h4>
+                <p className="text-sm text-gray-600 whitespace-pre-line">{poi.opening_hours}</p>
+              </div>
+            )}
+            
+            {/* Contact Info */}
+            {(poi.website || poi.phone) && (
+              <div className="space-y-1">
+                <h4 className="font-medium text-sm">Contact</h4>
+                {poi.website && (
+                  <a 
+                    href={poi.website} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="block text-sm text-blue-600 hover:underline"
+                  >
+                    Website
+                  </a>
+                )}
+                {poi.phone && (
+                  <p className="text-sm text-gray-600">{poi.phone}</p>
+                )}
+              </div>
+            )}
+            
+            {/* Cuisine tags for restaurants */}
+            {poi.cuisine && poi.cuisine.length > 0 && (
+              <div className="space-y-1">
+                <h4 className="font-medium text-sm">Cuisine</h4>
+                <div className="flex flex-wrap gap-2">
+                  {poi.cuisine.map((cuisine, index) => (
+                    <span 
+                      key={index}
+                      className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full"
+                    >
+                      {cuisine}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 };
 

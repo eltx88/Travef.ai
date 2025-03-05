@@ -1,5 +1,5 @@
-import foodDataJSON from '@/geoapifyfilters/fooddrink.json';
-import attractionsDataJSON from '@/geoapifyfilters/attraction.json';
+import foodDataJSON from '@/googleplacesfilters/food.json';
+import attractionsDataJSON from '@/googleplacesfilters/attractions.json';
 import Fuse, { IFuseOptions } from 'fuse.js';
 import { TripData } from '@/Types/InterfaceTypes';
 

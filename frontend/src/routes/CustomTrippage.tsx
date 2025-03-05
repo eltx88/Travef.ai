@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { NavigationMenuBar } from "@/components/NavigationMenuBar";
 import { useLocation } from 'react-router-dom';
 import { useTripPreferencesPOIData } from '@/components/hooks/useTripPreferencesPOIData';
-import type { TripData } from '@/Types/InterfaceTypes';
+import type { TripData, POI, POIType } from '@/Types/InterfaceTypes';
 import RetryButtonServerFail from "@/components/RetryButtonServerFail";
 import LoadingGlobe from "@/components/LoadingGlobe";
 import LoadingOverlay from "@/components/LoadingOverlay";
@@ -11,7 +11,6 @@ import TripPOIContainer from "@/components/TripPage/TripPOIContainer";
 import MapContainer from "@/components/Containers/MapContainer";
 import { LocationProvider } from '@/contexts/LocationContext';
 import { useNavigate } from 'react-router-dom';
-import { POI } from '@/Types/InterfaceTypes';
 import Footer from '@/components/Footer';
 
 function CustomTripPageContent() {
@@ -32,6 +31,9 @@ function CustomTripPageContent() {
   const [displayedPOIs, setDisplayedPOIs] = useState<POI[]>([]);
   const resizeTimeoutRef = useRef<NodeJS.Timeout>();
   const [savedPOIs, setSavedPOIs] = useState<POI[]>([]);
+  const [searchTerm, setSearchTerm] = useState<string>('');
+  const [currentCategory, setCurrentCategory] = useState<POIType>("attraction");
+  const [filteredPOIs, setFilteredPOIs] = useState<POI[]>([]);
 
   const { loading, error, retry } = useTripPreferencesPOIData(
     tripData, 
@@ -43,6 +45,28 @@ function CustomTripPageContent() {
       setSavedPOIs(savedPois);
     }
   );
+
+  // Initialize filteredPOIs with combined displayedPOIs and savedPOIs
+  useEffect(() => {
+    const combinedPOIs = [...displayedPOIs, ...savedPOIs].filter(
+      poi => poi.type === currentCategory
+    );
+    setFilteredPOIs(combinedPOIs);
+  }, [displayedPOIs, savedPOIs, currentCategory]);
+
+  useEffect(() => {
+    const handleSearchForPoi = (event: CustomEvent) => {
+      if (event.detail && event.detail.name) {
+        setSearchTerm(event.detail.name);
+      }
+    };
+
+    document.addEventListener('searchForPoi', handleSearchForPoi as EventListener);
+    
+    return () => {
+      document.removeEventListener('searchForPoi', handleSearchForPoi as EventListener);
+    };
+  }, []);
 
   const startResizing = useCallback((mouseDownEvent: React.MouseEvent) => {
     mouseDownEvent.preventDefault();
@@ -88,6 +112,10 @@ function CustomTripPageContent() {
     };
   }, [isResizing, resize, stopResizing]);
 
+  const handleFilteredPOIsChange = useCallback((filteredPOIs: POI[]) => {
+    setFilteredPOIs(filteredPOIs);
+  }, []);
+
   if (loading) {
     return <LoadingGlobe />;
   }
@@ -103,6 +131,10 @@ function CustomTripPageContent() {
           pois={displayedPOIs} 
           savedpois={savedPOIs} 
           setIsGenerating={setIsGenerating}
+          searchTerm={searchTerm}
+          categoryFilter={currentCategory}
+          onCategoryChange={setCurrentCategory}
+          onFilteredPOIsChange={handleFilteredPOIsChange}
         />
       </div>
 
@@ -131,20 +163,8 @@ function CustomTripPageContent() {
         {displayedPOIs.length > 0 && (
           <MapContainer 
             isResizing={isResizing} 
-            pois={displayedPOIs.filter(poi => 
-              poi.coordinates && 
-              typeof poi.coordinates.lat === 'number' && 
-              !isNaN(poi.coordinates.lat) &&
-              typeof poi.coordinates.lng === 'number' && 
-              !isNaN(poi.coordinates.lng)
-            )} 
-            savedPois={savedPOIs.filter(poi => 
-              poi.coordinates && 
-              typeof poi.coordinates.lat === 'number' && 
-              !isNaN(poi.coordinates.lat) &&
-              typeof poi.coordinates.lng === 'number' && 
-              !isNaN(poi.coordinates.lng)
-            )} 
+            pois={filteredPOIs.filter(poi => !savedPOIs.some(sp => sp.place_id === poi.place_id))}
+            savedPois={filteredPOIs.filter(poi => savedPOIs.some(sp => sp.place_id === poi.place_id))}
           />
         )}
       </div>

@@ -13,6 +13,8 @@ interface POITabsProps {
     onNameFilterChange: (value: string) => void;
     onCategoryFilterChange: (value: any) => void;
     onRatingFilterChange: (value: number | null) => void;
+    sortByRating?: boolean;
+    onSortByRatingChange?: (value: boolean) => void;
     loading: boolean;
     error: string | null;
     pois: POI[];
@@ -32,6 +34,8 @@ const POITabs = ({
     onNameFilterChange,
     onCategoryFilterChange,
     onRatingFilterChange,
+    sortByRating = false,
+    onSortByRatingChange,
     loading,
     error,
     pois,
@@ -64,6 +68,8 @@ const POITabs = ({
                 onNameFilterChange={onNameFilterChange}
                 onCategoryFilterChange={onCategoryFilterChange}
                 onRatingFilterChange={onRatingFilterChange}
+                sortByRating={sortByRating}
+                onSortByRatingChange={onSortByRatingChange}
                 tabType={activeTab}
                 loading={loading}
             />

@@ -10,6 +10,8 @@ import { Building2, Coffee, Landmark, Star, UtensilsCrossed, X } from 'lucide-re
 import { useEffect, useState } from 'react';
 import type { POIType } from '../../Types/InterfaceTypes';
 import { useDebounce } from '../hooks/debounce';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 
 type TabType = 'saved' | 'explore';
 type CategoryType = POIType;
@@ -24,6 +26,8 @@ interface POIFiltersProps {
     onSearch?: () => void;
     tabType: TabType;
     loading?: boolean;
+    sortByRating?: boolean;
+    onSortByRatingChange?: (value: boolean) => void;
 }
 
 const POIFilters = ({
@@ -35,6 +39,8 @@ const POIFilters = ({
     onRatingFilterChange,
     tabType,
     loading = false,
+    sortByRating = false,
+    onSortByRatingChange,
 }: POIFiltersProps) => {
     const [localNameFilter, setLocalNameFilter] = useState(nameFilter);
     const debouncedNameFilter = useDebounce(localNameFilter, 500);
@@ -56,10 +62,10 @@ const POIFilters = ({
 
     const ratingOptions = [
         { value: null, label: 'Any Rating' },
-        { value: 3, label: '3+ Stars' },
-        { value: 3.5, label: '3.5+ Stars' },
-        { value: 4, label: '4+ Stars' },
+        { value: 4.7, label: '4.7+ Stars' },
         { value: 4.5, label: '4.5+ Stars' },
+        { value: 4.0, label: '4.0+ Stars' },
+        { value: 3.5, label: '3.5+ Stars' },
     ];
 
     useEffect(() => {
@@ -70,6 +76,37 @@ const POIFilters = ({
     useEffect(() => {
         onNameFilterChange(debouncedNameFilter);
     }, [debouncedNameFilter, onNameFilterChange]);
+
+    // Helper function to render star icons for rating options
+    const renderRatingStars = (rating: number | null) => {
+        if (rating === null) return null;
+
+        const fullStars = Math.floor(rating);
+        const hasPartialStar = rating % 1 > 0;
+        const partialStarPercentage = (rating % 1) * 100;
+
+        return (
+            <span className="flex items-center">
+                {Array(fullStars).fill(0).map((_, i) => (
+                    <Star key={i} className="mr-0.5 h-3.5 w-3.5 text-yellow-400 fill-yellow-400" />
+                ))}
+                {hasPartialStar && (
+                    <span className="relative mr-0.5">
+                        <Star className="h-3.5 w-3.5 text-yellow-400" />
+                        <Star 
+                            className="absolute top-0 left-0 h-3.5 w-3.5 text-yellow-400 fill-yellow-400 overflow-hidden" 
+                            style={{ 
+                                clipPath: `polygon(0 0, ${partialStarPercentage}% 0, ${partialStarPercentage}% 100%, 0 100%)` 
+                            }} 
+                        />
+                    </span>
+                )}
+                {Array(5 - Math.ceil(rating)).fill(0).map((_, i) => (
+                    <Star key={`empty-${i}`} className="mr-0.5 h-3.5 w-3.5 text-gray-300" />
+                ))}
+            </span>
+        );
+    };
 
     return (
         <div className="space-y-4">
@@ -151,15 +188,14 @@ const POIFilters = ({
                                 <SelectValue placeholder="Rating" />
                             </SelectTrigger>
                             <SelectContent className="bg-white">
-                                {ratingOptions.map(({ value, label }) => (
+                                {ratingOptions.map(({ value }) => (
                                     <SelectItem 
                                         key={value === null ? "null" : value.toString()} 
                                         value={value === null ? "null" : value.toString()}
                                         className="cursor-pointer"
                                     >
-                                        <span className="flex items-center">
-                                            {value !== null && <Star className="mr-2 h-4 w-4 text-yellow-400 fill-yellow-400" />}
-                                            {label}
+                                        <span className="flex items-center gap-2">
+                                            {value !== null ? renderRatingStars(value) : "Any Rating"}
                                         </span>
                                     </SelectItem>
                                 ))}
@@ -168,6 +204,21 @@ const POIFilters = ({
                     </div>
                 </div>
             </div>
+
+            {/* Sort by rating toggle */}
+            {onSortByRatingChange && (
+                <div className="flex items-center space-x-2 pt-2">
+                    <Switch
+                        id="sort-by-rating"
+                        checked={sortByRating}
+                        onCheckedChange={onSortByRatingChange}
+                        disabled={loading}
+                    />
+                    <Label htmlFor="sort-by-rating" className="text-sm text-gray-700">
+                        Sort by highest rating
+                    </Label>
+                </div>
+            )}
             
             {tabType === 'explore' && (
                 <div className="text-sm text-gray-500">
