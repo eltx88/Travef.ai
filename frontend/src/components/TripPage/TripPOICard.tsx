@@ -14,8 +14,8 @@ interface TripPOICardProps {
 }
 
 // TEMPORARY PLACEHOLDER IMAGES
-const DEFAULT_ATTRACTION_IMAGE = "https://fastly.picsum.photos/id/57/2448/3264.jpg?hmac=ewraXYesC6HuSEAJsg3Q80bXd1GyJTxekI05Xt9YjfQ";
-const DEFAULT_RESTAURANT_IMAGE = "https://fastly.picsum.photos/id/431/5000/3334.jpg?hmac=T2rL_gBDyJYpcr1Xm8Kv7L6bhwvmZS8nKT5w3ok58kA";
+const DEFAULT_ATTRACTION_IMAGE = "https://images.unsplash.com/photo-1607434472257-d9f8e57a643d?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8bG9hZGluZ3xlbnwwfHwwfHx8MA%3D%3D";
+const DEFAULT_RESTAURANT_IMAGE = "https://images.unsplash.com/photo-1607434472257-d9f8e57a643d?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8bG9hZGluZ3xlbnwwfHwwfHx8MA%3D%3D";
 
 const getDefaultImage = (type: string) => {
   switch (type) {
@@ -171,54 +171,20 @@ const TripPOICard = ({
           
           {/* Content Section */}
           <div className="flex flex-col flex-grow p-3">
-            {/* POI Name with Google Maps Icon */}
-            <div className="min-w-0 mb-1 flex items-center justify-between">
-              <div className="flex-grow min-w-0">
-                {poi.website ? (
-                  <a 
-                    href={poi.website}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="font-semibold text-sm truncate hover:text-blue-600 hover:underline"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    {poi.name}
-                  </a>
-                ) : (
-                  <h4 className="font-semibold text-sm truncate">{poi.name}</h4>
-                )}
-                
-                {/* Google Maps Icon */}
-                {poi.place_id && (
-                  <a 
-                    href={getGoogleMapsUrl(poi.place_id)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="ml-1.5 text-gray-500 hover:text-blue-600 inline-block"
-                    onClick={(e) => e.stopPropagation()}
-                    title="View on Google Maps"
-                  >
-                    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" />
-                    </svg>
-                  </a>
-                )}
-              </div>
-              
-              {showAddButton && onSelect && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className={`rounded-full h-8 w-8 flex-shrink-0 ${
-                    isSelected ? 'bg-green-100 text-green-600 hover:bg-green-200' : 'hover:bg-gray-100'
-                  }`}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onSelect(poi);
-                  }}
+            {/* POI Name - removed Google Maps icon and Add button from here */}
+            <div className="min-w-0 mb-1">
+              {poi.website ? (
+                <a 
+                  href={poi.website}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-semibold text-sm truncate hover:text-blue-600 hover:underline"
+                  onClick={(e) => e.stopPropagation()}
                 >
-                  {isSelected ? <Check className="h-5 w-5" /> : <Plus className="h-5 w-5" />}
-                </Button>
+                  {poi.name}
+                </a>
+              ) : (
+                <h4 className="font-semibold text-sm truncate">{poi.name}</h4>
               )}
             </div>
             
@@ -230,8 +196,8 @@ const TripPOICard = ({
               <p className="truncate">{poi.address}</p>
             </div>
             
-            {/* Action Buttons */}
-            <div className="mt-auto pt-2 flex justify-between items-center">
+            {/* Action Buttons - Now all aligned together */}
+            <div className="mt-auto pt-2 flex justify-between items-center gap-2">
               <Button 
                 variant="ghost" 
                 size="sm" 
@@ -244,6 +210,42 @@ const TripPOICard = ({
                 <Info className="h-3.5 w-3.5 mr-1" />
                 More details
               </Button>
+              
+              <div className="flex items-center gap-2 ml-auto">
+                {/* Google Maps Link moved here */}
+                {poi.place_id && (
+                  <a 
+                    href={getGoogleMapsUrl(poi.place_id)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-gray-500 hover:text-blue-600"
+                    onClick={(e) => e.stopPropagation()}
+                    title="View on Google Maps"
+                  >
+                    <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" />
+                    </svg>
+                  </a>
+                )}
+
+                {/* Add Button moved here */}
+                {showAddButton && onSelect && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className={`rounded-full h-7 w-7 flex-shrink-0 p-0 ${
+                      isSelected ? 'bg-green-100 text-green-600 hover:bg-green-200' : 'hover:bg-gray-100'
+                    }`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onSelect(poi);
+                    }}
+                    title={isSelected ? "Remove from itinerary" : "Add to itinerary"}
+                  >
+                    {isSelected ? <Check className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+                  </Button>
+                )}
+              </div>
             </div>
           </div>
         </CardContent>

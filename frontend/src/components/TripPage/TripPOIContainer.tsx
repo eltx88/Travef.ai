@@ -1,8 +1,8 @@
 //Used in CustomTripPage.tsx
-import { useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Button } from "@/components/ui/button";
-import { Calendar, ChevronLeft, ChevronRight } from "lucide-react";
-import type { ItineraryPOI, POI, TripData } from '@/Types/InterfaceTypes';
+import { Calendar, ChevronLeft, ChevronRight, Star } from "lucide-react";
+import type { ItineraryPOI, POI, TripData, POIType } from '@/Types/InterfaceTypes';
 import TripPOICard from './TripPOICard';
 import { useNavigate } from 'react-router-dom';
 import { TripGenerationService } from './TripGenerationService';
@@ -10,12 +10,23 @@ import { useAuthStore } from '@/firebase/firebase';
 import ApiClient from '@/Api/apiClient';
 import { processItinerary } from './ItineraryProcessing';
 import { toast } from 'react-hot-toast';
+import { Input } from "@/components/ui/input";
+import { X } from "lucide-react";
+import { useDebounce } from "../hooks/debounce";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Landmark, UtensilsCrossed, Coffee } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 interface TripPOIContainerProps {
   tripData: TripData;
   pois: POI[];
   savedpois: POI[];
   setIsGenerating: (loading: boolean) => void;
+  searchTerm?: string;
+  categoryFilter?: POIType;
+  onCategoryChange?: (category: POIType) => void;
 }
 
 const ITEMS_PER_PAGE = 6;
@@ -115,7 +126,15 @@ const POIGrid = ({
   );
 };
 
-const TripPOIContainer = ({ tripData, pois, savedpois, setIsGenerating }: TripPOIContainerProps) => {
+const TripPOIContainer = ({ 
+  tripData, 
+  pois, 
+  savedpois, 
+  setIsGenerating,
+  searchTerm = '',
+  categoryFilter = 'attraction',
+  onCategoryChange
+}: TripPOIContainerProps) => {
   // Separate page states for explore and saved POIs
   const [currentExploreAttractionPage, setCurrentExploreAttractionPage] = useState(0);
   const [currentExploreFoodPage, setCurrentExploreFoodPage] = useState(0);
@@ -123,12 +142,84 @@ const TripPOIContainer = ({ tripData, pois, savedpois, setIsGenerating }: TripPO
   const [currentSavedFoodPage, setCurrentSavedFoodPage] = useState(0);
   const [currentSavedCafePage, setCurrentSavedCafePage] = useState(0);
   const [selectedPOIs, setSelectedPOIs] = useState<Set<string>>(new Set());
+  
+  // Replace separate filters with a single filter and a category selector
+  const [nameFilter, setNameFilter] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState<POIType>(categoryFilter);
+  
+  // Single debounced filter
+  const debouncedNameFilter = useDebounce(nameFilter, 300);
 
-  const attractionPOIs = pois.filter(poi => poi.type === 'attraction');
-  const foodPOIs = pois.filter(poi => poi.type === 'restaurant');
-  const savedAttractPOIs = savedpois.filter(poi => poi.type === 'attraction');
-  const savedFoodPOIs = savedpois.filter(poi => poi.type === 'restaurant');
-  const savedCafePOIs = savedpois.filter(poi => poi.type === 'cafe');
+  // Add rating filter states
+  const [minRatingFilter, setMinRatingFilter] = useState<number | null>(null);
+  const [sortByRating, setSortByRating] = useState<boolean>(false);
+  
+  // Update name filter when searchTerm changes
+  useEffect(() => {
+    if (searchTerm) {
+      setNameFilter(searchTerm);
+    }
+  }, [searchTerm]);
+
+  // Apply filters to POI lists
+  const filterAndSortPOIs = (pois: POI[], nameFilter: string) => {
+    // First filter by name
+    let filteredPOIs = pois;
+    if (nameFilter.trim()) {
+      const lowerFilter = nameFilter.toLowerCase().trim();
+      filteredPOIs = filteredPOIs.filter(poi => 
+        poi.name.toLowerCase().includes(lowerFilter)
+      );
+    }
+    
+    // Filter by minimum rating if set
+    if (minRatingFilter !== null) {
+      filteredPOIs = filteredPOIs.filter(poi => 
+        (poi.rating !== undefined && poi.rating !== null && poi.rating >= minRatingFilter)
+      );
+    }
+    
+    // Sort by rating if enabled
+    if (sortByRating) {
+      filteredPOIs = [...filteredPOIs].sort((a, b) => {
+        const ratingA = a.rating ?? 0;
+        const ratingB = b.rating ?? 0;
+        return ratingB - ratingA; // Descending order (highest first)
+      });
+    }
+    
+    return filteredPOIs;
+  };
+  
+  // Get POIs filtered by type and name
+  const explorePOIs = useMemo(() => {
+    return filterAndSortPOIs(
+      pois.filter(poi => poi.type === selectedCategory),
+      debouncedNameFilter
+    );
+  }, [pois, selectedCategory, debouncedNameFilter, minRatingFilter, sortByRating]);
+  
+  const savedPOIs = useMemo(() => {
+    return filterAndSortPOIs(
+      savedpois.filter(poi => poi.type === selectedCategory),
+      debouncedNameFilter
+    );
+  }, [savedpois, selectedCategory, debouncedNameFilter, minRatingFilter, sortByRating]);
+  
+  // Reset pagination when filters or category changes
+  useEffect(() => {
+    setCurrentExploreAttractionPage(0);
+    setCurrentSavedAttractionPage(0);
+    setCurrentExploreFoodPage(0);
+    setCurrentSavedFoodPage(0);
+    setCurrentSavedCafePage(0);
+  }, [debouncedNameFilter, selectedCategory, minRatingFilter, sortByRating]);
+
+  // Get all POIs of the selected category for the map view
+  const allVisiblePOIs = useMemo(() => {
+    return [...explorePOIs, ...savedPOIs];
+  }, [explorePOIs, savedPOIs]);
+
   const { user } = useAuthStore();
 
     const handlePOISelect = (poi: POI) => {
@@ -149,13 +240,27 @@ const TripPOIContainer = ({ tripData, pois, savedpois, setIsGenerating }: TripPO
       return;
     }
   
-    const allFoodPOIs = [...foodPOIs, ...savedFoodPOIs];
-    const allCafePOIs = [...savedCafePOIs];
-    const allAttractionPOIs = [...attractionPOIs, ...savedAttractPOIs];
+    // Get all POIs (both explore and saved) of each category
+    const allAttractionPOIs = [...pois.filter(poi => poi.type === 'attraction'), ...savedpois.filter(poi => poi.type === 'attraction')];
+    const allFoodPOIs = [...pois.filter(poi => poi.type === 'restaurant'), ...savedpois.filter(poi => poi.type === 'restaurant')];
+    const allCafePOIs = [...pois.filter(poi => poi.type === 'cafe'), ...savedpois.filter(poi => poi.type === 'cafe')];
+    
+    // Filter to only include selected POIs
+    const selectedAttractionPOIs = allAttractionPOIs.filter(poi => selectedPOIs.has(poi.place_id));
     const selectedFoodPOIs = allFoodPOIs.filter(poi => selectedPOIs.has(poi.place_id));
     const selectedCafePOIs = allCafePOIs.filter(poi => selectedPOIs.has(poi.place_id));
-    const selectedAttractionPOIs = allAttractionPOIs.filter(poi => selectedPOIs.has(poi.place_id));
-    // Create shortened POIs for the API call
+    
+    // Create shortened POIs for each category
+    const shortenedAttractionPOIs = selectedAttractionPOIs.map(poi => ({
+      place_id: poi.place_id,
+      name: poi.name,
+      type: poi.type,
+      coordinates: {
+        lat: poi.coordinates.lat,
+        lng: poi.coordinates.lng
+      }
+    }));
+    
     const shortenedFoodPOIs = selectedFoodPOIs.map(poi => ({
       place_id: poi.place_id,
       name: poi.name,
@@ -165,7 +270,7 @@ const TripPOIContainer = ({ tripData, pois, savedpois, setIsGenerating }: TripPO
         lng: poi.coordinates.lng
       }
     }));
-
+    
     const shortenedCafePOIs = selectedCafePOIs.map(poi => ({
       place_id: poi.place_id,
       name: poi.name,
@@ -176,15 +281,6 @@ const TripPOIContainer = ({ tripData, pois, savedpois, setIsGenerating }: TripPO
       }
     }));
 
-    const shortenedAttractionPOIs = selectedAttractionPOIs.map(poi => ({
-      place_id: poi.place_id,
-      name: poi.name,
-      type: poi.type,
-      coordinates: {
-        lat: poi.coordinates.lat,
-        lng: poi.coordinates.lng
-      }
-    }));
     setIsGenerating(true);
 
     try {
@@ -203,7 +299,7 @@ const TripPOIContainer = ({ tripData, pois, savedpois, setIsGenerating }: TripPO
       const processedItinerary = processItinerary(
         generatedTrip.itinerary, 
         selectedFoodPOIs, 
-        selectedAttractionPOIs
+        allVisiblePOIs
       );
   
       // Remove duplicates from generated itinerary
@@ -295,6 +391,236 @@ const TripPOIContainer = ({ tripData, pois, savedpois, setIsGenerating }: TripPO
     }
     setSelectedPOIs(newSelected);
   };
+
+  // Render the name filter input
+  const renderNameFilter = () => (
+    <div className="relative mb-4 flex gap-3">
+      <Input
+        placeholder="Search locations..."
+        value={nameFilter}
+        onChange={(e) => setNameFilter(e.target.value)}
+        className="w-full bg-white border-gray-200 focus-visible:ring-blue-500 pr-8"
+      />
+      {nameFilter && (
+        <button
+          type="button"
+          onClick={() => setNameFilter('')}
+          className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 p-1 rounded-full hover:bg-gray-100"
+          aria-label="Clear search"
+        >
+          <X className="h-4 w-4" />
+        </button>
+      )}
+    </div>
+  );
+
+  // Category dropdown options
+  const categoryOptions = [
+    { value: 'attraction' as POIType, label: 'Attractions', icon: Landmark },
+    { value: 'restaurant' as POIType, label: 'Restaurants', icon: UtensilsCrossed },
+    { value: 'cafe' as POIType, label: 'Cafes', icon: Coffee },
+  ];
+
+  // Render category selection dropdown
+  const renderCategorySelector = () => (
+    <div className="mb-4">
+      <div className="flex items-center gap-3">
+        <h2 className="text-lg font-semibold text-gray-700">Category:</h2>
+        <Select
+          value={selectedCategory}
+          onValueChange={(value: POIType) => handleCategoryChange(value)}
+        >
+          <SelectTrigger className="w-[160px] bg-white border-gray-200">
+            <SelectValue placeholder="Select category" />
+          </SelectTrigger>
+          <SelectContent className="bg-white">
+            {categoryOptions.map(({ value, label, icon: Icon }) => (
+              <SelectItem 
+                key={value} 
+                value={value}
+                className="cursor-pointer"
+              >
+                <span className="flex items-center">
+                  {Icon && <Icon className="mr-2 h-4 w-4" />}
+                  {label}
+                </span>
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+    </div>
+  );
+
+  // Render the rating filter UI
+  const renderRatingFilter = () => (
+    <div className="mb-4">
+      <Popover>
+        <PopoverTrigger asChild>
+          <Button 
+            variant="outline" 
+            className="w-full justify-between bg-white border-gray-200 text-gray-800 hover:bg-gray-50"
+          >
+            <span>
+              {minRatingFilter ? `${minRatingFilter}+ Stars` : "Rating"} 
+              {sortByRating && " (Sorted)"}
+            </span>
+            <div className="flex items-center">
+              {minRatingFilter && (
+                <div className="flex mr-2">
+                  {[...Array(Math.floor(minRatingFilter))].map((_, i) => (
+                    <Star key={i} className="h-3.5 w-3.5 fill-yellow-500 text-yellow-500" />
+                  ))}
+                  {minRatingFilter % 1 > 0 && (
+                    <div className="relative">
+                      <Star className="h-3.5 w-3.5 text-yellow-500" />
+                      <Star 
+                        className="absolute top-0 left-0 h-3.5 w-3.5 text-yellow-500 fill-yellow-500 overflow-hidden" 
+                        style={{ 
+                          clipPath: `polygon(0 0, ${(minRatingFilter % 1) * 100}% 0, ${(minRatingFilter % 1) * 100}% 100%, 0 100%)` 
+                        }} 
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
+              <ChevronRight className="h-4 w-4" />
+            </div>
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-80">
+          <div className="space-y-4">
+            <h4 className="font-medium text-sm">Filter by Minimum Rating</h4>
+            <div className="space-y-2">
+              <RadioGroup 
+                value={minRatingFilter === null ? "none" : minRatingFilter.toString()} 
+                onValueChange={(value) => {
+                  if (value === "none") {
+                    setMinRatingFilter(null);
+                  } else {
+                    setMinRatingFilter(parseFloat(value));
+                  }
+                }}
+              >
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="none" id="r-none" />
+                  <Label htmlFor="r-none">No minimum</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="4.7" id="r-4.7" />
+                  <Label htmlFor="r-4.7" className="flex items-center">
+                    <span className="flex">
+                      {[...Array(4)].map((_, i) => (
+                        <Star key={i} className="h-3.5 w-3.5 fill-yellow-500 text-yellow-500" />
+                      ))}
+                      <div className="relative">
+                        <Star className="h-3.5 w-3.5 text-yellow-500" />
+                        <Star 
+                          className="absolute top-0 left-0 h-3.5 w-3.5 text-yellow-500 fill-yellow-500 overflow-hidden" 
+                          style={{ clipPath: 'polygon(0 0, 70% 0, 70% 100%, 0 100%)' }} 
+                        />
+                      </div>
+                    </span>
+                    <span className="ml-2">4.7+ stars</span>
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="4.5" id="r-4.5" />
+                  <Label htmlFor="r-4.5" className="flex items-center">
+                    <span className="flex">
+                      {[...Array(4)].map((_, i) => (
+                        <Star key={i} className="h-3.5 w-3.5 fill-yellow-500 text-yellow-500" />
+                      ))}
+                      <div className="relative">
+                        <Star className="h-3.5 w-3.5 text-yellow-500" />
+                        <Star 
+                          className="absolute top-0 left-0 h-3.5 w-3.5 text-yellow-500 fill-yellow-500 overflow-hidden" 
+                          style={{ clipPath: 'polygon(0 0, 50% 0, 50% 100%, 0 100%)' }} 
+                        />
+                      </div>
+                    </span>
+                    <span className="ml-2">4.5+ stars</span>
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="4" id="r-4" />
+                  <Label htmlFor="r-4" className="flex items-center">
+                    <span className="flex">
+                      {[...Array(4)].map((_, i) => (
+                        <Star key={i} className="h-3.5 w-3.5 fill-yellow-500 text-yellow-500" />
+                      ))}
+                      <Star className="h-3.5 w-3.5 text-gray-300" />
+                    </span>
+                    <span className="ml-2">4.0+ stars</span>
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="3.5" id="r-3.5" />
+                  <Label htmlFor="r-3.5" className="flex items-center">
+                    <span className="flex">
+                      {[...Array(3)].map((_, i) => (
+                        <Star key={i} className="h-3.5 w-3.5 fill-yellow-500 text-yellow-500" />
+                      ))}
+                      <div className="relative">
+                        <Star className="h-3.5 w-3.5 text-yellow-500" />
+                        <Star 
+                          className="absolute top-0 left-0 h-3.5 w-3.5 text-yellow-500 fill-yellow-500 overflow-hidden" 
+                          style={{ clipPath: 'polygon(0 0, 50% 0, 50% 100%, 0 100%)' }} 
+                        />
+                      </div>
+                      <Star className="h-3.5 w-3.5 text-gray-300" />
+                    </span>
+                    <span className="ml-2">3.5+ stars</span>
+                  </Label>
+                </div>
+              </RadioGroup>
+            </div>
+            
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="sort-rating">Sort by highest rating</Label>
+                <input 
+                  type="checkbox" 
+                  id="sort-rating"
+                  checked={sortByRating}
+                  onChange={(e) => setSortByRating(e.target.checked)}
+                  className="h-4 w-4 text-blue-600 focus:ring-blue-500"
+                />
+              </div>
+            </div>
+            
+            <div className="pt-2 flex justify-end">
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={() => {
+                  setMinRatingFilter(null);
+                  setSortByRating(false);
+                }}
+                className="text-red-600 hover:text-red-800 hover:bg-red-50"
+              >
+                Reset filters
+              </Button>
+            </div>
+          </div>
+        </PopoverContent>
+      </Popover>
+    </div>
+  );
+
+  // Keep local state in sync with prop
+  useEffect(() => {
+    setSelectedCategory(categoryFilter);
+  }, [categoryFilter]);
+  
+  // When selecting a category, notify parent component
+  const handleCategoryChange = (category: POIType) => {
+    setSelectedCategory(category);
+    if (onCategoryChange) {
+      onCategoryChange(category);
+    }
+  };
+
   return (
     <div className="h-full w-full bg-white rounded-lg overflow-y-auto">
       <div className="sticky top-0 bg-white px-6 py-4 border-b z-10">
@@ -310,131 +636,96 @@ const TripPOIContainer = ({ tripData, pois, savedpois, setIsGenerating }: TripPO
       </div>
 
       <div className="mt-4 px-6">
-        {/* Explore Attractions */}
-        {attractionPOIs.length > 0 && (
+        {/* Filters - add rating filter */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+          <div>
+            {renderCategorySelector()}
+          </div>
+          <div>
+            {renderRatingFilter()}
+          </div>
+        </div>
+        {renderNameFilter()}
+
+        {/* Explore POIs of Selected Category */}
+        {explorePOIs.length > 0 && (
           <div className="mb-8">
-            <h3 className="text-xl font-semibold mb-4">Attractions</h3>
+            <h3 className="text-xl font-semibold mb-4">
+              {selectedCategory === 'attraction' ? 'Attractions' : 
+               selectedCategory === 'restaurant' ? 'Restaurants' : 'Cafes'}
+            </h3>
             <POIGrid 
-              items={attractionPOIs} 
-              currentPage={currentExploreAttractionPage}
-              setPage={setCurrentExploreAttractionPage}
-              category="attraction"
+              items={explorePOIs} 
+              currentPage={
+                selectedCategory === 'attraction' ? currentExploreAttractionPage : 
+                selectedCategory === 'restaurant' ? currentExploreFoodPage : 
+                currentSavedCafePage
+              }
+              setPage={
+                selectedCategory === 'attraction' ? setCurrentExploreAttractionPage : 
+                selectedCategory === 'restaurant' ? setCurrentExploreFoodPage :
+                setCurrentSavedCafePage
+              }
+              category={selectedCategory as 'food' | 'attraction' | 'cafe'}
               selectedPOIs={selectedPOIs}
               onPOISelect={handlePOISelect}
             />
           </div>
         )}
 
-        {/* Saved Attractions */}
-        {savedAttractPOIs.length > 0 && (
-          <div className="mt-4">
+        {/* Saved POIs of Selected Category */}
+        {savedPOIs.length > 0 && (
+          <div className="mt-8">
             <div className="inline-flex items-center gap-3 mb-6">
-              <h4 className="text-lg font-medium text-gray-600">Saved Attractions</h4>
+              <h4 className="text-lg font-medium text-gray-600">
+                Saved {selectedCategory === 'attraction' ? 'Attractions' : 
+                       selectedCategory === 'restaurant' ? 'Restaurants' : 'Cafes'}
+              </h4>
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => handleSelectAllSavedCategory(savedAttractPOIs)}
+                onClick={() => handleSelectAllSavedCategory(savedPOIs)}
                 className={`
                   transition-colors duration-200 h-8
-                  ${[...getSavedPOIIds(savedAttractPOIs)].every(id => selectedPOIs.has(id))
+                  ${[...getSavedPOIIds(savedPOIs)].every(id => selectedPOIs.has(id))
                     ? 'border-red-500 text-red-600 hover:bg-red-50'
                     : 'border-blue-500 text-blue-600 hover:bg-blue-50'
                   }
                 `}
               >
-                {[...getSavedPOIIds(savedAttractPOIs)].every(id => selectedPOIs.has(id))
+                {[...getSavedPOIIds(savedPOIs)].every(id => selectedPOIs.has(id))
                   ? "Unselect All"
                   : "Select All"}
               </Button>
             </div>
             <POIGrid 
-              items={savedAttractPOIs} 
-              currentPage={currentSavedAttractionPage}
-              setPage={setCurrentSavedAttractionPage}
-              category="attraction"
+              items={savedPOIs} 
+              currentPage={
+                selectedCategory === 'attraction' ? currentSavedAttractionPage : 
+                selectedCategory === 'restaurant' ? currentSavedFoodPage :
+                currentSavedCafePage
+              }
+              setPage={
+                selectedCategory === 'attraction' ? setCurrentSavedAttractionPage : 
+                selectedCategory === 'restaurant' ? setCurrentSavedFoodPage :
+                setCurrentSavedCafePage
+              }
+              category={selectedCategory as 'food' | 'attraction' | 'cafe'}
               isSaved={true}
               selectedPOIs={selectedPOIs}
               onPOISelect={handlePOISelect}
             />
-          </div>
-        )}
-
-        {/* Explore Restaurants */}
-        {foodPOIs.length > 0 && (
-          <div className="mb-8">
-            <h3 className="text-xl font-semibold mb-4">Restaurants</h3>
-            <POIGrid 
-              items={foodPOIs} 
-              currentPage={currentExploreFoodPage}
-              setPage={setCurrentExploreFoodPage}
-              category="food"
-              selectedPOIs={selectedPOIs}
-              onPOISelect={handlePOISelect}
-            />
-          </div>
-        )}
-  
-        {/* Saved Restaurants */}  
-        {savedFoodPOIs.length > 0 && (
-          <div className="mt-8">
-          <div className="inline-flex items-center gap-3 mb-6">
-            <h4 className="text-lg font-medium text-gray-600">Saved Restaurants</h4>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handleSelectAllSavedCategory(savedFoodPOIs)}
-              className={`
-                transition-colors duration-200 h-8
-                ${[...getSavedPOIIds(savedFoodPOIs)].every(id => selectedPOIs.has(id))
-                  ? 'border-red-500 text-red-600 hover:bg-red-50'
-                  : 'border-blue-500 text-blue-600 hover:bg-blue-50'
-                }
-              `}
-            >
-              {[...getSavedPOIIds(savedFoodPOIs)].every(id => selectedPOIs.has(id))
-                ? "Unselect All"
-                : "Select All"}
-            </Button>
-          </div>
-            <POIGrid 
-              items={savedFoodPOIs} 
-              currentPage={currentSavedFoodPage}
-              setPage={setCurrentSavedFoodPage}
-              category="food"
-              isSaved={true}
-              selectedPOIs={selectedPOIs}
-              onPOISelect={handlePOISelect}
-            />
-          </div>
-        )}
-
-        {/* Saved Cafes */}
-        
-        {savedCafePOIs.length > 0 && (
-          <div className="mt-8">
-          <div className="inline-flex items-center gap-3 mb-6">
-            <h4 className="text-lg font-medium text-gray-600">Saved Cafes</h4>
-            </div>
-            <POIGrid 
-              items={savedCafePOIs} 
-              currentPage={currentSavedCafePage}
-              setPage={setCurrentSavedCafePage}
-              category="cafe"
-              isSaved={true}
-              selectedPOIs={selectedPOIs}
-              onPOISelect={handlePOISelect}
-            />    
           </div>
         )}
       </div>
 
       <div className="sticky bottom-0 pt-2 mt-8 z-50">
-      <Button 
-        className="w-full bg-blue-600 hover:bg-blue-700 text-white"
-        onClick={handleSubmit}
-      >
-        Create Itinerary with Selected Places ({selectedPOIs.size})
-      </Button>
+        <Button 
+          className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+          onClick={handleSubmit}
+        >
+          Create Itinerary with Selected Places ({selectedPOIs.size})
+        </Button>
       </div>
     </div>
   );

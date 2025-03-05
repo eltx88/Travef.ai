@@ -1,8 +1,8 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { NavigationMenuBar } from "@/components/NavigationMenuBar";
 import { useLocation } from 'react-router-dom';
 import { useTripPreferencesPOIData } from '@/components/hooks/useTripPreferencesPOIData';
-import type { TripData } from '@/Types/InterfaceTypes';
+import type { TripData, POI, POIType } from '@/Types/InterfaceTypes';
 import RetryButtonServerFail from "@/components/RetryButtonServerFail";
 import LoadingGlobe from "@/components/LoadingGlobe";
 import LoadingOverlay from "@/components/LoadingOverlay";
@@ -11,7 +11,6 @@ import TripPOIContainer from "@/components/TripPage/TripPOIContainer";
 import MapContainer from "@/components/Containers/MapContainer";
 import { LocationProvider } from '@/contexts/LocationContext';
 import { useNavigate } from 'react-router-dom';
-import { POI } from '@/Types/InterfaceTypes';
 import Footer from '@/components/Footer';
 
 function CustomTripPageContent() {
@@ -32,6 +31,8 @@ function CustomTripPageContent() {
   const [displayedPOIs, setDisplayedPOIs] = useState<POI[]>([]);
   const resizeTimeoutRef = useRef<NodeJS.Timeout>();
   const [savedPOIs, setSavedPOIs] = useState<POI[]>([]);
+  const [searchTerm, setSearchTerm] = useState<string>('');
+  const [currentCategory, setCurrentCategory] = useState<POIType>("attraction");
 
   const { loading, error, retry } = useTripPreferencesPOIData(
     tripData, 
@@ -43,6 +44,20 @@ function CustomTripPageContent() {
       setSavedPOIs(savedPois);
     }
   );
+
+  useEffect(() => {
+    const handleSearchForPoi = (event: CustomEvent) => {
+      if (event.detail && event.detail.name) {
+        setSearchTerm(event.detail.name);
+      }
+    };
+
+    document.addEventListener('searchForPoi', handleSearchForPoi as EventListener);
+    
+    return () => {
+      document.removeEventListener('searchForPoi', handleSearchForPoi as EventListener);
+    };
+  }, []);
 
   const startResizing = useCallback((mouseDownEvent: React.MouseEvent) => {
     mouseDownEvent.preventDefault();
@@ -88,6 +103,14 @@ function CustomTripPageContent() {
     };
   }, [isResizing, resize, stopResizing]);
 
+  const categoryFilteredPOIs = useMemo(() => {
+    return displayedPOIs.filter(poi => poi.type === currentCategory);
+  }, [displayedPOIs, currentCategory]);
+  
+  const categoryFilteredSavedPOIs = useMemo(() => {
+    return savedPOIs.filter(poi => poi.type === currentCategory);
+  }, [savedPOIs, currentCategory]);
+
   if (loading) {
     return <LoadingGlobe />;
   }
@@ -103,6 +126,9 @@ function CustomTripPageContent() {
           pois={displayedPOIs} 
           savedpois={savedPOIs} 
           setIsGenerating={setIsGenerating}
+          searchTerm={searchTerm}
+          categoryFilter={currentCategory}
+          onCategoryChange={setCurrentCategory}
         />
       </div>
 
@@ -131,20 +157,8 @@ function CustomTripPageContent() {
         {displayedPOIs.length > 0 && (
           <MapContainer 
             isResizing={isResizing} 
-            pois={displayedPOIs.filter(poi => 
-              poi.coordinates && 
-              typeof poi.coordinates.lat === 'number' && 
-              !isNaN(poi.coordinates.lat) &&
-              typeof poi.coordinates.lng === 'number' && 
-              !isNaN(poi.coordinates.lng)
-            )} 
-            savedPois={savedPOIs.filter(poi => 
-              poi.coordinates && 
-              typeof poi.coordinates.lat === 'number' && 
-              !isNaN(poi.coordinates.lat) &&
-              typeof poi.coordinates.lng === 'number' && 
-              !isNaN(poi.coordinates.lng)
-            )} 
+            pois={categoryFilteredPOIs}
+            savedPois={categoryFilteredSavedPOIs}
           />
         )}
       </div>
