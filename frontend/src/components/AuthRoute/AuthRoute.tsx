@@ -10,7 +10,7 @@ export interface AuthRouteProps {
   timeoutMinutes?: number; // Optional timeout in minutes
 }
 
-const AuthRoute: React.FC<AuthRouteProps> = ({ children, timeoutMinutes = 30 }) => {
+const AuthRoute: React.FC<AuthRouteProps> = ({ children, timeoutMinutes = 1400 }) => {
   const navigate = useNavigate();
   const { user, loading } = useAuthStore();
   const lastActivityRef = React.useRef<number>(Date.now());
