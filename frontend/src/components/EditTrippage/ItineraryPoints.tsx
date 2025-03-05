@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import type { TripData, ItineraryPOI } from '@/Types/InterfaceTypes';
@@ -29,6 +29,11 @@ const ItineraryPoints = ({
   const [activeTab, setActiveTab] = useState<TabType>('itinerary');
   const [filterDay, setFilterDay] = useState<string>('all'); 
   const [filterTimeSlot, setFilterTimeSlot] = useState<string>('all');
+  const [currentItineraryPage, setCurrentItineraryPage] = useState(1);
+  const [currentSavedAttractionsPage, setCurrentSavedAttractionsPage] = useState(1);
+  const [currentSavedRestaurantsPage, setCurrentSavedRestaurantsPage] = useState(1);
+  const itemsPerPage = 6;
+  
   const savedAttractions = unusedPOIs.filter(poi => poi.type === 'attraction');
   const savedRestaurants = unusedPOIs.filter(poi => poi.type !== 'attraction');
 
@@ -66,92 +71,207 @@ const ItineraryPoints = ({
     });
   }, [itineraryPOIs, filterDay, filterTimeSlot]);
 
-  const renderItineraryContent = () => (
-    <div className="space-y-4">
-      <div className="flex gap-4 bg-white z-50">
-        <Select 
-          value={filterDay}
-          onValueChange={setFilterDay}
-        >
-          <SelectTrigger className="w-40 bg-white">
-            <SelectValue placeholder="Filter by Day" />
-          </SelectTrigger>
-          <SelectContent className="z-[100] bg-white">
-            <SelectItem value="all">All Days</SelectItem>
-            {dayOptions.map((day) => (
-              <SelectItem key={day} value={day.toString()}>{`Day ${day}`}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+  // Apply pagination to itinerary POIs
+  const paginatedItineraryPOIs = useMemo(() => {
+    const startIndex = (currentItineraryPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return filteredItineraryPOIs.slice(startIndex, endIndex);
+  }, [filteredItineraryPOIs, currentItineraryPage, itemsPerPage]);
 
-        <Select 
-          value={filterTimeSlot}
-          onValueChange={setFilterTimeSlot}
-        >
-          <SelectTrigger className="w-40">
-            <SelectValue placeholder="Filter by Time" />
-          </SelectTrigger>
-          <SelectContent className="z-[100] bg-white">
-            <SelectItem value="all">All Times</SelectItem>
-            <SelectItem value="morning">Morning</SelectItem>
-            <SelectItem value="afternoon">Afternoon</SelectItem>
-            <SelectItem value="evening">Evening</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-          
-      <div className={`grid ${isRightExpanded ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'} gap-4`}>
-        {filteredItineraryPOIs.map((poi) => (
-          <ItineraryPOICard
-            key={poi.id}
-            poi={poi}
-          />
-        ))}
-      </div>
-    </div>
-  );
+  // Apply pagination to saved attractions
+  const paginatedSavedAttractions = useMemo(() => {
+    const startIndex = (currentSavedAttractionsPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return savedAttractions.slice(startIndex, endIndex);
+  }, [savedAttractions, currentSavedAttractionsPage, itemsPerPage]);
 
-  // 4. Update the grid class in the renderSavedContent function
-  const renderSavedContent = () => (
-    <div className="space-y-4">
-      <h3 className="text-lg font-medium sticky top-0 bg-white z-10 pb-2">
-        Saved Attractions
-      </h3>
-      <div className={`grid ${isRightExpanded ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'} gap-4`}>
-        {savedAttractions.map((poi) => (
-          <ItineraryPOICard
-            key={poi.id}
-            poi={poi}
-            dayOptions={dayOptions}
-            onAddToItinerary={onAddToItinerary}
-            onDeleteSavedPOI={onDeleteSavedPOI}
-          />
-        ))}
-      </div>
+  // Apply pagination to saved restaurants
+  const paginatedSavedRestaurants = useMemo(() => {
+    const startIndex = (currentSavedRestaurantsPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return savedRestaurants.slice(startIndex, endIndex);
+  }, [savedRestaurants, currentSavedRestaurantsPage, itemsPerPage]);
 
-      <h3 className="text-lg font-medium sticky top-0 bg-white z-10 pb-2">
-        Saved Restaurants
-      </h3>
-      <div className={`grid ${isRightExpanded ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'} gap-4`}>
-        {savedRestaurants.map((poi) => (
-          <ItineraryPOICard
-            key={poi.id}
-            poi={poi}
-            dayOptions={dayOptions}
-            onAddToItinerary={onAddToItinerary}
-            onDeleteSavedPOI={onDeleteSavedPOI}
-          />
-        ))}
+  // Reset pagination when filters change
+  useEffect(() => {
+    setCurrentItineraryPage(1);
+  }, [filterDay, filterTimeSlot]);
+  
+  // Reset pagination when tab changes
+  useEffect(() => {
+    setCurrentItineraryPage(1);
+    setCurrentSavedAttractionsPage(1);
+    setCurrentSavedRestaurantsPage(1);
+  }, [activeTab]);
+
+  // Add pagination component
+  const PaginationControls = ({ 
+    currentPage, 
+    setCurrentPage, 
+    totalItems 
+  }: { 
+    currentPage: number, 
+    setCurrentPage: (page: number) => void, 
+    totalItems: number 
+  }) => {
+    const totalPages = Math.ceil(totalItems / itemsPerPage);
+    
+    if (totalPages <= 1) return null;
+    
+    return (
+      <div className="flex justify-between items-center mt-4 pt-2 border-t border-gray-200">
+        <div className="text-sm text-gray-500">
+          Showing {Math.min((currentPage - 1) * itemsPerPage + 1, totalItems)}-
+          {Math.min(currentPage * itemsPerPage, totalItems)} of {totalItems}
+        </div>
+        <div className="flex space-x-2">
+          <button
+            className="px-2 py-1 text-sm rounded border border-gray-300 disabled:opacity-50"
+            onClick={() => setCurrentPage(currentPage - 1)}
+            disabled={currentPage === 1}
+          >
+            Previous
+          </button>
+          <div className="flex items-center space-x-1">
+            {Array.from({ length: Math.min(totalPages, 5) }).map((_, idx) => {
+              // Show limited page numbers
+              let pageNum: number;
+              if (totalPages <= 5) {
+                pageNum = idx + 1;
+              } else if (currentPage <= 3) {
+                pageNum = idx + 1;
+              } else if (currentPage >= totalPages - 2) {
+                pageNum = totalPages - 4 + idx;
+              } else {
+                pageNum = currentPage - 2 + idx;
+              }
+              
+              return (
+                <button
+                  key={pageNum}
+                  className={`w-8 h-8 rounded-md flex items-center justify-center text-sm
+                    ${currentPage === pageNum 
+                      ? 'bg-blue-100 text-blue-700' 
+                      : 'border border-gray-300'
+                    }`}
+                  onClick={() => setCurrentPage(pageNum)}
+                >
+                  {pageNum}
+                </button>
+              );
+            })}
+          </div>
+          <button
+            className="px-2 py-1 text-sm rounded border border-gray-300 disabled:opacity-50"
+            onClick={() => setCurrentPage(currentPage + 1)}
+            disabled={currentPage === totalPages}
+          >
+            Next
+          </button>
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   const renderTabContent = () => {
     switch (activeTab) {
       case 'itinerary':
-        return renderItineraryContent();
+        return (
+          <div className="space-y-4">
+            <div className="flex gap-4 bg-white z-50">
+              <Select 
+                value={filterDay}
+                onValueChange={setFilterDay}
+              >
+                <SelectTrigger className="w-40 bg-white">
+                  <SelectValue placeholder="Filter by Day" />
+                </SelectTrigger>
+                <SelectContent className="z-[100] bg-white">
+                  <SelectItem value="all">All Days</SelectItem>
+                  {dayOptions.map((day) => (
+                    <SelectItem key={day} value={day.toString()}>{`Day ${day}`}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Select 
+                value={filterTimeSlot}
+                onValueChange={setFilterTimeSlot}
+              >
+                <SelectTrigger className="w-40">
+                  <SelectValue placeholder="Filter by Time" />
+                </SelectTrigger>
+                <SelectContent className="z-[100] bg-white">
+                  <SelectItem value="all">All Times</SelectItem>
+                  <SelectItem value="morning">Morning</SelectItem>
+                  <SelectItem value="afternoon">Afternoon</SelectItem>
+                  <SelectItem value="evening">Evening</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+                
+            <div className={`grid ${isRightExpanded ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'} gap-4`}>
+              {paginatedItineraryPOIs.map((poi) => (
+                <ItineraryPOICard
+                  key={poi.id}
+                  poi={poi}
+                />
+              ))}
+            </div>
+            
+            <PaginationControls 
+              currentPage={currentItineraryPage} 
+              setCurrentPage={setCurrentItineraryPage} 
+              totalItems={filteredItineraryPOIs.length} 
+            />
+          </div>
+        );
       case 'saved':
-        return renderSavedContent();
+        return (
+          <div className="space-y-4">
+            <h3 className="text-lg font-medium sticky top-0 bg-white z-10 pb-2">
+              Saved Attractions
+            </h3>
+            <div className={`grid ${isRightExpanded ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'} gap-4`}>
+              {paginatedSavedAttractions.map((poi) => (
+                <ItineraryPOICard
+                  key={poi.id}
+                  poi={poi}
+                  dayOptions={dayOptions}
+                  onAddToItinerary={onAddToItinerary}
+                  onDeleteSavedPOI={onDeleteSavedPOI}
+                />
+              ))}
+            </div>
+            
+            <PaginationControls 
+              currentPage={currentSavedAttractionsPage} 
+              setCurrentPage={setCurrentSavedAttractionsPage} 
+              totalItems={savedAttractions.length} 
+            />
+
+            <h3 className="text-lg font-medium sticky top-0 bg-white z-10 pb-2">
+              Saved Restaurants
+            </h3>
+            <div className={`grid ${isRightExpanded ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'} gap-4`}>
+              {paginatedSavedRestaurants.map((poi) => (
+                <ItineraryPOICard
+                  key={poi.id}
+                  poi={poi}
+                  dayOptions={dayOptions}
+                  onAddToItinerary={onAddToItinerary}
+                  onDeleteSavedPOI={onDeleteSavedPOI}
+                />
+              ))}
+            </div>
+            
+            <PaginationControls 
+              currentPage={currentSavedRestaurantsPage} 
+              setCurrentPage={setCurrentSavedRestaurantsPage} 
+              totalItems={savedRestaurants.length} 
+            />
+          </div>
+        );
       case 'search':
         return (
           <div className="space-y-4">
@@ -160,6 +280,7 @@ const ItineraryPoints = ({
         );
     }
   };
+
   return (
     <Card className="w-full h-full overflow-hidden bg-white rounded-lg flex flex-col">
       <div className="sticky top-0 bg-white px-6 py-4 border-b z-20">
@@ -232,19 +353,21 @@ const ItineraryPoints = ({
               value="itinerary" 
               className="mt-0 data-[state=inactive]:hidden"
             >
-              {renderTabContent()}
+              {activeTab === 'itinerary' && renderTabContent()}
             </TabsContent>
+
             <TabsContent 
               value="saved" 
               className="mt-0 data-[state=inactive]:hidden"
             >
-              {renderTabContent()}
+              {activeTab === 'saved' && renderTabContent()}
             </TabsContent>
+
             <TabsContent 
               value="search" 
               className="mt-0 data-[state=inactive]:hidden"
             >
-              {renderTabContent()}
+              {activeTab === 'search' && renderTabContent()}
             </TabsContent>
           </div>
         </div>

@@ -43,7 +43,6 @@ export interface ItineraryPOI extends POI {
 //Used for DB response
 export interface ItineraryPOIDB {
   PointID: string;
-  place_id: string;
   day: number;
   timeSlot: string;
   StartTime: number;
@@ -194,7 +193,6 @@ export interface FetchedTripDetails {
 export interface ItineraryPOIChanges {
     movedToItinerary: Array<{
       PointID: string,
-      place_id: string,
       StartTime: number,
       EndTime: number,
       day: number,
@@ -203,11 +201,9 @@ export interface ItineraryPOIChanges {
     }>;
     movedToUnused: Array<{
       PointID: string,
-      place_id: string,
     }>; 
     schedulingUpdates: Array<{
       PointID: string,
-      place_id: string,
       StartTime: number,
       EndTime: number,
       day: number,
@@ -215,8 +211,7 @@ export interface ItineraryPOIChanges {
       duration: number
     }>;
     unusedPOIsState: Array<{
-      PointID: string,
-      place_id: string,
+      PointID: string
     }>
 }
 

@@ -24,7 +24,6 @@ class TripData(BaseModel):
 
 class ItineraryPOI(BaseModel):
     PointID: str
-    place_id: str
     StartTime: int
     EndTime: int
     timeSlot: str
@@ -33,7 +32,6 @@ class ItineraryPOI(BaseModel):
 
 class UnusedPOI(BaseModel):
     PointID: str
-    place_id: str
 
 class SaveTripRequest(BaseModel):
     tripData: TripData
