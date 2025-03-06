@@ -1,5 +1,5 @@
 //Used by POIContainer to return saved and explore POIs
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import type { POI, POIType, UserHistoryPoint } from '@/Types/InterfaceTypes';
 import { useLocation } from '@/contexts/LocationContext';
 import { useDebounce } from './debounce';
@@ -220,9 +220,18 @@ const isPoiSaved = useCallback((poiId: string) => {
           setError(err instanceof Error ? err.message : 'An error occurred');
       }
 };
+
+// Filter out saved POIs from explore POIs
+const filteredExplorePois = useMemo(() => {
+  const categoryPois = explorePoisMap[currentCategory] || [];
+  
+  // Filter out POIs that are already in savedPoiIds
+  return categoryPois.filter(poi => !savedPoiIds.has(poi.id) && !savedPoiIds.has(poi.place_id));
+}, [explorePoisMap, currentCategory, savedPoiIds]);
+
     return {
       savedPois,
-      explorePois: explorePoisMap[currentCategory] || [],
+      explorePois: filteredExplorePois,
       loading,
       currentCategory,
       error,

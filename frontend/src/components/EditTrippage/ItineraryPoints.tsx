@@ -17,7 +17,8 @@ interface ItineraryPointsProps {
   itineraryPOIs: ItineraryPOI[];
   unusedPOIs: ItineraryPOI[];
   onAddToItinerary: (poi: ItineraryPOI, day: number) => void;
-  onDeleteSavedPOI: (poi: ItineraryPOI) => void; 
+  onDeleteSavedPOI: (poi: ItineraryPOI) => void;
+  onDeleteItineraryPOI: (poi: ItineraryPOI) => void;
   isRightExpanded?: boolean;
 }
 
@@ -27,6 +28,7 @@ const ItineraryPoints = ({
   unusedPOIs,
   onAddToItinerary,
   onDeleteSavedPOI,
+  onDeleteItineraryPOI,
   isRightExpanded = false,
 }: ItineraryPointsProps) => {
   const [activeTab, setActiveTab] = useState<TabType>('itinerary');
@@ -345,6 +347,26 @@ const ItineraryPoints = ({
     );
   };
 
+  // Add these new states for the animation
+  const [showAddedAnimation, setShowAddedAnimation] = useState(false);
+  
+  // Simplified handler that doesn't increment a counter
+  const handleAddToItinerary = useCallback((poi: ItineraryPOI, day: number) => {
+    // Show animation when adding from either search tab OR saved tab
+    if (activeTab === 'search' || activeTab === 'saved') {
+      // Show the animation
+      setShowAddedAnimation(true);
+      
+      // Hide animation after 2 seconds
+      setTimeout(() => {
+        setShowAddedAnimation(false);
+      }, 2000);
+    }
+    
+    // Call the original handler
+    onAddToItinerary(poi, day);
+  }, [activeTab, onAddToItinerary]);
+
   const renderTabContent = () => {
     switch (activeTab) {
       case 'itinerary':
@@ -387,6 +409,7 @@ const ItineraryPoints = ({
                 <ItineraryPOICard
                   key={poi.id}
                   poi={poi}
+                  onDeleteItineraryPOI={onDeleteItineraryPOI}
                 />
               ))}
             </div>
@@ -410,7 +433,7 @@ const ItineraryPoints = ({
                   key={poi.id}
                   poi={poi}
                   dayOptions={dayOptions}
-                  onAddToItinerary={onAddToItinerary}
+                  onAddToItinerary={handleAddToItinerary}
                   onDeleteSavedPOI={onDeleteSavedPOI}
                 />
               ))}
@@ -431,7 +454,7 @@ const ItineraryPoints = ({
                   key={poi.id}
                   poi={poi}
                   dayOptions={dayOptions}
-                  onAddToItinerary={onAddToItinerary}
+                  onAddToItinerary={handleAddToItinerary}
                   onDeleteSavedPOI={onDeleteSavedPOI}
                 />
               ))}
@@ -616,7 +639,7 @@ const ItineraryPoints = ({
                       key={poi.id}
                       poi={poi}
                       dayOptions={dayOptions}
-                      onAddToItinerary={onAddToItinerary}
+                      onAddToItinerary={handleAddToItinerary}
                     />
                   ))}
                 </div>
@@ -678,10 +701,18 @@ const ItineraryPoints = ({
                 "data-[state=active]:bg-blue-100 data-[state=active]:text-blue-700",
                 "data-[state=active]:shadow-none",
                 "h-10",
-                "text-gray-600 hover:text-blue-700"
+                "text-gray-600 hover:text-blue-700",
+                "relative"
               )}
             >
               Itinerary
+              {showAddedAnimation && (
+                <div className="absolute -top-2 -right-2 flex items-center justify-center">
+                  <div className="animate-bounce-fade bg-blue-500 text-white text-xs rounded-full w-6 h-6 flex items-center justify-center font-bold">
+                    +1
+                  </div>
+                </div>
+              )}
             </TabsTrigger>
             <TabsTrigger 
               value="saved"
@@ -705,7 +736,7 @@ const ItineraryPoints = ({
                 "text-gray-600 hover:text-blue-700"
               )}
             >
-              Add
+              Search
             </TabsTrigger>
           </TabsList>
         </div>

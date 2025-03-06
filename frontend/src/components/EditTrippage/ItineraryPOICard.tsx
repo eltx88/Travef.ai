@@ -19,6 +19,7 @@ interface ItineraryPOICardProps {
   dayOptions?: number[];
   onAddToItinerary?: (poi: ItineraryPOI, day: number) => void;
   onDeleteSavedPOI?: (poi: ItineraryPOI) => void;
+  onDeleteItineraryPOI?: (poi: ItineraryPOI) => void;
 }
 
 // Helper function to convert minutes to HH:MM
@@ -89,10 +90,11 @@ const getTypeIcon = (type: string) => {
   }
 };
 
-const ItineraryPOICard: FC<ItineraryPOICardProps> = ({ poi, dayOptions, onAddToItinerary, onDeleteSavedPOI }) => {
+const ItineraryPOICard: FC<ItineraryPOICardProps> = ({ poi, dayOptions, onAddToItinerary, onDeleteSavedPOI, onDeleteItineraryPOI }) => {
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
   const [isHovered, setIsHovered] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isDeleteItineraryDialogOpen, setIsDeleteItineraryDialogOpen] = useState(false);
   const [shouldLoadImage, setShouldLoadImage] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
   const [loadError, setLoadError] = useState(false);
@@ -118,6 +120,13 @@ const ItineraryPOICard: FC<ItineraryPOICardProps> = ({ poi, dayOptions, onAddToI
       onDeleteSavedPOI(poi);
     }
     setIsDeleteDialogOpen(false);
+  };
+
+  const handleDeleteItineraryPOI = () => {
+    if (onDeleteItineraryPOI) {
+      onDeleteItineraryPOI(poi);
+    }
+    setIsDeleteItineraryDialogOpen(false);
   };
 
   // Improved lazy loading with better error handling
@@ -508,11 +517,23 @@ const ItineraryPOICard: FC<ItineraryPOICardProps> = ({ poi, dayOptions, onAddToI
                 )}
               </div>
             )}
+            
+            {/* Delete from Itinerary Button (only shown for itinerary items) */}
+            {poi.day !== -1 && onDeleteItineraryPOI && (
+              <div className="mt-2">
+                <Button 
+                  onClick={() => setIsDeleteItineraryDialogOpen(true)}
+                  className="w-full h-7 bg-red-600 hover:bg-red-700 text-white"
+                >
+                  Remove from Itinerary
+                </Button>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
       
-      {/* Delete Confirmation Dialog */}
+      {/* Delete Saved POI Confirmation Dialog */}
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <DialogContent className="bg-white p-6 max-w-md">
           <DialogHeader>
@@ -535,6 +556,36 @@ const ItineraryPOICard: FC<ItineraryPOICardProps> = ({ poi, dayOptions, onAddToI
                 className="bg-red-600 hover:bg-red-700 text-white"
               >
                 Delete
+              </Button>
+            </div>
+          </DialogDescription>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Delete Itinerary POI Confirmation Dialog */}
+      <Dialog open={isDeleteItineraryDialogOpen} onOpenChange={setIsDeleteItineraryDialogOpen}>
+        <DialogContent className="bg-white p-6 max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-xl">Confirm Removal</DialogTitle>
+          </DialogHeader>
+          <DialogDescription>
+            <div className="py-4">
+                Are you sure you want to remove <span className="font-semibold">{poi.name}</span> from your itinerary? 
+                It will be moved to your saved items.
+            </div>
+            <div className="flex justify-end gap-3 mt-2">
+              <Button 
+                variant="outline" 
+                onClick={() => setIsDeleteItineraryDialogOpen(false)}
+                className="bg-white border-gray-300 text-gray-700 hover:bg-gray-100"
+              >
+                Cancel
+              </Button>
+              <Button 
+                onClick={handleDeleteItineraryPOI}
+                className="bg-red-600 hover:bg-red-700 text-white"
+              >
+                Remove
               </Button>
             </div>
           </DialogDescription>

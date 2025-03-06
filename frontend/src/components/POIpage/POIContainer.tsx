@@ -282,6 +282,10 @@ const POIContainer = ({ onPOIsUpdate, onAllPOIsUpdate, onTabChange, searchTerm =
         } else {
             // For explore tab, always filtered by category
             result = explorePois;
+            
+            // For explore tab, filter out POIs that are already saved
+            const savedPoiIds = new Set(savedPois.map(poi => poi.place_id || poi.id));
+            result = result.filter(poi => !savedPoiIds.has(poi.place_id) && !savedPoiIds.has(poi.id));
         }
 
         // Apply name filter
@@ -320,6 +324,12 @@ const POIContainer = ({ onPOIsUpdate, onAllPOIsUpdate, onTabChange, searchTerm =
     const filteredPOIsForUpdate = useMemo(() => {
         // Apply filters to the POIs
         let filtered = activeTab === 'saved' ? savedPois : explorePois;
+        
+        // For explore tab, filter out POIs that are already saved
+        if (activeTab === 'explore') {
+            const savedPoiIds = new Set(savedPois.map(poi => poi.place_id || poi.id));
+            filtered = filtered.filter(poi => !savedPoiIds.has(poi.place_id) && !savedPoiIds.has(poi.id));
+        }
         
         // Apply name filter
         if (nameFilter) {
