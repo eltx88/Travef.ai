@@ -87,12 +87,12 @@ const TripCard: FC<TripCardsProps> = ({ trip, onDelete, setGlobalLoading }) => {
                       if (matchingPOI) {
                         return {
                           ...matchingPOI,
+                          PointID: schedulingInfo.PointID,
                           day: schedulingInfo.day,
                           timeSlot: schedulingInfo.timeSlot,
                           StartTime: schedulingInfo.StartTime,
                           EndTime: schedulingInfo.EndTime,
-                          duration: schedulingInfo.duration,
-                          PointID: schedulingInfo.PointID
+                          duration: schedulingInfo.duration
                         } as ItineraryPOI;
                       }
                       
@@ -103,6 +103,7 @@ const TripCard: FC<TripCardsProps> = ({ trip, onDelete, setGlobalLoading }) => {
                     const finalUnusedPOIs = enhancedUnusedPOIs.map(poi => {
                       return {
                         ...poi,
+                        PointID: poi.id,
                         day: -1,
                         timeSlot: "unused",
                         StartTime: -1,

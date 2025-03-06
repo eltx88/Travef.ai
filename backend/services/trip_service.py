@@ -175,7 +175,19 @@ class TripService(FirebaseService):
                         'duration': poi.duration
                     }
                 )
-
+            # Handle newly added POIs
+            for poi in request.newlyAddedPOIs:
+                batch.set(
+                    itinerary_collection.document(poi.PointID),
+                    {
+                        'StartTime': poi.StartTime,
+                        'EndTime': poi.EndTime,
+                        'timeSlot': poi.timeSlot,
+                        'day': poi.day,
+                        'duration': poi.duration
+                    }
+                )
+            
             # Handle POIs moved to unused
             for poi in request.movedToUnused:
                 # Delete from itinerary collection

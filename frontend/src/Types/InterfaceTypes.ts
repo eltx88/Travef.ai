@@ -212,7 +212,15 @@ export interface ItineraryPOIChanges {
     }>;
     unusedPOIsState: Array<{
       PointID: string
-    }>
+    }>;
+    newlyAddedPOIs: Array<{
+      PointID: string,
+      StartTime: number,
+      EndTime: number,
+      day: number,
+      timeSlot: string,
+      duration: number
+    }>;
 }
 
 export interface UserTrip {

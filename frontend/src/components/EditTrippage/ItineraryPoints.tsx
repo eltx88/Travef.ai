@@ -135,10 +135,12 @@ const ItineraryPoints = ({
         searchText,
         lat,
         lng,
-        2000, // radius
-        undefined, // Don't send type filter to API, we'll filter results client-side
-        20, // maxResults
-        false // openNow
+        2000,
+        tripData.city,
+        tripData.country,
+        undefined,
+        20,
+        false
       );
       
       // Create a Set of existing place_ids for efficient lookup
@@ -156,15 +158,14 @@ const ItineraryPoints = ({
       const formattedResults: ItineraryPOI[] = filteredResults.map(poi => {
         return {
           ...poi,
-          id: poi.id || poi.place_id || '',
-          place_id: poi.place_id || '',
-          PointID: poi.id || '',
+          id: poi.place_id,
+          place_id: poi.place_id,
           StartTime: -1,
           EndTime: -1,
           day: -1,
           duration: -1,
           timeSlot: '',
-          type: poi.type, // Already contains the standardized type
+          type: poi.type,
           city: tripData.city,
           country: tripData.country
         };
@@ -218,6 +219,10 @@ const ItineraryPoints = ({
       filtered = filtered.filter(poi => (poi.rating || 0) >= searchRatingFilter);
     }
     
+    // Filter out POIs that are already in the itinerary
+    const itineraryPlaceIds = new Set(itineraryPOIs.map(poi => poi.place_id).filter(id => id));
+    filtered = filtered.filter(poi => !itineraryPlaceIds.has(poi.place_id));
+    
     // Apply sorting by rating if enabled
     let sortedResults = [...filtered];
     if (searchSortByRating) {
@@ -227,10 +232,11 @@ const ItineraryPoints = ({
     return sortedResults;
   }, [
     searchResults, 
-    searchCategory,  // Add searchCategory to the dependency array
+    searchCategory, 
     searchNameFilter, 
     searchRatingFilter, 
-    searchSortByRating
+    searchSortByRating,
+    itineraryPOIs
   ]);
 
   // Then apply pagination to filtered results

@@ -29,7 +29,7 @@ function minutesToHHMM(minutes: number): string {
   return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
 }
 
-function renderRatingStars(rating: number | undefined | null) {
+function renderRatingStars(rating: number | undefined | null, user_ratings_total: number | undefined | null) {
   if (!rating) return null;
   
   const fullStars = Math.floor(rating);
@@ -51,7 +51,7 @@ function renderRatingStars(rating: number | undefined | null) {
         <Star key={`empty-${i}`} className="w-3 h-3 text-yellow-500" />
       ))}
       <span className="ml-1 text-xs text-gray-600">
-        {rating.toFixed(1)}
+        {rating.toFixed(1)} ({user_ratings_total})
       </span>
     </div>
   );
@@ -262,7 +262,7 @@ const ItineraryPOICard: FC<ItineraryPOICardProps> = ({ poi, dayOptions, onAddToI
             </Tooltip>
             
             {/* Rating Stars */}
-            {renderRatingStars(poi.rating)}
+            {renderRatingStars(poi.rating, poi.user_ratings_total)}
             
             {/* Cuisine Tags if available */}
             {poi.cuisine && poi.cuisine.length > 0 && (
@@ -324,7 +324,7 @@ const ItineraryPOICard: FC<ItineraryPOICardProps> = ({ poi, dayOptions, onAddToI
                       </div>
                     )}
 
-                    {renderRatingStars(poi.rating)}
+                    {renderRatingStars(poi.rating, poi.user_ratings_total)}
                     
                     {poi.address && (
                       <div className="flex items-start gap-2">
