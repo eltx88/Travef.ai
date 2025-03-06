@@ -219,9 +219,13 @@ const ItineraryPoints = ({
       filtered = filtered.filter(poi => (poi.rating || 0) >= searchRatingFilter);
     }
     
-    // Filter out POIs that are already in the itinerary
-    const itineraryPlaceIds = new Set(itineraryPOIs.map(poi => poi.place_id).filter(id => id));
-    filtered = filtered.filter(poi => !itineraryPlaceIds.has(poi.place_id));
+    // Filter out POIs that are already in the itinerary OR in the unusedPOIs (saved) list
+    const existingPlaceIds = new Set([
+      ...itineraryPOIs.map(poi => poi.place_id),
+      ...unusedPOIs.map(poi => poi.place_id)
+    ].filter(id => id));
+    
+    filtered = filtered.filter(poi => !existingPlaceIds.has(poi.place_id));
     
     // Apply sorting by rating if enabled
     let sortedResults = [...filtered];
@@ -236,7 +240,8 @@ const ItineraryPoints = ({
     searchNameFilter, 
     searchRatingFilter, 
     searchSortByRating,
-    itineraryPOIs
+    itineraryPOIs,
+    unusedPOIs
   ]);
 
   // Then apply pagination to filtered results

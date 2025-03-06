@@ -95,7 +95,9 @@ const ItineraryPOICard: FC<ItineraryPOICardProps> = ({ poi, dayOptions, onAddToI
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [shouldLoadImage, setShouldLoadImage] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
+  const [loadError, setLoadError] = useState(false);
   const imageRef = useRef<HTMLImageElement>(null);
+  const cardRef = useRef<HTMLDivElement>(null);
 
   const openWebsite = (e: React.MouseEvent, url: string) => {
     e.preventDefault();
@@ -118,9 +120,14 @@ const ItineraryPOICard: FC<ItineraryPOICardProps> = ({ poi, dayOptions, onAddToI
     setIsDeleteDialogOpen(false);
   };
 
-  // More aggressive loading strategy with larger root margin
+  // Improved lazy loading with better error handling
   useEffect(() => {
-    if (!imageRef.current) return;
+    // Reset states when POI changes
+    setShouldLoadImage(false);
+    setImageLoaded(false);
+    setLoadError(false);
+    
+    if (!cardRef.current) return;
     
     const observer = new IntersectionObserver(
       (entries) => {
@@ -131,36 +138,57 @@ const ItineraryPOICard: FC<ItineraryPOICardProps> = ({ poi, dayOptions, onAddToI
       },
       { 
         threshold: 0.1,
-        rootMargin: '200px' // Load images when they're within 200px of viewport
+        rootMargin: '300px' // Increased preloading margin
       }
     );
     
-    observer.observe(imageRef.current);
+    observer.observe(cardRef.current);
     
     return () => {
       observer.disconnect();
     };
-  }, []);
+  }, [poi.id]); // Reinitialize observer when POI changes
   
   // Handle image loading errors
   const handleImageError = () => {
-    setImageLoaded(true); // Important: still mark as loaded to remove spinner
+    console.log(`Image load error for ${poi.name}`);
+    setLoadError(true);
+    setImageLoaded(true); // Mark as loaded to remove spinner
   };
+
+  // Retry loading image if it failed
+  useEffect(() => {
+    if (loadError && shouldLoadImage && poi.image_url) {
+      const img = new Image();
+      img.onload = () => {
+        setLoadError(false);
+        setImageLoaded(true);
+      };
+      img.onerror = () => {
+        setLoadError(true);
+        setImageLoaded(true);
+      };
+      img.src = poi.image_url;
+    }
+  }, [loadError, shouldLoadImage, poi.image_url]);
 
   // Decide what image to show
   const imageSource = useMemo(() => {
     if (!shouldLoadImage) return null;
     
-    // Try original image first
-    if (poi.image_url) return poi.image_url;
+    if (loadError || !poi.image_url) {
+      // Fall back to default image on error or missing image URL
+      return getDefaultImage(poi.type || 'attraction');
+    }
     
-    // Fall back to default image
-    return getDefaultImage(poi.type || 'attraction');
-  }, [shouldLoadImage, poi.image_url, poi.type]);
+    // Use the POI's image URL
+    return poi.image_url;
+  }, [shouldLoadImage, loadError, poi.image_url, poi.type]);
 
   return (
     <TooltipProvider delayDuration={300}>
       <Card 
+        ref={cardRef}
         className="h-full bg-white shadow-md hover:shadow-lg transition-shadow flex flex-col overflow-hidden"
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
@@ -175,17 +203,22 @@ const ItineraryPOICard: FC<ItineraryPOICardProps> = ({ poi, dayOptions, onAddToI
               </div>
             )}
             
-            {/* Image element - always present for the observer */}
-            <img
-              ref={imageRef}
-              src={imageSource || getDefaultImage(poi.type)}
-              alt={poi.name}
-              className={`w-full h-full object-cover transition-all duration-300 ${
-                !imageLoaded ? 'opacity-0' : 'opacity-100'
-              } ${isHovered ? 'scale-105' : 'scale-100'}`}
-              onError={handleImageError}
-              onLoad={() => setImageLoaded(true)}
-            />
+            {/* Image element */}
+            {shouldLoadImage ? (
+              <img
+                ref={imageRef}
+                src={imageSource || getDefaultImage(poi.type || 'attraction')}
+                alt={poi.name}
+                className={`w-full h-full object-cover transition-all duration-300 ${
+                  !imageLoaded ? 'opacity-0' : 'opacity-100'
+                } ${isHovered ? 'scale-105' : 'scale-100'}`}
+                onError={handleImageError}
+                onLoad={() => setImageLoaded(true)}
+              />
+            ) : (
+              // Placeholder while waiting for observer
+              <div className="w-full h-full bg-gray-100"></div>
+            )}
             
             <div className="absolute top-2 left-2 flex items-center bg-white bg-opacity-90 rounded-full px-2 py-0.5 text-xs">
               {getTypeIcon(poi.type)}
