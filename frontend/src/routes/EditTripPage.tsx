@@ -283,6 +283,7 @@ function EditTripPage() {
       
       toast.error(errorMessage);
     } finally {
+      setHasUnsavedChanges(false);
       setIsSaving(false);
     }
   };
@@ -332,6 +333,7 @@ function EditTripPage() {
                 unusedPOIs={itineraryState.unusedPOIs}
                 onAddToItinerary={handleAddToItinerary}
                 onDeleteSavedPOI={deleteSavedPOI}
+                onDeleteItineraryPOI={deleteItineraryPOI}
                 isRightExpanded={isRightExpanded}
               />
             </div>

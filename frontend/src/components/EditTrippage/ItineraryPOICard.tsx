@@ -1,7 +1,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Phone, Mail, Clock, Info, Star, MapPin, Tag, Coffee, Utensils } from "lucide-react";
+import { Phone, Mail, Clock, Info, Star, MapPin, Tag, Coffee, Utensils, Trash2 } from "lucide-react";
 import type { ItineraryPOI } from "@/Types/InterfaceTypes";
 import { FC, useMemo, useState, useEffect, useRef } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -328,13 +328,29 @@ const ItineraryPOICard: FC<ItineraryPOICardProps> = ({ poi, dayOptions, onAddToI
               </div>
             )}
             
-            {/* Phone number if available */}
-            {poi.phone && (
-              <div className="flex items-center text-xs text-gray-600 mt-1">
-                <Phone className="h-3 w-3 mr-1" />
-                <span className="truncate">{poi.phone}</span>
-              </div>
-            )}
+            {/* Phone number and delete button row */}
+            <div className="flex items-center justify-between mt-1">
+              {poi.phone ? (
+                <div className="flex items-center text-xs text-gray-600">
+                  <Phone className="h-3 w-3 mr-1" />
+                  <span className="truncate">{poi.phone}</span>
+                </div>
+              ) : (
+                <div></div> // Empty div to maintain layout when no phone number
+              )}
+              
+              {/* Trash button on the right */}
+              {(onDeleteSavedPOI || onDeleteItineraryPOI) && (
+                <Button 
+                  onClick={() => poi.day === -1 ? setIsDeleteDialogOpen(true) : setIsDeleteItineraryDialogOpen(true)}
+                  className="h-6 w-6 p-0 bg-transparent hover:bg-red-100 text-red-600"
+                  variant="ghost"
+                  size="sm"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
           
             {/* More Details Dialog */}
             <div className="mt-auto pt-2">
@@ -506,29 +522,11 @@ const ItineraryPOICard: FC<ItineraryPOICardProps> = ({ poi, dayOptions, onAddToI
                     </HoverCardContent>
                 </HoverCard>
                 
-                {/* Only show delete button if onDeleteSavedPOI is provided */}
-                {onDeleteSavedPOI && (
-                  <Button 
-                    onClick={() => setIsDeleteDialogOpen(true)}
-                    className="w-full h-7 bg-red-600 hover:bg-red-700 text-white"
-                  >
-                    Delete
-                  </Button>
-                )}
+                {/* Remove the original delete button for saved POIs, as we've moved it up */}
               </div>
             )}
             
-            {/* Delete from Itinerary Button (only shown for itinerary items) */}
-            {poi.day !== -1 && onDeleteItineraryPOI && (
-              <div className="mt-2">
-                <Button 
-                  onClick={() => setIsDeleteItineraryDialogOpen(true)}
-                  className="w-full h-7 bg-red-600 hover:bg-red-700 text-white"
-                >
-                  Remove from Itinerary
-                </Button>
-              </div>
-            )}
+            {/* Remove the original delete button for itinerary items, as we've moved it up */}
           </div>
         </CardContent>
       </Card>
@@ -571,7 +569,7 @@ const ItineraryPOICard: FC<ItineraryPOICardProps> = ({ poi, dayOptions, onAddToI
           <DialogDescription>
             <div className="py-4">
                 Are you sure you want to remove <span className="font-semibold">{poi.name}</span> from your itinerary? 
-                It will be moved to your saved items.
+                It will be moved to the Saved tab.
             </div>
             <div className="flex justify-end gap-3 mt-2">
               <Button 
