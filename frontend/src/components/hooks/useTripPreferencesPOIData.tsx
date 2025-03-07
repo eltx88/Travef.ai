@@ -58,8 +58,9 @@ export const useTripPreferencesPOIData = (
     });
 
     if (fetchedPOIs.length < 12) {
+      const typeparam = type === 'food' ? ['restaurant'] : ['tourist_attraction','historical_landmark'];
       const additionalPOIs = await apiClient.getGoogleExplorePOIs({
-        type: ['tourist_attraction','historical_landmark'],
+        type: typeparam,
         coordinates: tripData.coordinates,
         poitype: type === 'food' ? 'restaurant' : 'attraction',
         city: tripData.city,

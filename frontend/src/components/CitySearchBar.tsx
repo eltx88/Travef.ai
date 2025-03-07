@@ -2,7 +2,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, X } from "lucide-react";
+import { Search } from "lucide-react";
 import { SearchCity } from "@/Types/InterfaceTypes";
 import cities from 'cities.json';
 

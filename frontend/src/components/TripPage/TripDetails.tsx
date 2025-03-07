@@ -59,7 +59,6 @@ export function TripDetails({ tripData, onEdit }: TripDetailsProps) {
       setIsLoading(false);
     }
   };
-  console.log("tripData", tripData);
   return (
     <>
       <Card className="w-full max-w-3xl mx-auto">
