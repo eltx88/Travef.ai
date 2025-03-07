@@ -2,7 +2,9 @@ import { useState, useEffect, useCallback } from 'react';
 import { Card } from '@/components/ui/card';
 import ItineraryDayContainer from './ItineraryDayContainer';
 import type { ItineraryPOI, TripData } from '@/Types/InterfaceTypes';
-import { Info } from 'lucide-react';
+import { Info, Download } from 'lucide-react';
+import { generateItineraryPDF } from '@/utils/pdfGenerator';
+import { toast } from 'react-hot-toast';
 
 interface ItineraryViewProps {
   itineraryPOIs: ItineraryPOI[];
@@ -22,6 +24,7 @@ const ItineraryView = ({
   isSaving
 }: ItineraryViewProps) => {
   const [pois, setPois] = useState<ItineraryPOI[]>([]);
+  const [isExporting, setIsExporting] = useState(false);
 
   useEffect(() => {
     setPois(itineraryPOIs);
@@ -42,6 +45,20 @@ const ItineraryView = ({
       deleteItineraryPOI(deletedPOI);
     }
   }, [deleteItineraryPOI]);
+
+  // Function to handle PDF export
+  const handleExport = useCallback(() => {
+    try {
+      setIsExporting(true);
+      generateItineraryPDF(pois, tripData);
+      toast.success('Itinerary exported successfully!');
+    } catch (error) {
+      console.error('Error exporting PDF:', error);
+      toast.error('Failed to export itinerary. Please try again.');
+    } finally {
+      setIsExporting(false);
+    }
+  }, [pois, tripData]);
 
   return (
     <Card className="w-full h-[calc(100vh-7rem)] overflow-hidden bg-white p-6 rounded-lg">
@@ -84,7 +101,7 @@ const ItineraryView = ({
             onUpdatePOI={handlePOIUpdate}
             onDeletePOI={handleDeletePOI}
           />
-          <div className="sticky bottom-4 right-0 w-full flex justify-left mt-4">
+          <div className="sticky bottom-4 right-0 w-full flex justify-left mt-4 gap-4">
             <button 
               className={`px-6 py-3 rounded-lg shadow-lg transition-colors duration-200 flex items-center gap-2
                 ${isSaving 
@@ -95,6 +112,20 @@ const ItineraryView = ({
               disabled={isSaving}
             >
               <span>{isSaving ? 'Saving...' : 'Save and Exit'}</span>
+            </button>
+            
+            {/* Export Button */}
+            <button 
+              className={`px-6 py-3 rounded-lg shadow-lg transition-colors duration-200 flex items-center gap-2
+                ${isExporting 
+                  ? 'bg-gray-400 cursor-not-allowed' 
+                  : 'bg-green-600 hover:bg-green-700'} 
+                text-white`}
+              onClick={handleExport}
+              disabled={isExporting}
+            >
+              <Download className="h-4 w-4" />
+              <span>{isExporting ? 'Exporting...' : 'Export PDF'}</span>
             </button>
           </div>
         </div>

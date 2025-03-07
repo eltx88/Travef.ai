@@ -4,7 +4,7 @@ import Searchbar from "@/components/Homepage/SearchbarHomepage";
 import Itineraries from "@/components/Homepage/Trips";
 import { LocationProvider } from "@/contexts/LocationContext";
 import LoadingOverlay from "@/components/LoadingOverlay";
-
+import Footer from "@/components/Footer";
 function HomePage() {
   const [showItineraries, setShowItineraries] = useState(false);
   const [animateItineraries, setAnimateItineraries] = useState(false);
@@ -102,17 +102,7 @@ function HomePage() {
             {!showItineraries && <div className="h-[500px] w-full"></div>}
           </div>
         </main>
-
-        <footer className="bg-blue-600 text-white py-1">
-          <div className="container mx-auto px-4">
-            <p className="text-sm text-center">© 2024 Travefai. All rights reserved.</p>
-            <div className="flex justify-center space-x-4 mt-2">
-              <a href="/privacy-policy" className="text-sm hover:underline">Privacy Policy</a>
-              <a href="/terms-of-service" className="text-sm hover:underline">Terms of Service</a>
-              <a href="/contact" className="text-sm hover:underline">Contact Us</a>
-            </div>
-          </div>
-        </footer>
+        <Footer />
       </div>
     </LocationProvider>
   );
