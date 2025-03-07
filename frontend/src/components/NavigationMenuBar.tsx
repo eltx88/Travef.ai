@@ -16,6 +16,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { auth } from '../firebase/firebase';
 import { signOut } from 'firebase/auth';
+import { LogOut } from 'lucide-react';
 
 interface NavigationMenuBarProps {
     hasUnsavedChanges?: boolean;
@@ -207,7 +208,7 @@ export function NavigationMenuBar({ hasUnsavedChanges = false, clearUnsavedChang
 
             <DropdownMenu>
                 <DropdownMenuTrigger className="focus:outline-1">
-                    <div className="hover:opacity-45 transition-opacity">
+                    <div className="hover:opacity-45 px-2 py-1 transition-opacity">
                         <svg 
                             xmlns="http://www.w3.org/2000/svg" 
                             fill="none" 
@@ -224,17 +225,12 @@ export function NavigationMenuBar({ hasUnsavedChanges = false, clearUnsavedChang
                         </svg>
                     </div>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-[1px] bg-white">
-                    <DropdownMenuItem 
-                        className="cursor-pointer"
-                        onClick={(e) => handleNavigation(e, '/profile')}
-                    >
-                        Profile
-                    </DropdownMenuItem>
+                <DropdownMenuContent className=" bg-white">
                     <DropdownMenuItem 
                         className="cursor-pointer text-red-600 focus:text-red-600 focus:bg-red-50"
                         onClick={handleLogout}
                     >
+                        <LogOut className="w-4 h-4 mr-2" />
                         Logout
                     </DropdownMenuItem>
                 </DropdownMenuContent>
