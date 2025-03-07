@@ -87,6 +87,7 @@ const POIFilters = ({
 
         return (
             <span className="flex items-center">
+                <span className="mr-2 font-medium">{rating}+</span>
                 {Array(fullStars).fill(0).map((_, i) => (
                     <Star key={i} className="mr-0.5 h-3.5 w-3.5 text-yellow-400 fill-yellow-400" />
                 ))}

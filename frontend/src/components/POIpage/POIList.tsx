@@ -14,6 +14,8 @@ interface POIListProps {
     onUnsavePOI: (poiId: string) => Promise<void>;
     onLoadResults?: () => void;
     isPoiSaved: (poiId: string) => boolean;
+    tabType: 'saved' | 'explore';
+    onTabChange?: (tab: 'saved' | 'explore') => void;
 }
 const POIList = ({ 
     loading, 
@@ -24,6 +26,8 @@ const POIList = ({
     onUnsavePOI, 
     onLoadResults,
     isPoiSaved,
+    tabType,
+    onTabChange
 }: POIListProps) => {
     // Pagination state
     const [currentPage, setCurrentPage] = useState(1);
@@ -68,11 +72,29 @@ const POIList = ({
     }
 
     if (pois.length === 0) {
+        if(tabType === 'saved') {
         return (
-            <div className="text-gray-500 text-center p-4">
-                No points of interest found.
+            <div className="flex flex-col items-center justify-center h-48 space-y-4">
+                <div className="text-gray-500 text-center p-4">
+                    No saved places found.
+                </div>
+                <Button 
+                    className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-medium px-3 rounded-lg transition-colors" 
+                    onClick={() => onTabChange && onTabChange('explore')}
+                >
+                    <Search className="h-4 w-4" />
+                    Explore Places
+                </Button>
             </div>
-        );
+            );
+        }
+        if(tabType === 'explore') {
+            return (
+                <div className="text-gray-500 text-center p-4">
+                    No results found.
+                </div>
+            );
+        }
     }
 
     // Calculate pagination values
