@@ -64,7 +64,7 @@ export default function TripCreationCarousel({ onComplete, initialData }: TripCr
   const [foodDialogInput, setFoodDialogInput] = useState(''); 
   const predefinedInterests = ['Museum', 'Park', 'Theatre', 'Aquarium',
                               'Shopping Malls', 'Theme Park', 'Art Gallery', 'National Parks',
-                                'Viewpoints', 'Gardens', 'Zoo', 'UNESCO'];
+                                'Viewpoints', 'Gardens', 'Zoo', 'Beach'];
   const predefinedFoodInterests = ["Italian", "Chinese", "Japanese", "Indian",
                                     "Thai", "Mexican", "Mediterranean", "French", "Korean",
                                      "Vietnamese", "Greek", "Burger" ];         

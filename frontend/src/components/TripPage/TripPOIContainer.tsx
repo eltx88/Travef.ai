@@ -680,8 +680,8 @@ const TripPOIContainer = ({
         {explorePOIs.length > 0 && (
           <div className="mb-8">
             <h3 className="text-xl font-semibold mb-4">
-              {selectedCategory === 'attraction' ? 'Attractions' : 
-               selectedCategory === 'restaurant' ? 'Restaurants' : 'Cafes'}
+              {selectedCategory === 'attraction' ? 'Suggested Attractions for you' : 
+               selectedCategory === 'restaurant' ? 'Suggested Restaurants for you' : 'Suggested Cafes for you'}
             </h3>
             <POIGrid 
               items={explorePOIs} 

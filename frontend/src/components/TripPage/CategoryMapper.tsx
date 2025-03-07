@@ -163,9 +163,10 @@ export class CategoryMapper {
     ].map(pref => pref.trim());
 
     if (allFoodPrefs.length === 0) {
-      mappedFood.add('catering.restaurant');
-    } else {
-        for (const food of allFoodPrefs) {
+      mappedFood.add('restaurant');
+    }
+    else {
+      for (const food of allFoodPrefs) {
         const matches = this.findMatches(
           food,
           this.fuseFoodKeys,
@@ -187,8 +188,8 @@ export class CategoryMapper {
     ].map(interest => interest.trim());
 
     if (allInterests.length === 0) {
-      mappedAttractions.add('tourism');
-      mappedAttractions.add('entertainment');
+      mappedAttractions.add('tourist_attraction');
+      mappedAttractions.add('historical_landmark');
     } else {
         for (const interest of allInterests) {
         const matches = this.findMatches(
