@@ -1,11 +1,14 @@
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState, useEffect, useCallback } from 'react';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import type { TripData, ItineraryPOI } from '@/Types/InterfaceTypes';
 import { cn } from "@/lib/utils";
 import ItineraryPOICard from './ItineraryPOICard';
-import { Calendar, Star, Landmark, UtensilsCrossed } from 'lucide-react';
+import { Calendar, Star, Landmark, UtensilsCrossed, Search, Loader2 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import ApiClient from '@/Api/apiClient';
+import { useAuthStore } from '@/firebase/firebase';
+import { toast } from 'react-hot-toast';
 
 type TabType = 'itinerary' | 'saved' | 'search';
 
@@ -14,7 +17,8 @@ interface ItineraryPointsProps {
   itineraryPOIs: ItineraryPOI[];
   unusedPOIs: ItineraryPOI[];
   onAddToItinerary: (poi: ItineraryPOI, day: number) => void;
-  onDeleteSavedPOI: (poi: ItineraryPOI) => void; 
+  onDeleteSavedPOI: (poi: ItineraryPOI) => void;
+  onDeleteItineraryPOI: (poi: ItineraryPOI) => void;
   isRightExpanded?: boolean;
 }
 
@@ -24,6 +28,7 @@ const ItineraryPoints = ({
   unusedPOIs,
   onAddToItinerary,
   onDeleteSavedPOI,
+  onDeleteItineraryPOI,
   isRightExpanded = false,
 }: ItineraryPointsProps) => {
   const [activeTab, setActiveTab] = useState<TabType>('itinerary');
@@ -32,11 +37,15 @@ const ItineraryPoints = ({
   const [currentItineraryPage, setCurrentItineraryPage] = useState(1);
   const [currentSavedAttractionsPage, setCurrentSavedAttractionsPage] = useState(1);
   const [currentSavedRestaurantsPage, setCurrentSavedRestaurantsPage] = useState(1);
-  const [searchCategory, setSearchCategory] = useState<'attraction' | 'restaurant'>('attraction');
+  const [searchCategory, setSearchCategory] = useState<'all' | 'attraction' | 'restaurant'>('all');
   const [searchNameFilter, setSearchNameFilter] = useState('');
   const [searchRatingFilter, setSearchRatingFilter] = useState<number | null>(null);
   const [searchSortByRating, setSearchSortByRating] = useState(false);
   const [currentSearchPage, setCurrentSearchPage] = useState(1);
+  const [searchText, setSearchText] = useState('');
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchResults, setSearchResults] = useState<ItineraryPOI[]>([]);
+  const { user } = useAuthStore();
   const itemsPerPage = 6;
   
   const savedAttractions = unusedPOIs.filter(poi => poi.type === 'attraction');
@@ -48,13 +57,27 @@ const ItineraryPoints = ({
     [tripData.monthlyDays]
   );
 
-  // Filter and sort itinerary POIs using memoization
+  // Create API client
+  const apiClient = new ApiClient({
+    getIdToken: async () => {
+      if (!user) throw new Error('Not authenticated');
+      return user.getIdToken();
+    }
+  });
+
+  const [itineraryNameFilter, setItineraryNameFilter] = useState('');
+  const [savedAttractionsNameFilter, setSavedAttractionsNameFilter] = useState('');
+  const [savedRestaurantsNameFilter, setSavedRestaurantsNameFilter] = useState('');
+
+  // Updated filteredItineraryPOIs to include name filtering
   const filteredItineraryPOIs = useMemo(() => {
     let filtered = itineraryPOIs.filter(poi => {
       const matchesDay = filterDay === 'all' || poi.day === Number(filterDay);
       const matchesTimeSlot = filterTimeSlot === 'all' || 
         poi.timeSlot?.toLowerCase() === filterTimeSlot.toLowerCase();
-      return matchesDay && matchesTimeSlot;
+      const matchesName = !itineraryNameFilter || 
+        poi.name.toLowerCase().includes(itineraryNameFilter.toLowerCase());
+      return matchesDay && matchesTimeSlot && matchesName;
     });
     
     return filtered.sort((a, b) => {
@@ -74,7 +97,7 @@ const ItineraryPoints = ({
         return (a.StartTime || '') < (b.StartTime || '') ? -1 : 1;
       }
     });
-  }, [itineraryPOIs, filterDay, filterTimeSlot]);
+  }, [itineraryPOIs, filterDay, filterTimeSlot, itineraryNameFilter]);
 
   // Apply pagination to itinerary POIs
   const paginatedItineraryPOIs = useMemo(() => {
@@ -83,31 +106,201 @@ const ItineraryPoints = ({
     return filteredItineraryPOIs.slice(startIndex, endIndex);
   }, [filteredItineraryPOIs, currentItineraryPage, itemsPerPage]);
 
+  // Filter saved attractions by name
+  const filteredSavedAttractions = useMemo(() => {
+    if (!savedAttractionsNameFilter) return savedAttractions;
+    
+    return savedAttractions.filter(poi => 
+      poi.name.toLowerCase().includes(savedAttractionsNameFilter.toLowerCase())
+    );
+  }, [savedAttractions, savedAttractionsNameFilter]);
+
+  // Filter saved restaurants by name
+  const filteredSavedRestaurants = useMemo(() => {
+    if (!savedRestaurantsNameFilter) return savedRestaurants;
+    
+    return savedRestaurants.filter(poi => 
+      poi.name.toLowerCase().includes(savedRestaurantsNameFilter.toLowerCase())
+    );
+  }, [savedRestaurants, savedRestaurantsNameFilter]);
+
   // Apply pagination to saved attractions
   const paginatedSavedAttractions = useMemo(() => {
     const startIndex = (currentSavedAttractionsPage - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
-    return savedAttractions.slice(startIndex, endIndex);
-  }, [savedAttractions, currentSavedAttractionsPage, itemsPerPage]);
+    return filteredSavedAttractions.slice(startIndex, endIndex);
+  }, [filteredSavedAttractions, currentSavedAttractionsPage, itemsPerPage]);
 
   // Apply pagination to saved restaurants
   const paginatedSavedRestaurants = useMemo(() => {
     const startIndex = (currentSavedRestaurantsPage - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
-    return savedRestaurants.slice(startIndex, endIndex);
-  }, [savedRestaurants, currentSavedRestaurantsPage, itemsPerPage]);
+    return filteredSavedRestaurants.slice(startIndex, endIndex);
+  }, [filteredSavedRestaurants, currentSavedRestaurantsPage, itemsPerPage]);
+
+  // Handle search submission
+  const handleSearch = useCallback(async () => {
+    if (!searchText.trim()) {
+      toast.error("Please enter a search term");
+      return;
+    }
+    
+    if (!tripData.coordinates) {
+      toast.error("Location coordinates are missing");
+      return;
+    }
+    
+    try {
+      setIsSearching(true);
+      
+      // Get the coordinates from trip data
+      const { lat, lng } = tripData.coordinates;
+      
+      // Make the API call without type filtering - we'll filter results client-side
+      const results = await apiClient.getTextSearchPlaces(
+        searchText,
+        lat,
+        lng,
+        2000,
+        tripData.city,
+        tripData.country,
+        undefined,
+        20,
+        false
+      );
+      
+      // Create a Set of existing place_ids for efficient lookup
+      const existingPlaceIds = new Set([
+        ...itineraryPOIs.map(poi => poi.place_id),
+        ...unusedPOIs.map(poi => poi.place_id)
+      ].filter(id => id));
+      
+      // Only filter out duplicates, don't filter by category here
+      const filteredResults = results.filter(poi => 
+        !existingPlaceIds.has(poi.place_id)
+      );
+      
+      // Convert POI results to ItineraryPOI format
+      const formattedResults: ItineraryPOI[] = filteredResults.map(poi => {
+        return {
+          ...poi,
+          id: poi.place_id,
+          place_id: poi.place_id,
+          StartTime: -1,
+          EndTime: -1,
+          day: -1,
+          duration: -1,
+          timeSlot: '',
+          type: poi.type,
+          city: tripData.city,
+          country: tripData.country
+        };
+      });
+      
+      // Store raw results without filtering or sorting
+      setSearchResults(formattedResults);
+      setCurrentSearchPage(1);
+      
+      if (formattedResults.length === 0) {
+        toast.error("No results found. Try adjusting your search terms.");
+      }
+    } catch (error) {
+      console.error("Search error:", error);
+      toast.error("Failed to search places. Please try again.");
+    } finally {
+      setIsSearching(false);
+    }
+  }, [
+    searchText, 
+    tripData.coordinates,
+    tripData.city,
+    tripData.country, 
+    apiClient,
+    itineraryPOIs,
+    unusedPOIs
+  ]);
+
+  // Apply name filter, rating filter, and sorting to search results
+  const filteredSearchResults = useMemo(() => {
+    // First apply all filters to search results
+    let filtered = searchResults;
+    
+    // Apply category filter - this ensures consistent filtering with other filters
+    if (searchCategory === 'attraction') {
+      filtered = filtered.filter(poi => poi.type === 'attraction');
+    } else if (searchCategory === 'restaurant') {
+      filtered = filtered.filter(poi => poi.type === 'restaurant' || poi.type === 'cafe');
+    }
+    
+    // Apply name filter if provided
+    if (searchNameFilter) {
+      const lowerCaseFilter = searchNameFilter.toLowerCase();
+      filtered = filtered.filter(
+        poi => poi.name.toLowerCase().includes(lowerCaseFilter)
+      );
+    }
+    
+    // Apply rating filter if set
+    if (searchRatingFilter) {
+      filtered = filtered.filter(poi => (poi.rating || 0) >= searchRatingFilter);
+    }
+    
+    // Filter out POIs that are already in the itinerary OR in the unusedPOIs (saved) list
+    const existingPlaceIds = new Set([
+      ...itineraryPOIs.map(poi => poi.place_id),
+      ...unusedPOIs.map(poi => poi.place_id)
+    ].filter(id => id));
+    
+    filtered = filtered.filter(poi => !existingPlaceIds.has(poi.place_id));
+    
+    // Apply sorting by rating if enabled
+    let sortedResults = [...filtered];
+    if (searchSortByRating) {
+      sortedResults.sort((a, b) => (b.rating || 0) - (a.rating || 0));
+    }
+    
+    return sortedResults;
+  }, [
+    searchResults, 
+    searchCategory, 
+    searchNameFilter, 
+    searchRatingFilter, 
+    searchSortByRating,
+    itineraryPOIs,
+    unusedPOIs
+  ]);
+
+  // Then apply pagination to filtered results
+  const paginatedSearchResults = useMemo(() => {
+    const startIndex = (currentSearchPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return filteredSearchResults.slice(startIndex, endIndex);
+  }, [filteredSearchResults, currentSearchPage, itemsPerPage]);
 
   // Reset pagination when filters change
   useEffect(() => {
     setCurrentItineraryPage(1);
-  }, [filterDay, filterTimeSlot]);
+  }, [filterDay, filterTimeSlot, itineraryNameFilter]);
   
   // Reset pagination when tab changes
   useEffect(() => {
     setCurrentItineraryPage(1);
     setCurrentSavedAttractionsPage(1);
     setCurrentSavedRestaurantsPage(1);
+    setCurrentSearchPage(1);
   }, [activeTab]);
+
+  // Reset pagination when search filters change
+  useEffect(() => {
+    setCurrentSearchPage(1);
+  }, [searchNameFilter, searchRatingFilter, searchSortByRating]);
+
+  // Handle Enter key press in search box
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleSearch();
+    }
+  };
 
   // Add pagination component
   const PaginationControls = ({ 
@@ -178,51 +371,99 @@ const ItineraryPoints = ({
     );
   };
 
+  // Add these new states for the animation
+  const [showAddedAnimation, setShowAddedAnimation] = useState(false);
+  
+  // Simplified handler that doesn't increment a counter
+  const handleAddToItinerary = useCallback((poi: ItineraryPOI, day: number) => {
+    // Show animation when adding from either search tab OR saved tab
+    if (activeTab === 'search' || activeTab === 'saved') {
+      // Show the animation
+      setShowAddedAnimation(true);
+      
+      // Hide animation after 2 seconds
+      setTimeout(() => {
+        setShowAddedAnimation(false);
+      }, 2000);
+    }
+    
+    // Call the original handler
+    onAddToItinerary(poi, day);
+  }, [activeTab, onAddToItinerary]);
+
   const renderTabContent = () => {
     switch (activeTab) {
       case 'itinerary':
         return (
           <div className="space-y-4">
-            <div className="flex gap-4 bg-white z-50">
-              <Select 
-                value={filterDay}
-                onValueChange={setFilterDay}
-              >
-                <SelectTrigger className="w-40 bg-white">
-                  <SelectValue placeholder="Filter by Day" />
-                </SelectTrigger>
-                <SelectContent className="z-[100] bg-white">
-                  <SelectItem value="all">All Days</SelectItem>
-                  {dayOptions.map((day) => (
-                    <SelectItem key={day} value={day.toString()}>{`Day ${day}`}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <div className="space-y-4 bg-white z-50">
+              <div className="flex gap-4">
+                <Select 
+                  value={filterDay}
+                  onValueChange={setFilterDay}
+                >
+                  <SelectTrigger className="w-40 bg-white">
+                    <SelectValue placeholder="Filter by Day" />
+                  </SelectTrigger>
+                  <SelectContent className="z-[100] bg-white">
+                    <SelectItem value="all">All Days</SelectItem>
+                    {dayOptions.map((day) => (
+                      <SelectItem key={day} value={day.toString()}>{`Day ${day}`}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
 
-              <Select 
-                value={filterTimeSlot}
-                onValueChange={setFilterTimeSlot}
-              >
-                <SelectTrigger className="w-40">
-                  <SelectValue placeholder="Filter by Time" />
-                </SelectTrigger>
-                <SelectContent className="z-[100] bg-white">
-                  <SelectItem value="all">All Times</SelectItem>
-                  <SelectItem value="morning">Morning</SelectItem>
-                  <SelectItem value="afternoon">Afternoon</SelectItem>
-                  <SelectItem value="evening">Evening</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-                
-            <div className={`grid ${isRightExpanded ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'} gap-4`}>
-              {paginatedItineraryPOIs.map((poi) => (
-                <ItineraryPOICard
-                  key={poi.id}
-                  poi={poi}
+                <Select 
+                  value={filterTimeSlot}
+                  onValueChange={setFilterTimeSlot}
+                >
+                  <SelectTrigger className="w-40">
+                    <SelectValue placeholder="Filter by Time" />
+                  </SelectTrigger>
+                  <SelectContent className="z-[100] bg-white">
+                    <SelectItem value="all">All Times</SelectItem>
+                    <SelectItem value="morning">Morning</SelectItem>
+                    <SelectItem value="afternoon">Afternoon</SelectItem>
+                    <SelectItem value="evening">Evening</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              {/* Name filter for Itinerary tab */}
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Filter by name..."
+                  value={itineraryNameFilter}
+                  onChange={(e) => setItineraryNameFilter(e.target.value)}
+                  className="w-full px-3 py-2 border rounded-md"
                 />
-              ))}
+                {itineraryNameFilter && (
+                  <button 
+                    onClick={() => setItineraryNameFilter('')}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
             </div>
+            
+            {filteredItineraryPOIs.length > 0 ? (
+              <div className={`grid ${isRightExpanded ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'} gap-4`}>
+                {paginatedItineraryPOIs.map((poi) => (
+                  <ItineraryPOICard
+                    key={poi.id}
+                    poi={poi}
+                    onDeleteItineraryPOI={onDeleteItineraryPOI}
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="text-center text-gray-500 py-8">
+                No itinerary items match your filters.
+              </div>
+            )}
             
             <PaginationControls 
               currentPage={currentItineraryPage} 
@@ -234,47 +475,115 @@ const ItineraryPoints = ({
       case 'saved':
         return (
           <div className="space-y-4">
-            <h3 className="text-lg font-medium sticky top-0 bg-white z-10 pb-2">
-              Saved Attractions
-            </h3>
-            <div className={`grid ${isRightExpanded ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'} gap-4`}>
-              {paginatedSavedAttractions.map((poi) => (
-                <ItineraryPOICard
-                  key={poi.id}
-                  poi={poi}
-                  dayOptions={dayOptions}
-                  onAddToItinerary={onAddToItinerary}
-                  onDeleteSavedPOI={onDeleteSavedPOI}
+            {savedAttractions.length > 0 ? (
+              <>
+                <h3 className="text-lg font-medium sticky top-0 bg-white z-10 pb-2">
+                  Saved Attractions
+                </h3>
+                
+                {/* Name filter for Saved Attractions */}
+                <div className="relative mb-4">
+                  <input
+                    type="text"
+                    placeholder="Filter attractions by name..."
+                    value={savedAttractionsNameFilter}
+                    onChange={(e) => setSavedAttractionsNameFilter(e.target.value)}
+                    className="w-full px-3 py-2 border rounded-md"
+                  />
+                  {savedAttractionsNameFilter && (
+                    <button 
+                      onClick={() => setSavedAttractionsNameFilter('')}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    >
+                      ×
+                    </button>
+                  )}
+                </div>
+                
+                {filteredSavedAttractions.length > 0 ? (
+                  <div className={`grid ${isRightExpanded ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'} gap-4`}>
+                    {paginatedSavedAttractions.map((poi) => (
+                      <ItineraryPOICard
+                        key={poi.id}
+                        poi={poi}
+                        dayOptions={dayOptions}
+                        onAddToItinerary={handleAddToItinerary}
+                        onDeleteSavedPOI={onDeleteSavedPOI}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center text-gray-500 py-8">
+                    No attractions match your filter.
+                  </div>
+                )}
+                
+                <PaginationControls 
+                  currentPage={currentSavedAttractionsPage} 
+                  setCurrentPage={setCurrentSavedAttractionsPage} 
+                  totalItems={filteredSavedAttractions.length} 
                 />
-              ))}
-            </div>
-            
-            <PaginationControls 
-              currentPage={currentSavedAttractionsPage} 
-              setCurrentPage={setCurrentSavedAttractionsPage} 
-              totalItems={savedAttractions.length} 
-            />
+              </>
+            ) : (
+              <div className="text-center text-gray-500 py-8">
+                No saved attractions.
+              </div>
+            )}
 
-            <h3 className="text-lg font-medium sticky top-0 bg-white z-10 pb-2">
-              Saved Restaurants and Cafes
-            </h3>
-            <div className={`grid ${isRightExpanded ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'} gap-4`}>
-              {paginatedSavedRestaurants.map((poi) => (
-                <ItineraryPOICard
-                  key={poi.id}
-                  poi={poi}
-                  dayOptions={dayOptions}
-                  onAddToItinerary={onAddToItinerary}
-                  onDeleteSavedPOI={onDeleteSavedPOI}
+            {savedRestaurants.length > 0 ? (
+              <>
+                <h3 className="text-lg font-medium sticky top-0 bg-white z-10 pb-2 mt-8">
+                  Saved Restaurants and Cafes
+                </h3>
+                
+                {/* Name filter for Saved Restaurants */}
+                <div className="relative mb-4">
+                  <input
+                    type="text"
+                    placeholder="Filter restaurants and cafes by name..."
+                    value={savedRestaurantsNameFilter}
+                    onChange={(e) => setSavedRestaurantsNameFilter(e.target.value)}
+                    className="w-full px-3 py-2 border rounded-md"
+                  />
+                  {savedRestaurantsNameFilter && (
+                    <button 
+                      onClick={() => setSavedRestaurantsNameFilter('')}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    >
+                      ×
+                    </button>
+                  )}
+                </div>
+                
+                {filteredSavedRestaurants.length > 0 ? (
+                  <div className={`grid ${isRightExpanded ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'} gap-4`}>
+                    {paginatedSavedRestaurants.map((poi) => (
+                      <ItineraryPOICard
+                        key={poi.id}
+                        poi={poi}
+                        dayOptions={dayOptions}
+                        onAddToItinerary={handleAddToItinerary}
+                        onDeleteSavedPOI={onDeleteSavedPOI}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center text-gray-500 py-8">
+                    No restaurants or cafes match your filter.
+                  </div>
+                )}
+                
+                <PaginationControls 
+                  currentPage={currentSavedRestaurantsPage} 
+                  setCurrentPage={setCurrentSavedRestaurantsPage} 
+                  totalItems={filteredSavedRestaurants.length} 
                 />
-              ))}
-            </div>
-            
-            <PaginationControls 
-              currentPage={currentSavedRestaurantsPage} 
-              setCurrentPage={setCurrentSavedRestaurantsPage} 
-              totalItems={savedRestaurants.length} 
-            />
+              </>
+            ) : (
+              <div className="text-center text-gray-500 py-8 mt-4">
+                No saved restaurants or cafes.
+              </div>
+            )}
           </div>
         );
       case 'search':
@@ -283,22 +592,28 @@ const ItineraryPoints = ({
             <div className="flex flex-col space-y-4">
               <div className="flex gap-4 items-center">
                 <Select 
-                  defaultValue="attraction"
-                  onValueChange={(value) => setSearchCategory(value as 'attraction' | 'restaurant')}
+                  defaultValue="all"
+                  onValueChange={(value) => setSearchCategory(value as 'all' | 'attraction' | 'restaurant')}
                 >
                   <SelectTrigger className="w-48">
                     <SelectValue placeholder="Category" />
                   </SelectTrigger>
                   <SelectContent className="z-[100] bg-white">
+                    <SelectItem value="all">
+                      <div className="flex items-center">
+                        <Search className="w-4 h-4 mr-2 text-blue-300" />
+                        <span>All Places</span>
+                      </div>
+                    </SelectItem>
                     <SelectItem value="attraction">
                       <div className="flex items-center">
-                        <Landmark className="w-4 h-4 mr-2 text-blue-600" />
+                        <Landmark className="w-4 h-4 mr-2 text-red-600" />
                         <span>Attractions</span>
                       </div>
                     </SelectItem>
                     <SelectItem value="restaurant">
                       <div className="flex items-center">
-                        <UtensilsCrossed className="w-4 h-4 mr-2 text-orange-600" />
+                        <UtensilsCrossed className="w-4 h-4 mr-2 text-blue-600" />
                         <span>Restaurants & Cafes</span>
                       </div>
                     </SelectItem>
@@ -308,7 +623,7 @@ const ItineraryPoints = ({
                 <div className="flex-1 relative">
                   <input
                     type="text"
-                    placeholder="Search by name..."
+                    placeholder="Filter by name..."
                     value={searchNameFilter}
                     onChange={(e) => setSearchNameFilter(e.target.value)}
                     className="w-full px-3 py-2 border rounded-md"
@@ -322,6 +637,41 @@ const ItineraryPoints = ({
                     </button>
                   )}
                 </div>
+              </div>
+
+              {/* Search bar for text search */}
+              <div className="flex gap-2 mt-2">
+                <div className="flex-1 relative">
+                  <input
+                    type="text"
+                    placeholder={`Search for places in ${tripData.city.charAt(0).toUpperCase() + tripData.city.slice(1)}...`}
+                    value={searchText}
+                    onChange={(e) => setSearchText(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    className="w-full px-3 py-2 border rounded-md"
+                    disabled={isSearching}
+                  />
+                  {searchText && !isSearching && (
+                    <button 
+                      onClick={() => setSearchText('')}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    >
+                      ×
+                    </button>
+                  )}
+                </div>
+                <button
+                  onClick={handleSearch}
+                  disabled={isSearching || !searchText.trim()}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-blue-300 flex items-center gap-2"
+                >
+                  {isSearching ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Search className="w-4 h-4" />
+                  )}
+                  Search
+                </button>
               </div>
 
               <div className="flex items-center justify-between">
@@ -401,20 +751,41 @@ const ItineraryPoints = ({
             </div>
 
             <div className="mt-6">
-              {/* This will hold search results */}
-              <div className={`grid ${isRightExpanded ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'} gap-4`}>
-                {/* Your POI cards will go here */}
-                <div className="text-center text-gray-500 col-span-full py-8">
-                  Use filters above to search for places to add to your itinerary
+              {/* Search results */}
+              {isSearching ? (
+                <div className="flex flex-col items-center justify-center py-12">
+                  <Loader2 className="w-12 h-12 text-blue-600 animate-spin mb-4" />
+                  <p className="text-gray-600">Searching for places...</p>
                 </div>
-              </div>
+              ) : filteredSearchResults.length > 0 ? (
+                <div className={`grid ${isRightExpanded ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'} gap-4`}>
+                  {paginatedSearchResults.map((poi) => (
+                    <ItineraryPOICard
+                      key={poi.id}
+                      poi={poi}
+                      dayOptions={dayOptions}
+                      onAddToItinerary={handleAddToItinerary}
+                    />
+                  ))}
+                </div>
+              ) : searchText && !isSearching ? (
+                <div className="text-center text-gray-500 py-8">
+                  No results found. Try adjusting your search terms.
+                </div>
+              ) : (
+                <div className="text-center text-gray-500 py-8">
+                  Enter a search term to find places to add to your itinerary.
+                </div>
+              )}
               
               {/* Pagination for search results */}
-              <PaginationControls 
-                currentPage={currentSearchPage} 
-                setCurrentPage={setCurrentSearchPage} 
-                totalItems={0} // Replace with actual search results count when implemented
-              />
+              {filteredSearchResults.length > 0 && (
+                <PaginationControls 
+                  currentPage={currentSearchPage} 
+                  setCurrentPage={setCurrentSearchPage} 
+                  totalItems={filteredSearchResults.length}
+                />
+              )}
             </div>
           </div>
         );
@@ -455,10 +826,18 @@ const ItineraryPoints = ({
                 "data-[state=active]:bg-blue-100 data-[state=active]:text-blue-700",
                 "data-[state=active]:shadow-none",
                 "h-10",
-                "text-gray-600 hover:text-blue-700"
+                "text-gray-600 hover:text-blue-700",
+                "relative"
               )}
             >
               Itinerary
+              {showAddedAnimation && (
+                <div className="absolute -top-2 -right-2 flex items-center justify-center">
+                  <div className="animate-bounce-fade bg-blue-500 text-white text-xs rounded-full w-6 h-6 flex items-center justify-center font-bold">
+                    +1
+                  </div>
+                </div>
+              )}
             </TabsTrigger>
             <TabsTrigger 
               value="saved"
@@ -482,7 +861,7 @@ const ItineraryPoints = ({
                 "text-gray-600 hover:text-blue-700"
               )}
             >
-              Add
+              Search
             </TabsTrigger>
           </TabsList>
         </div>

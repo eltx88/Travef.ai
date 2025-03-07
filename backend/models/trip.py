@@ -86,6 +86,7 @@ class TripUpdateRequest(BaseModel):
     movedToUnused: Optional[List[UnusedPOIUpdate]]
     schedulingUpdates: Optional[List[ItineraryPOIUpdate]]
     unusedPOIsState: Optional[List[UnusedPOIUpdate]]
+    newlyAddedPOIs: Optional[List[ItineraryPOIUpdate]]
 
     class Config:
         populate_by_name = True

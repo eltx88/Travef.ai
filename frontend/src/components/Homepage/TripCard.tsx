@@ -19,6 +19,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import citiesData from '@/data/cities.json';
 
 interface TripCardsProps {
   trip: UserTrip;
@@ -42,12 +43,33 @@ const TripCard: FC<TripCardsProps> = ({ trip, onDelete, setGlobalLoading }) => {
     return `${date.getDate()} ${date.toLocaleString('default', { month: 'short' })} ${date.getFullYear()}`;
   };
 
+  // Find the matching city image or return default image
+  const getCityImage = (cityName: string): string => {
+    const normalizedCityName = cityName.toLowerCase().replace(/\s+/g, '');
+    
+    const matchedCity = citiesData.cities.find(city => 
+      city.city.toLowerCase().replace(/\s+/g, '') === normalizedCityName
+    );
+    
+    return matchedCity?.image_link || 
+      "https://images.unsplash.com/photo-1548800687-96dc03940478?q=80&w=1974&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D";
+  };
+
   return (
     <Card className="w-[300px] flex-shrink-0 bg-white shadow-lg hover:shadow-xl transition-all duration-300 items-center hover:bg-gray-200 overflow-hidden">
       <CardContent className="p-4 w-full">
         <div className="space-y-4 group">
+          {/* City image */}
+          <div className="w-full h-40 overflow-hidden rounded-md">
+            <img 
+              src={getCityImage(trip.city)} 
+              alt={`${trip.city}, ${trip.country}`}
+              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+            />
+          </div>
+
           <h2 className="font-semibold text-2xl capitalize text-center transition-transform duration-300 group-hover:scale-110">{trip.city}, {trip.country.toUpperCase()}</h2>
-          <p className="text-gray-600 text-center transition-transform duration-300 group-hover:scale-110">{trip.monthlyDays} days</p>
+          <p className="text-gray-600 text-xl text-center transition-transform duration-300 group-hover:scale-110">{trip.monthlyDays} days</p>
           <div className="flex gap-2 text-gray-600">
             <div className="flex items-center px-3 text-sm w-full transition-transform duration-300 group-hover:scale-110">
               <Calendar className="h-5 w-5 mr-2 flex-shrink-0" />
@@ -87,12 +109,12 @@ const TripCard: FC<TripCardsProps> = ({ trip, onDelete, setGlobalLoading }) => {
                       if (matchingPOI) {
                         return {
                           ...matchingPOI,
+                          PointID: schedulingInfo.PointID,
                           day: schedulingInfo.day,
                           timeSlot: schedulingInfo.timeSlot,
                           StartTime: schedulingInfo.StartTime,
                           EndTime: schedulingInfo.EndTime,
-                          duration: schedulingInfo.duration,
-                          PointID: schedulingInfo.PointID
+                          duration: schedulingInfo.duration
                         } as ItineraryPOI;
                       }
                       
@@ -103,6 +125,7 @@ const TripCard: FC<TripCardsProps> = ({ trip, onDelete, setGlobalLoading }) => {
                     const finalUnusedPOIs = enhancedUnusedPOIs.map(poi => {
                       return {
                         ...poi,
+                        PointID: poi.id,
                         day: -1,
                         timeSlot: "unused",
                         StartTime: -1,

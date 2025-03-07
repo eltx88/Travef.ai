@@ -295,3 +295,118 @@ class GooglePlacesService:
         except requests.exceptions.RequestException as e:
             print(f"Error fetching place photo: {str(e)}")
             return None
+
+    def text_search(
+        self,
+        query: str,
+        latitude: float,
+        longitude: float, 
+        radius: int = 2000,
+        type: Optional[str] = None,
+        max_results: int = 20,
+        open_now: bool = False
+    ) -> List[Place]:
+        """
+        Perform a Text Search using the Places API.
+        Returns a list of places matching the search query with location bias.
+        """
+        url = f"{self.base_url}:searchText"
+        
+        # Construct the request body according to API format
+        request_body = {
+            "textQuery": query,
+            "maxResultCount": max_results,  # Note: This is deprecated but included for compatibility
+            "pageSize": max_results,
+            "locationBias": {
+                "circle": {
+                    "center": {
+                        "latitude": latitude,
+                        "longitude": longitude
+                    },
+                    "radius": float(radius)
+                }
+            }
+        }
+        
+        # Add optional parameters if provided
+        if type:
+            request_body["includedType"] = type
+        
+        if open_now:
+            request_body["openNow"] = True
+        
+        headers = {
+            "Content-Type": "application/json",
+            "X-Goog-Api-Key": f"{self.api_key}",
+            "X-Goog-FieldMask": (
+                "places.id,"
+                "places.displayName,"
+                "places.formattedAddress,"
+                "places.location,"
+                "places.rating,"
+                "places.userRatingCount,"
+                "places.types,"
+                "places.photos,"
+                "places.primaryType,"
+                "places.nationalPhoneNumber,"
+                "places.currentOpeningHours,"
+                "places.websiteUri,"
+                "places.editorialSummary"
+            )
+        }
+        
+        try:
+            response = requests.post(url, json=request_body, headers=headers)
+            response.raise_for_status()
+            data = response.json()
+            places = []
+            
+            for result in data.get("places", []):
+                try:
+                    # Format opening hours if available
+                    formatted_hours = None
+                    if "currentOpeningHours" in result:
+                        weekday_texts = result.get("currentOpeningHours", {}).get("weekdayDescriptions", [])
+                        formatted_hours = "\n".join(weekday_texts) if weekday_texts else None
+                    
+                    # Extract first photo if available
+                    photo_name = None
+                    if result.get("photos") and len(result.get("photos")) > 0:
+                        photo_name = result.get("photos")[0].get("name")
+                    
+                    # Get location coordinates
+                    location = {
+                        "latitude": result.get("location", {}).get("latitude"),
+                        "longitude": result.get("location", {}).get("longitude")
+                    }
+                    
+                    # Create Place object
+                    place = Place(
+                        place_id=result.get("id"),
+                        name=result.get("displayName", {}).get("text", ""),
+                        formatted_address=result.get("formattedAddress"),
+                        types=result.get("types", []),
+                        primary_type=result.get("primaryType"),
+                        rating=result.get("rating"),
+                        user_ratings_total=result.get("userRatingCount"),
+                        photo_name=photo_name,
+                        location=location,
+                        website=result.get("websiteUri"),
+                        phone=result.get("nationalPhoneNumber"),
+                        opening_hours=formatted_hours,
+                        description=result.get("editorialSummary", {}).get("text") if "editorialSummary" in result else None,
+                        price_level=None,  # Not requested in the field mask
+                        business_status=None,  # Not requested in the field mask
+                        cuisine=None  # Not available in text search response
+                    )
+                    places.append(place)
+                except Exception as e:
+                    print(f"Error processing place result: {str(e)}")
+                    # Continue processing other results even if one fails
+                    continue
+            
+            return places
+        
+        except requests.exceptions.RequestException as e:
+            print(f"Error making Places API text search request: {str(e)}")
+            raise

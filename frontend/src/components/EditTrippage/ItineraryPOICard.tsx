@@ -1,7 +1,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Phone, Mail, Clock, Info, Star, MapPin, Tag, Coffee, Utensils } from "lucide-react";
+import { Phone, Mail, Clock, Info, Star, MapPin, Tag, Coffee, Utensils, Trash2 } from "lucide-react";
 import type { ItineraryPOI } from "@/Types/InterfaceTypes";
 import { FC, useMemo, useState, useEffect, useRef } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -19,6 +19,7 @@ interface ItineraryPOICardProps {
   dayOptions?: number[];
   onAddToItinerary?: (poi: ItineraryPOI, day: number) => void;
   onDeleteSavedPOI?: (poi: ItineraryPOI) => void;
+  onDeleteItineraryPOI?: (poi: ItineraryPOI) => void;
 }
 
 // Helper function to convert minutes to HH:MM
@@ -29,7 +30,7 @@ function minutesToHHMM(minutes: number): string {
   return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
 }
 
-function renderRatingStars(rating: number | undefined | null) {
+function renderRatingStars(rating: number | undefined | null, user_ratings_total: number | undefined | null) {
   if (!rating) return null;
   
   const fullStars = Math.floor(rating);
@@ -51,11 +52,21 @@ function renderRatingStars(rating: number | undefined | null) {
         <Star key={`empty-${i}`} className="w-3 h-3 text-yellow-500" />
       ))}
       <span className="ml-1 text-xs text-gray-600">
-        {rating.toFixed(1)}
+        {rating.toFixed(1)} ({user_ratings_total})
       </span>
     </div>
   );
 }
+
+// Add this helper function to format the POI types
+const formatPoiType = (type: string): string => {
+  if (!type) return '';
+  // Split by underscore, capitalize each word, and join with space
+  return type
+    .split('_')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+};
 
 const getDefaultImage = (type: string) => {
   switch (type) {
@@ -79,14 +90,16 @@ const getTypeIcon = (type: string) => {
   }
 };
 
-const ItineraryPOICard: FC<ItineraryPOICardProps> = ({ poi, dayOptions, onAddToItinerary, onDeleteSavedPOI }) => {
+const ItineraryPOICard: FC<ItineraryPOICardProps> = ({ poi, dayOptions, onAddToItinerary, onDeleteSavedPOI, onDeleteItineraryPOI }) => {
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
   const [isHovered, setIsHovered] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isDeleteItineraryDialogOpen, setIsDeleteItineraryDialogOpen] = useState(false);
   const [shouldLoadImage, setShouldLoadImage] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
-  const [imageError, setImageError] = useState(false);
+  const [loadError, setLoadError] = useState(false);
   const imageRef = useRef<HTMLImageElement>(null);
+  const cardRef = useRef<HTMLDivElement>(null);
 
   const openWebsite = (e: React.MouseEvent, url: string) => {
     e.preventDefault();
@@ -109,9 +122,21 @@ const ItineraryPOICard: FC<ItineraryPOICardProps> = ({ poi, dayOptions, onAddToI
     setIsDeleteDialogOpen(false);
   };
 
-  // More aggressive loading strategy with larger root margin
+  const handleDeleteItineraryPOI = () => {
+    if (onDeleteItineraryPOI) {
+      onDeleteItineraryPOI(poi);
+    }
+    setIsDeleteItineraryDialogOpen(false);
+  };
+
+  // Improved lazy loading with better error handling
   useEffect(() => {
-    if (!imageRef.current) return;
+    // Reset states when POI changes
+    setShouldLoadImage(false);
+    setImageLoaded(false);
+    setLoadError(false);
+    
+    if (!cardRef.current) return;
     
     const observer = new IntersectionObserver(
       (entries) => {
@@ -122,37 +147,57 @@ const ItineraryPOICard: FC<ItineraryPOICardProps> = ({ poi, dayOptions, onAddToI
       },
       { 
         threshold: 0.1,
-        rootMargin: '200px' // Load images when they're within 200px of viewport
+        rootMargin: '300px' // Increased preloading margin
       }
     );
     
-    observer.observe(imageRef.current);
+    observer.observe(cardRef.current);
     
     return () => {
       observer.disconnect();
     };
-  }, []);
+  }, [poi.id]); // Reinitialize observer when POI changes
   
   // Handle image loading errors
   const handleImageError = () => {
-    setImageError(true);
-    setImageLoaded(true); // Important: still mark as loaded to remove spinner
+    console.log(`Image load error for ${poi.name}`);
+    setLoadError(true);
+    setImageLoaded(true); // Mark as loaded to remove spinner
   };
+
+  // Retry loading image if it failed
+  useEffect(() => {
+    if (loadError && shouldLoadImage && poi.image_url) {
+      const img = new Image();
+      img.onload = () => {
+        setLoadError(false);
+        setImageLoaded(true);
+      };
+      img.onerror = () => {
+        setLoadError(true);
+        setImageLoaded(true);
+      };
+      img.src = poi.image_url;
+    }
+  }, [loadError, shouldLoadImage, poi.image_url]);
 
   // Decide what image to show
   const imageSource = useMemo(() => {
     if (!shouldLoadImage) return null;
     
-    // Try original image first
-    if (poi.image_url) return poi.image_url;
+    if (loadError || !poi.image_url) {
+      // Fall back to default image on error or missing image URL
+      return getDefaultImage(poi.type || 'attraction');
+    }
     
-    // Fall back to default image
-    return getDefaultImage(poi.type || 'attraction');
-  }, [shouldLoadImage, poi.image_url, poi.type]);
+    // Use the POI's image URL
+    return poi.image_url;
+  }, [shouldLoadImage, loadError, poi.image_url, poi.type]);
 
   return (
     <TooltipProvider delayDuration={300}>
       <Card 
+        ref={cardRef}
         className="h-full bg-white shadow-md hover:shadow-lg transition-shadow flex flex-col overflow-hidden"
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
@@ -167,21 +212,26 @@ const ItineraryPOICard: FC<ItineraryPOICardProps> = ({ poi, dayOptions, onAddToI
               </div>
             )}
             
-            {/* Image element - always present for the observer */}
-            <img
-              ref={imageRef}
-              src={imageSource || getDefaultImage(poi.type)}
-              alt={poi.name}
-              className={`w-full h-full object-cover transition-all duration-300 ${
-                !imageLoaded ? 'opacity-0' : 'opacity-100'
-              } ${isHovered ? 'scale-105' : 'scale-100'}`}
-              onError={handleImageError}
-              onLoad={() => setImageLoaded(true)}
-            />
+            {/* Image element */}
+            {shouldLoadImage ? (
+              <img
+                ref={imageRef}
+                src={imageSource || getDefaultImage(poi.type || 'attraction')}
+                alt={poi.name}
+                className={`w-full h-full object-cover transition-all duration-300 ${
+                  !imageLoaded ? 'opacity-0' : 'opacity-100'
+                } ${isHovered ? 'scale-105' : 'scale-100'}`}
+                onError={handleImageError}
+                onLoad={() => setImageLoaded(true)}
+              />
+            ) : (
+              // Placeholder while waiting for observer
+              <div className="w-full h-full bg-gray-100"></div>
+            )}
             
             <div className="absolute top-2 left-2 flex items-center bg-white bg-opacity-90 rounded-full px-2 py-0.5 text-xs">
               {getTypeIcon(poi.type)}
-              <span className="capitalize">{poi.type}</span>
+              <span>{formatPoiType(poi.type)}</span>
             </div>
           </div>
 
@@ -254,7 +304,7 @@ const ItineraryPOICard: FC<ItineraryPOICardProps> = ({ poi, dayOptions, onAddToI
             </Tooltip>
             
             {/* Rating Stars */}
-            {renderRatingStars(poi.rating)}
+            {renderRatingStars(poi.rating, poi.user_ratings_total)}
             
             {/* Cuisine Tags if available */}
             {poi.cuisine && poi.cuisine.length > 0 && (
@@ -278,13 +328,29 @@ const ItineraryPOICard: FC<ItineraryPOICardProps> = ({ poi, dayOptions, onAddToI
               </div>
             )}
             
-            {/* Phone number if available */}
-            {poi.phone && (
-              <div className="flex items-center text-xs text-gray-600 mt-1">
-                <Phone className="h-3 w-3 mr-1" />
-                <span className="truncate">{poi.phone}</span>
-              </div>
-            )}
+            {/* Phone number and delete button row */}
+            <div className="flex items-center justify-between mt-1">
+              {poi.phone ? (
+                <div className="flex items-center text-xs text-gray-600">
+                  <Phone className="h-3 w-3 mr-1" />
+                  <span className="truncate">{poi.phone}</span>
+                </div>
+              ) : (
+                <div></div> // Empty div to maintain layout when no phone number
+              )}
+              
+              {/* Trash button on the right */}
+              {(onDeleteSavedPOI || onDeleteItineraryPOI) && (
+                <Button 
+                  onClick={() => poi.day === -1 ? setIsDeleteDialogOpen(true) : setIsDeleteItineraryDialogOpen(true)}
+                  className="h-6 w-6 p-0 bg-transparent hover:bg-red-100 text-red-600"
+                  variant="ghost"
+                  size="sm"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
           
             {/* More Details Dialog */}
             <div className="mt-auto pt-2">
@@ -316,7 +382,7 @@ const ItineraryPOICard: FC<ItineraryPOICardProps> = ({ poi, dayOptions, onAddToI
                       </div>
                     )}
 
-                    {renderRatingStars(poi.rating)}
+                    {renderRatingStars(poi.rating, poi.user_ratings_total)}
                     
                     {poi.address && (
                       <div className="flex items-start gap-2">
@@ -455,19 +521,17 @@ const ItineraryPOICard: FC<ItineraryPOICardProps> = ({ poi, dayOptions, onAddToI
                       </div>
                     </HoverCardContent>
                 </HoverCard>
-                <Button 
-                  onClick={() => setIsDeleteDialogOpen(true)}
-                  className="w-full h-7 bg-red-600 hover:bg-red-700 text-white"
-                >
-                  Delete
-                </Button>
+                
+                {/* Remove the original delete button for saved POIs, as we've moved it up */}
               </div>
             )}
+            
+            {/* Remove the original delete button for itinerary items, as we've moved it up */}
           </div>
         </CardContent>
       </Card>
       
-      {/* Delete Confirmation Dialog */}
+      {/* Delete Saved POI Confirmation Dialog */}
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <DialogContent className="bg-white p-6 max-w-md">
           <DialogHeader>
@@ -490,6 +554,36 @@ const ItineraryPOICard: FC<ItineraryPOICardProps> = ({ poi, dayOptions, onAddToI
                 className="bg-red-600 hover:bg-red-700 text-white"
               >
                 Delete
+              </Button>
+            </div>
+          </DialogDescription>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Delete Itinerary POI Confirmation Dialog */}
+      <Dialog open={isDeleteItineraryDialogOpen} onOpenChange={setIsDeleteItineraryDialogOpen}>
+        <DialogContent className="bg-white p-6 max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-xl">Confirm Removal</DialogTitle>
+          </DialogHeader>
+          <DialogDescription>
+            <div className="py-4">
+                Are you sure you want to remove <span className="font-semibold">{poi.name}</span> from your itinerary? 
+                It will be moved to the Saved tab.
+            </div>
+            <div className="flex justify-end gap-3 mt-2">
+              <Button 
+                variant="outline" 
+                onClick={() => setIsDeleteItineraryDialogOpen(false)}
+                className="bg-white border-gray-300 text-gray-700 hover:bg-gray-100"
+              >
+                Cancel
+              </Button>
+              <Button 
+                onClick={handleDeleteItineraryPOI}
+                className="bg-red-600 hover:bg-red-700 text-white"
+              >
+                Remove
               </Button>
             </div>
           </DialogDescription>

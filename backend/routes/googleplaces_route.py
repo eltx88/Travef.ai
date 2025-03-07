@@ -71,3 +71,31 @@ async def get_explore_places(latitude: float, longitude: float, radius: int = 20
         return places_with_photos
     except Exception as e:
         raise HTTPException(status_code=500, detail= f"Error fetching explore places from Google Places API: {str(e)}")
+
+@router.get("/textsearch")
+async def text_search(query: str, latitude: float, longitude: float, radius: int = 2000, type: Optional[str] = None, max_results: int = 20, open_now: bool = False):
+    """
+    Endpoint to search for places based on a text query with location bias.
+    """
+    try:
+        places = google_places_service.text_search(
+            query=query,
+            latitude=latitude,
+            longitude=longitude,
+            radius=radius,
+            type=type,
+            max_results=max_results,
+            open_now=open_now
+        )
+        
+        # Transform places to include photo URLs
+        places_with_photos = []
+        for place in places:
+            photo_url = None
+            if place.photo_name:
+                photo_url = google_places_service.get_place_photo(place.photo_name)
+            places_with_photos.append(PlaceWithPhotoUrl.from_place(place, photo_url))
+            
+        return places_with_photos
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error searching places: {str(e)}")

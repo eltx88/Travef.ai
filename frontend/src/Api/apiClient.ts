@@ -1,4 +1,4 @@
-import type { POI, WikidataImageResponse, ExploreParams, TripData, ItineraryPOI, FetchedTripDetails, ItineraryPOIDB, ItineraryPOIChanges, UserTrip, ExploreGoogleParams } from '../Types/InterfaceTypes';
+import type { POI, WikidataImageResponse, ExploreParams, TripData, ItineraryPOI, FetchedTripDetails, ItineraryPOIDB, ItineraryPOIChanges, UserTrip, ExploreGoogleParams, POIType } from '../Types/InterfaceTypes';
 
 interface ApiClientConfig {
   getIdToken: () => Promise<string>;
@@ -301,11 +301,9 @@ async getNearbyPlacesByTypes(
   
   async createOrUpdateTrip(userId: string, trip_doc_id: string, tripData: TripData, itineraryPOIs: ItineraryPOI[], unusedPOIs: ItineraryPOI[]) {
     try {
-      // if trip_doc_id is empty, create a new trip
-      if (trip_doc_id === "") {
-        const processedItineraryPOIs = await Promise.all(
-          itineraryPOIs.map(async (poi) => {
-            // Create or get POI document
+      const processedItineraryPOIs = await Promise.all(
+        itineraryPOIs.map(async (poi) => {
+          if (!poi.PointID) {
             const poiDocId = await this.createOrGetPOI({
               place_id: poi.place_id,
               name: poi.name,
@@ -316,7 +314,6 @@ async getNearbyPlacesByTypes(
               type: poi.type,
               id: poi.id
             });
-    
             return {
               PointID: poiDocId,
               StartTime: poi.StartTime,
@@ -324,12 +321,16 @@ async getNearbyPlacesByTypes(
               timeSlot: poi.timeSlot,
               day: poi.day,
               duration: poi.duration
-            };
-          })
-        );
+            } as ItineraryPOIDB;
+          } else {
+            return poi as ItineraryPOIDB;
+          }
+        })
+      );
 
-        const processedUnusedPOIs = await Promise.all(
-          unusedPOIs.map(async (poi) => {
+      const processedUnusedPOIs = await Promise.all(
+        unusedPOIs.map(async (poi) => {
+          if (!poi.PointID) {
             const poiDocId = await this.createOrGetPOI({
               place_id: poi.place_id,
               name: poi.name,
@@ -341,10 +342,21 @@ async getNearbyPlacesByTypes(
               id: poi.id
             });
             return {
-              PointID: poiDocId
-            };
-          })
-        );
+              PointID: poiDocId,
+              day: -1,
+              timeSlot: "unused",
+              StartTime: -1,
+              EndTime: -1,
+              duration: -1
+            } as ItineraryPOIDB;
+          } else {
+            return poi as ItineraryPOIDB;
+          }
+        })
+      );
+
+      // if trip_doc_id is empty, create a new trip
+      if (trip_doc_id === "") {
         const tripDocId = await this.fetchWithAuth('/trip/create', {
           method: 'POST',
           body: JSON.stringify({
@@ -376,9 +388,8 @@ async getNearbyPlacesByTypes(
       } else {
           // Get current trip state from backend
         const backendTripDetails = await this.getTripDetails(trip_doc_id);
-        // Process all changes
         const changes = this.processPOIChanges(
-          { itineraryPOIs: itineraryPOIs, unusedPOIs: unusedPOIs},
+          { itineraryPOIs: processedItineraryPOIs, unusedPOIs: processedUnusedPOIs},
           { itineraryPOIs: backendTripDetails.itineraryPOIs, unusedPOIs: backendTripDetails.unusedPOIs   }
         );
   
@@ -387,14 +398,14 @@ async getNearbyPlacesByTypes(
           tripData.fromDT?.getTime() !== backendTripDetails.tripData.fromDT?.getTime() ||
           tripData.toDT?.getTime() !== backendTripDetails.tripData.toDT?.getTime() ||
           tripData.monthlyDays !== backendTripDetails.tripData.monthlyDays;
-  
         // Only update if there are actual changes
         if (changes.movedToItinerary.length > 0 || 
             changes.movedToUnused.length > 0 || 
             changes.schedulingUpdates.length > 0 || 
-            changes.unusedPOIsState.length > 0 || 
+            changes.unusedPOIsState.length > 0 ||
+            changes.newlyAddedPOIs.length > 0 ||
             tripDataChanged) {
-  
+
           // Send update request
           await this.fetchWithAuth(`/trip/update/${trip_doc_id}`, {
             method: 'PUT',
@@ -407,7 +418,8 @@ async getNearbyPlacesByTypes(
               movedToItinerary: changes.movedToItinerary,
               movedToUnused: changes.movedToUnused,
               schedulingUpdates: changes.schedulingUpdates,
-              unusedPOIsState: changes.unusedPOIsState
+              unusedPOIsState: changes.unusedPOIsState,
+              newlyAddedPOIs: changes.newlyAddedPOIs
             })
           });
         }
@@ -419,7 +431,7 @@ async getNearbyPlacesByTypes(
   }
 
   // Helper function to check if POI scheduling details have changed
-  private hasPOISchedulingChanged(frontendPOI: ItineraryPOI, backendPOI: ItineraryPOIDB): boolean {
+  private hasPOISchedulingChanged(frontendPOI: ItineraryPOIDB, backendPOI: ItineraryPOIDB): boolean {
     return frontendPOI.StartTime !== backendPOI.StartTime ||
           frontendPOI.EndTime !== backendPOI.EndTime ||
           frontendPOI.day !== backendPOI.day ||
@@ -429,8 +441,8 @@ async getNearbyPlacesByTypes(
   // Function to process POI changes , this is only called when there is already a trip in dB so PointID is always present
   private processPOIChanges(
     frontendData: {
-      itineraryPOIs: ItineraryPOI[],
-      unusedPOIs: ItineraryPOI[]
+      itineraryPOIs: ItineraryPOIDB[],
+      unusedPOIs: ItineraryPOIDB[]
     },
     backendData: {
       itineraryPOIs: ItineraryPOIDB[],
@@ -440,22 +452,22 @@ async getNearbyPlacesByTypes(
         movedToItinerary: [],
         movedToUnused: [],
         schedulingUpdates: [],
-        unusedPOIsState: []
+        unusedPOIsState: [],
+        newlyAddedPOIs: [] 
       };
-      
       // Create maps for easier lookup
       const backendItineraryMap = new Map(backendData.itineraryPOIs.map(poi => [poi.PointID, poi]));
       const backendUnusedMap = new Map(backendData.unusedPOIs.map(poi => [poi.PointID, poi]));
       const frontendItineraryMap = new Map(frontendData.itineraryPOIs.map(poi => [poi.PointID, poi]));
-
-      // Check for POIs moved to itinerary and scheduling updates
+      
+      // Check for POIs moved to itinerary from both Saved(unusedPOIs) and Add section, as well as scheduling updates
       frontendItineraryMap.forEach(frontendPOI => {
-        const backendItineraryPOI = backendItineraryMap.get(frontendPOI.id);
-        const backendUnusedPOI = backendUnusedMap.get(frontendPOI.id);
+        const backendItineraryPOI = backendItineraryMap.get(frontendPOI.PointID);
+        const backendUnusedPOI = backendUnusedMap.get(frontendPOI.PointID);
         const duration = frontendPOI.EndTime - frontendPOI.StartTime;
-  
+        const newItineraryPOI = !backendItineraryMap.get(frontendPOI.PointID) && !backendUnusedMap.get(frontendPOI.PointID);
+
         if (backendUnusedPOI) {
-          // New POI moved from unused section to itinerary
           changes.movedToItinerary.push({
             PointID: backendUnusedPOI.PointID,
             StartTime: frontendPOI.StartTime,
@@ -474,12 +486,22 @@ async getNearbyPlacesByTypes(
             timeSlot: frontendPOI.timeSlot,
             duration: duration
           });
+        } else if (newItineraryPOI) {
+          // This is a completely new POI (from search results)
+          changes.newlyAddedPOIs.push({
+            PointID: frontendPOI.PointID,
+            StartTime: frontendPOI.StartTime,
+            EndTime: frontendPOI.EndTime,
+            day: frontendPOI.day,
+            timeSlot: frontendPOI.timeSlot,
+            duration: duration
+          });
         }
       });
   
       // Track POIs moved back to unused
       backendData.itineraryPOIs.forEach(backendPOI => {
-        if (!frontendData.itineraryPOIs.some(poi => poi.PointID === backendPOI.PointID)) {
+        if (!frontendData.itineraryPOIs.some(poi => (poi.PointID) === backendPOI.PointID)) {
           changes.movedToUnused.push({
             PointID: backendPOI.PointID
           });
@@ -488,12 +510,18 @@ async getNearbyPlacesByTypes(
   
       // Set complete state of unused POIs
       frontendData.unusedPOIs.forEach(frontendPOI => {
-        const backendPOI = backendUnusedMap.get(frontendPOI.id) || 
-                          backendItineraryMap.get(frontendPOI.id);
-        
+        const backendPOI = backendUnusedMap.get(frontendPOI.PointID) || 
+                          backendItineraryMap.get(frontendPOI.PointID);
+        const newUnusedPOI = !backendUnusedMap.get(frontendPOI.PointID) && !backendItineraryMap.get(frontendPOI.PointID);
+
         if (backendPOI) {
           changes.unusedPOIsState.push({
             PointID: backendPOI.PointID
+          });
+        }
+        else if (newUnusedPOI) {
+          changes.unusedPOIsState.push({
+            PointID: frontendPOI.PointID
           });
         }
       });
@@ -578,6 +606,90 @@ async getNearbyPlacesByTypes(
     } catch (error) {
       console.error('Error fetching batch place details:', error);
       return pois;
+    }
+  }
+
+  async getTextSearchPlaces(
+    text: string,
+    lat: number,
+    lng: number,
+    radius: number = 2000,
+    city: string,
+    country: string,
+    type?: string,
+    maxResults: number = 20,
+    openNow: boolean = false,
+  ): Promise<POI[]> {
+    const queryParams = new URLSearchParams({
+      query: text,
+      latitude: lat.toString(),
+      longitude: lng.toString(),
+      radius: radius.toString(),
+      max_results: maxResults.toString()
+    });
+
+    if (type) {
+      queryParams.set('type', type);
+    }
+
+    if (openNow) {
+      queryParams.set('open_now', 'true');
+    }
+
+    try {
+      const places = await this.fetchWithAuth(`/googleplaces/textsearch?${queryParams.toString()}`);
+      
+      // Make sure places is an array before proceeding
+      if (!Array.isArray(places)) {
+        console.error('Expected places to be an array but got:', typeof places);
+        return [];
+      }
+      
+      // Process places into POI objects
+      const processedPlaces: POI[] = places.map((place: any) => {
+        const cuisineArray = place.cuisine ? 
+          (Array.isArray(place.cuisine) ? place.cuisine : [place.cuisine]) : 
+          undefined;
+        
+        // Determine standardized type based on primary_type
+        let standardizedType = 'attraction';
+        if (place.primary_type) {
+          if (place.primary_type.includes('_restaurant')) {
+            standardizedType = 'restaurant';
+          } else if (place.primary_type === 'cafe' || place.primary_type === 'coffee_shop') {
+            standardizedType = 'cafe';
+          }
+        }
+        
+        return {
+          id: place.place_id,
+          place_id: place.place_id,
+          name: place.name,
+          coordinates: {
+            lat: place.location?.latitude || 0,
+            lng: place.location?.longitude || 0
+          },
+          address: place.formatted_address || '',
+          city: city,
+          country: country,
+          type: standardizedType as POIType, // Using our standardized type mapping
+          rating: place.rating,
+          user_ratings_total: place.user_ratings_total,
+          cuisine: cuisineArray,
+          description: place.description || '',
+          categories: Array.isArray(place.types) ? place.types : [],
+          image_url: place.photo_url || '',
+          website: place.website || '',
+          phone: place.phone || '',
+          opening_hours: place.opening_hours || '',
+          price_level: place.price_level
+        };
+      });
+      
+      return processedPlaces;
+    } catch (error) {
+      console.error('Error fetching text search places:', error);
+      return [];
     }
   }
 
