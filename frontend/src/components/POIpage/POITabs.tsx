@@ -79,11 +79,13 @@ const POITabs = ({
                     loading={loading}
                     error={error}
                     pois={pois}
+                    tabType={activeTab}
                     isNewCity={isNewCity}
                     onSavePOI={onSavePOI}
                     onUnsavePOI={onUnsavePOI}
                     onLoadResults={onLoadResults}
                     isPoiSaved={isPoiSaved}
+                    onTabChange={onTabChange}
                 />
             </TabsContent>
 
@@ -92,11 +94,13 @@ const POITabs = ({
                     loading={loading}
                     error={error}
                     pois={pois}
+                    tabType={activeTab}
                     isNewCity={isNewCity}
                     onSavePOI={onSavePOI}
                     onUnsavePOI={onUnsavePOI}
                     onLoadResults={onLoadResults}
                     isPoiSaved={isPoiSaved}
+                    onTabChange={onTabChange}
                 />
             </TabsContent>
         </Tabs>
