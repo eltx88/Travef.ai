@@ -67,6 +67,7 @@ class GooglePlacesService:
         request_body = {
             "includedTypes": [type] if type else ["restaurant"],  
             "maxResultCount": max_results,
+            "rankPreference": "POPULARITY",
             "locationRestriction": {
                 "circle": {
                     "center": {

@@ -93,22 +93,21 @@ class ApiClient {
     return pois;
   }
 
-  //Called by search bar
   async getGoogleExplorePOIs({
     type,
     coordinates,
     poitype,
     city,
-    country
+    country,
+    radius = '2000',
   }: ExploreGoogleParams): Promise<POI[]> {
     const queryParams = new URLSearchParams({
       type: type.join(','),
       latitude: coordinates.lat.toString(),
       longitude: coordinates.lng.toString(),
-      radius: '2000',
+      radius: radius,
       max_results: '20'
-    });
-    
+    });    
     try {
       const pois = await this.fetchWithAuth(`/googleplaces/explore?${queryParams.toString()}`);
       
