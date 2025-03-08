@@ -2,7 +2,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search } from "lucide-react";
+import { Search} from "lucide-react";
 import { SearchCity } from "@/Types/InterfaceTypes";
 import cities from 'cities.json';
 
@@ -15,6 +15,7 @@ interface CitySearchProps {
     inputClassName?: string;
     showButton?: boolean;
     autoFocus?: boolean;
+    onClear?: () => void;
 }
 
 const CitySearch: React.FC<CitySearchProps> = ({
@@ -23,7 +24,8 @@ const CitySearch: React.FC<CitySearchProps> = ({
     className = '',
     inputClassName = '',
     showButton = true,
-    autoFocus = false
+    autoFocus = false,
+    onClear
 }) => {
     const [searchQuery, setSearchQuery] = useState<string>(initialValue);
     const [suggestions, setSuggestions] = useState<SearchCity[]>([]);
@@ -61,6 +63,21 @@ const CitySearch: React.FC<CitySearchProps> = ({
             'CN': 'China',
             'KR': 'South Korea',
             'NL': 'Netherlands',
+            'BE': 'Belgium',
+            'CH': 'Switzerland',
+            'AT': 'Austria',
+            'SE': 'Sweden',
+            'NO': 'Norway',
+            'DK': 'Denmark',
+            'PL': 'Poland',
+            'CZ': 'Czech Republic',
+            'HU': 'Hungary',
+            'RO': 'Romania',
+            'BG': 'Bulgaria',
+            'GR': 'Greece',
+            'TR': 'Turkey',
+            'IE': 'Ireland',
+            
         };
         return countryNames[countryCode] || countryCode;
     };
@@ -122,19 +139,36 @@ const CitySearch: React.FC<CitySearchProps> = ({
             handleSubmit();
         }
     };
+    
 
     return (
         <div className={`relative ${className}`}>
             <div className="relative flex">
-                <Input
-                    type="search"
-                    placeholder="Search by city or town"
-                    value={searchQuery}
-                    onChange={handleInputChange}
-                    onKeyPress={handleKeyPress}
-                    className={`${inputClassName} ${showButton ? 'rounded-l-md rounded-r-none border-r-0' : 'rounded-md'}`}
-                    autoFocus={autoFocus}
-                />
+                <div className="relative flex-grow">
+                    <Input
+                        type="search"
+                        placeholder="Search by city or town"
+                        value={searchQuery}
+                        onChange={handleInputChange}
+                        onKeyPress={handleKeyPress}
+                        className={`${inputClassName} ${showButton ? 'rounded-l-md rounded-r-none border-r-0' : 'rounded-md'}`}
+                        autoFocus={autoFocus}
+                    />
+                    {searchQuery && (
+                        <Button
+                            type="button"
+                            variant= "default"
+                            size="icon"
+                            className="absolute right-2 top-1/2 -translate-y-1/2 bg-transparentasas hover:bg-transparent"
+                            onClick={() => {
+                                setSearchQuery('');
+                                setSuggestions([]);
+                                if (onClear) onClear();
+                            }}
+                        >
+                        </Button>
+                    )}
+                </div>
                 {showButton && (
                     <Button 
                         onClick={handleSubmit}

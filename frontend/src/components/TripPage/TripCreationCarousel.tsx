@@ -64,7 +64,7 @@ export default function TripCreationCarousel({ onComplete, initialData }: TripCr
   const [foodDialogInput, setFoodDialogInput] = useState(''); 
   const predefinedInterests = ['Museum', 'Park', 'Theatre', 'Aquarium',
                               'Shopping Malls', 'Theme Park', 'Art Gallery', 'National Parks',
-                                'Viewpoints', 'Gardens', 'Zoo', 'UNESCO'];
+                                'Viewpoints', 'Gardens', 'Zoo', 'Beach'];
   const predefinedFoodInterests = ["Italian", "Chinese", "Japanese", "Indian",
                                     "Thai", "Mexican", "Mediterranean", "French", "Korean",
                                      "Vietnamese", "Greek", "Burger" ];         
@@ -194,6 +194,10 @@ export default function TripCreationCarousel({ onComplete, initialData }: TripCr
     setDialogInput(currentInterests);
     setShowInterestDialog(true);
   };
+
+  const goToNextPage = () => {
+    if (api) api.scrollNext();
+  };
   return (
     <Card className="w-full max-w-3xl mx-auto my-64">
       <CardContent className="p-6">
@@ -210,6 +214,7 @@ export default function TripCreationCarousel({ onComplete, initialData }: TripCr
           opts={{
             align: "start",
             loop: false,
+            dragFree: false,
           }}
         >
           <CarouselContent>
@@ -222,8 +227,15 @@ export default function TripCreationCarousel({ onComplete, initialData }: TripCr
                 </div>
                 <div className="w-full max-w-xl">
                   <CitySearch
-                    initialValue={tripData.city}
+                    initialValue={tripData.city || ''}
                     onSubmit={handleCitySelect}
+                    onClear={() => {
+                      setTripData(prev => ({
+                        ...prev,
+                        city: '',
+                        country: ''
+                      }));
+                    }}
                     className="w-full"
                     showButton={false}
                   />
@@ -276,11 +288,21 @@ export default function TripCreationCarousel({ onComplete, initialData }: TripCr
                     <Button 
                       variant="outline"
                       onClick={() => setTripData({...tripData, fromDT: undefined, toDT: undefined, monthlyDays: 0})}
-                      className="text-white hover:bg-blue-100 bg-blue-600"
+                      className="text-black hover:bg-blue-100 bg-gray-100"
                     >
                       Clear dates
                     </Button>
                   )}
+                  <Button 
+                    variant="outline"
+                    onClick={() => goToNextPage()}
+                    className={`ml-2 ${tripData.fromDT && tripData.toDT 
+                      ? "text-white hover:bg-blue-100 bg-blue-600" 
+                      : "text-gray-400 bg-gray-200 cursor-not-allowed"}`}
+                    disabled={!tripData.fromDT || !tripData.toDT}
+                  >
+                    Confirm Dates
+                  </Button>
                 </p>
               </div>
             </CarouselItem>
@@ -418,7 +440,7 @@ export default function TripCreationCarousel({ onComplete, initialData }: TripCr
               </div>
               {current === count - 1 && (
                 <div className="flex justify-end mt-4">
-                  <Button onClick={() => onComplete(tripData)}>
+                  <Button onClick={() => onComplete(tripData)} className="bg-blue-600 text-white hover:bg-blue-700">
                     Create Trip
                   </Button>
                 </div>
@@ -435,7 +457,7 @@ export default function TripCreationCarousel({ onComplete, initialData }: TripCr
           {(current > 0 || (validCity && validCountry)) && (
             <CarouselNext 
               className="right-2"
-              disabled={current === count - 1}
+              disabled={current === count - 1 || (current === 1 && (!tripData.fromDT || !tripData.toDT)) || (current==0 && (!tripData.city || !tripData.country))}
             />
           )}
         </Carousel>
