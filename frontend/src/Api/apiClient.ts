@@ -650,7 +650,7 @@ async getNearbyPlacesByTypes(
           undefined;
         
         // Get the standardized type directly (now synchronous)
-        const standardizedType = this.getStandardizedType(place.primary_type);
+        const standardizedType = this.getStandardizedType(place);
         
         return {
           id: place.place_id,
@@ -684,15 +684,17 @@ async getNearbyPlacesByTypes(
     }
   }
 
-  getStandardizedType(primaryType: string): POIType {
-    if (primaryType === 'cafe' || primaryType === 'coffee_shop' || primaryType === 'bakery') {
+  getStandardizedType(place: any): POIType {
+    place.primary_type = place.primary_type || "";
+
+    if (place.primary_type === 'cafe' || place.primary_type === 'coffee_shop' || place.primary_type === 'bakery') {
       return 'cafe';
     }
-    else if ((primaryType.includes('_restaurant') || primaryType.includes('food')) && !primaryType.includes('convenience_store')) {
+    else if ((place.primary_type.includes('_restaurant') || place.primary_type.includes('food') || place.types.includes('restaurant') || place.primary_type.includes('pub')) && !place.types.includes('convenience_store') && !place.types.includes('department_store') && !place.types.includes('supermarket')) {
       return 'restaurant';
     }
 
-    else if (primaryType.includes('hotel') || primaryType.includes('lodging') || primaryType.includes('motel')) {
+    else if (place.primary_type.includes('hotel') || place.primary_type.includes('lodging') || place.primary_type.includes('motel')) {
       return 'hotel';
     }
     

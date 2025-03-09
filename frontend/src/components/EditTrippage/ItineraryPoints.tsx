@@ -413,13 +413,13 @@ const ItineraryPoints = ({
         return (
           <div className="space-y-4">
             <div className="space-y-4 bg-white z-50">
-              <div className="flex justify-between gap-4">
-                <div className="flex gap-4">
+              <div className={`${isRightExpanded ? 'flex flex-col space-y-3' : 'flex justify-between gap-4'}`}>
+                <div className={`${isRightExpanded ? 'flex flex-col space-y-3 w-full' : 'flex gap-4'}`}>
                   <Select 
                     value={filterDay}
                     onValueChange={setFilterDay}
                   >
-                    <SelectTrigger className="w-40 bg-white">
+                    <SelectTrigger className={`${isRightExpanded ? 'w-full' : 'w-40'} bg-white`}>
                       <SelectValue placeholder="Filter by Day" />
                     </SelectTrigger>
                     <SelectContent className="z-[100] bg-white">
@@ -434,7 +434,7 @@ const ItineraryPoints = ({
                     value={filterTimeSlot}
                     onValueChange={setFilterTimeSlot}
                   >
-                    <SelectTrigger className="w-40">
+                    <SelectTrigger className={`${isRightExpanded ? 'w-full' : 'w-40'}`}>
                       <SelectValue placeholder="Filter by Time" />
                     </SelectTrigger>
                     <SelectContent className="z-[100] bg-white">
@@ -446,18 +446,18 @@ const ItineraryPoints = ({
                   </Select>
                 </div>
 
-                {/* Add Clear Itinerary Button with Alert Dialog */}
                 <AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
                   <AlertDialogTrigger asChild>
                     <button 
-                      className={`px-3 py-2 rounded-md text-sm font-medium flex items-center gap-1 
+                      className={`${isRightExpanded ? 'w-full' : ''} px-3 py-2 rounded-md text-sm font-medium flex items-center gap-1 
                         ${itineraryPOIs.length === 0 
                           ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
-                          : 'bg-red-50 text-red-600 hover:bg-red-100'}`}
+                          : 'bg-white text-red-600 hover:bg-red-50'}`}
                       disabled={itineraryPOIs.length === 0}
                     >
                       <Trash2 className="h-4 w-4" />
-                      Clear Itinerary
+                      {!isRightExpanded && "Clear Itinerary"}
+                      {isRightExpanded && "Clear"}
                     </button>
                   </AlertDialogTrigger>
                   <AlertDialogContent>
@@ -487,7 +487,6 @@ const ItineraryPoints = ({
                 </AlertDialog>
               </div>
               
-              {/* Name filter for Itinerary tab */}
               <div className="relative">
                 <input
                   type="text"
@@ -539,7 +538,6 @@ const ItineraryPoints = ({
                   Saved Attractions
                 </h3>
                 
-                {/* Name filter for Saved Attractions */}
                 <div className="relative mb-4">
                   <input
                     type="text"
@@ -594,7 +592,6 @@ const ItineraryPoints = ({
                   Saved Restaurants and Cafes
                 </h3>
                 
-                {/* Name filter for Saved Restaurants */}
                 <div className="relative mb-4">
                   <input
                     type="text"
@@ -697,7 +694,6 @@ const ItineraryPoints = ({
                 </div>
               </div>
 
-              {/* Search bar for text search */}
               <div className="flex gap-2 mt-2">
                 <div className="flex-1 relative">
                   <input
@@ -809,7 +805,6 @@ const ItineraryPoints = ({
             </div>
 
             <div className="mt-6">
-              {/* Search results */}
               {isSearching ? (
                 <div className="flex flex-col items-center justify-center py-12">
                   <Loader2 className="w-12 h-12 text-blue-600 animate-spin mb-4" />
@@ -836,7 +831,6 @@ const ItineraryPoints = ({
                 </div>
               )}
               
-              {/* Pagination for search results */}
               {filteredSearchResults.length > 0 && (
                 <PaginationControls 
                   currentPage={currentSearchPage} 
@@ -888,7 +882,11 @@ const ItineraryPoints = ({
                 "relative"
               )}
             >
-              Itinerary{itineraryPOIs.length > 0 && ` (${itineraryPOIs.length})`}
+              {isRightExpanded ? (
+                <span>Itin ({itineraryPOIs.length})</span>
+              ) : (
+                <span>Itinerary ({itineraryPOIs.length})</span>
+              )}
               {showAddedAnimation && (
                 <div className="absolute -top-2 -right-2 flex items-center justify-center">
                   <div className="animate-bounce-fade bg-blue-500 text-white text-xs rounded-full w-6 h-6 flex items-center justify-center font-bold">
@@ -907,7 +905,11 @@ const ItineraryPoints = ({
                 "text-gray-600 hover:text-blue-700"
               )}
             >
-              Saved ({unusedPOIs.length})
+              {isRightExpanded ? (
+                <span>Saved ({unusedPOIs.length})</span>
+              ) : (
+                <span>Saved ({unusedPOIs.length})</span>
+              )}
             </TabsTrigger>
             <TabsTrigger 
               value="search"
