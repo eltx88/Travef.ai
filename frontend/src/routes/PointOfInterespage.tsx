@@ -6,11 +6,6 @@ import { LocationProvider } from '@/contexts/LocationContext';
 import type { POI } from '@/Types/InterfaceTypes';
 import Footer from "@/components/Footer";
 
-// Define interface for map functions
-interface MapFunctions {
-  showPopupForPOI: (poiId: string) => void;
-}
-
 function PointOfInterest() {
     const [containerWidth, setContainerWidth] = useState<number>(40);
     const [isResizing, setIsResizing] = useState(false);
@@ -21,10 +16,6 @@ function PointOfInterest() {
     const [searchTerm, setSearchTerm] = useState<string>('');
     type TabType = 'saved' | 'explore' | 'search';
     const [activeTab, setActiveTab] = useState<TabType>('saved');
-
-    // Refs for map instance and functions
-    const mapInstanceRef = useRef<mapboxgl.Map | null>(null);
-    const mapFunctionsRef = useRef<MapFunctions | null>(null);
 
     // Fnction to handle POIs updates
     const handlePOIsUpdate = useCallback((pois: POI[], isAllUpdate: boolean = false) => {

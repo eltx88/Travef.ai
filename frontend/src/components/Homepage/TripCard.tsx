@@ -94,17 +94,17 @@ const TripCard: FC<TripCardsProps> = ({ trip, onDelete, setGlobalLoading }) => {
                       apiClient.getSavedPOIDetails(tripDetails.itineraryPOIs.map(poi => poi.PointID)),
                       apiClient.getSavedPOIDetails(tripDetails.unusedPOIs.map(poi => poi.PointID))
                     ]);
-                    
-                    // Fetch Google details
-                    const [enhancedItineraryPOIs, enhancedUnusedPOIs] = await Promise.all([
-                      apiClient.getBatchPlaceDetails(savedItineraryPOIs, trip.city, trip.country),
-                      apiClient.getBatchPlaceDetails(savedUnusedPOIs, trip.city, trip.country)
-                    ]);
+
+                    // Fetch Google details (removed for performance reasons now)
+                    // const [enhancedItineraryPOIs, enhancedUnusedPOIs] = await Promise.all([
+                    //   apiClient.getBatchPlaceDetails(savedItineraryPOIs, trip.city, trip.country),
+                    //   apiClient.getBatchPlaceDetails(savedUnusedPOIs, trip.city, trip.country)
+                    // ]);
                 
                     // Merge scheduling information from original itineraryPOIs with enhanced POI content
                     const finalItineraryPOIs = tripDetails.itineraryPOIs.map(schedulingInfo => {
                       // Find the matching enhanced POI
-                      const matchingPOI = enhancedItineraryPOIs.find(poi => poi.id === schedulingInfo.PointID);
+                      const matchingPOI = savedItineraryPOIs.find((poi: ItineraryPOI) => poi.id === schedulingInfo.PointID);
                       
                       if (matchingPOI) {
                         return {
@@ -122,7 +122,7 @@ const TripCard: FC<TripCardsProps> = ({ trip, onDelete, setGlobalLoading }) => {
                     }).filter(Boolean) as ItineraryPOI[];
                     
                     // For unused POIs, add the necessary properties to match ItineraryPOI interface
-                    const finalUnusedPOIs = enhancedUnusedPOIs.map(poi => {
+                    const finalUnusedPOIs = savedUnusedPOIs.map((poi: ItineraryPOI) => {
                       return {
                         ...poi,
                         PointID: poi.id,

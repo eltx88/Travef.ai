@@ -34,7 +34,6 @@ class PointOfInterestResponse(BaseModel):
     address: str
     city: str
     country: Optional[str] = None
-    duration: Optional[int] = None
     type: Optional[str] = None
     categories: Optional[List[str]] = []
     cuisine: Optional[List[str]] = None

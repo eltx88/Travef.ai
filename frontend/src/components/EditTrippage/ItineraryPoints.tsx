@@ -888,7 +888,7 @@ const ItineraryPoints = ({
                 "relative"
               )}
             >
-              Itinerary
+              Itinerary{itineraryPOIs.length > 0 && ` (${itineraryPOIs.length})`}
               {showAddedAnimation && (
                 <div className="absolute -top-2 -right-2 flex items-center justify-center">
                   <div className="animate-bounce-fade bg-blue-500 text-white text-xs rounded-full w-6 h-6 flex items-center justify-center font-bold">

@@ -300,28 +300,12 @@ async getNearbyPlacesByTypes(
   }
   
   async createOrUpdateTrip(userId: string, trip_doc_id: string, tripData: TripData, itineraryPOIs: ItineraryPOI[], unusedPOIs: ItineraryPOI[]) {
-    try {
+    try {      
       const processedItineraryPOIs = await Promise.all(
-        itineraryPOIs.map(async (poi) => {
+        itineraryPOIs.map(async (poi : ItineraryPOI) => {
           if (!poi.PointID) {
             const poiDocId = await this.createOrGetPOI({
-              place_id: poi.place_id,
-              name: poi.name,
-              coordinates: poi.coordinates,
-              address: poi.address,
-              city: poi.city,
-              country: poi.country,
-              type: poi.type,
-              id: poi.id,
-              image_url: poi.image_url,
-              website: poi.website,
-              phone: poi.phone,
-              opening_hours: poi.opening_hours,
-              price_level: poi.price_level,
-              user_ratings_total: poi.user_ratings_total,
-              rating: poi.rating,
-              description: poi.description,
-              categories: poi.categories
+              ...poi as POI
             });
             return {
               PointID: poiDocId,
@@ -338,26 +322,10 @@ async getNearbyPlacesByTypes(
       );
 
       const processedUnusedPOIs = await Promise.all(
-        unusedPOIs.map(async (poi) => {
+        unusedPOIs.map(async (poi : ItineraryPOI) => {
           if (!poi.PointID) {
             const poiDocId = await this.createOrGetPOI({
-              place_id: poi.place_id,
-              name: poi.name,
-              coordinates: poi.coordinates,
-              address: poi.address,
-              city: poi.city,
-              country: poi.country,
-              type: poi.type,
-              id: poi.id,
-              image_url: poi.image_url,
-              website: poi.website,
-              phone: poi.phone,
-              opening_hours: poi.opening_hours,
-              price_level: poi.price_level,
-              user_ratings_total: poi.user_ratings_total,
-              rating: poi.rating,
-              description: poi.description,
-              categories: poi.categories
+              ...poi as POI
             });
             return {
               PointID: poiDocId,
@@ -403,8 +371,9 @@ async getNearbyPlacesByTypes(
             monthlyDays: tripData.monthlyDays
           })
         });
-      } else {
-          // Get current trip state from backend
+      }
+      else {
+        // Get current trip state from backend
         const backendTripDetails = await this.getTripDetails(trip_doc_id);
         const changes = this.processPOIChanges(
           { itineraryPOIs: processedItineraryPOIs, unusedPOIs: processedUnusedPOIs},
@@ -673,21 +642,15 @@ async getNearbyPlacesByTypes(
         return [];
       }
       
-      // Process places into POI objects
-      const processedPlaces: POI[] = places.map((place: any) => {
+      // Process places into POI objects      
+      // Create an array of promises for each POI with resolved type
+      const processedPlaces = places.map((place: any) => {
         const cuisineArray = place.cuisine ? 
           (Array.isArray(place.cuisine) ? place.cuisine : [place.cuisine]) : 
           undefined;
         
-        // Determine standardized type based on primary_type
-        let standardizedType = 'attraction';
-        if (place.primary_type) {
-          if ((place.primary_type.includes('_restaurant') || place.types.includes('food')) && !place.types.includes('convenience_store')) {
-            standardizedType = 'restaurant';
-          } else if (place.primary_type === 'cafe' || place.primary_type === 'coffee_shop' || place.primary_type === 'bakery') {
-            standardizedType = 'cafe';
-          }
-        }
+        // Get the standardized type directly (now synchronous)
+        const standardizedType = this.getStandardizedType(place.primary_type);
         
         return {
           id: place.place_id,
@@ -700,7 +663,7 @@ async getNearbyPlacesByTypes(
           address: place.formatted_address || '',
           city: city,
           country: country,
-          type: standardizedType as POIType, // Using our standardized type mapping
+          type: standardizedType,
           rating: place.rating,
           user_ratings_total: place.user_ratings_total,
           cuisine: cuisineArray,
@@ -719,6 +682,21 @@ async getNearbyPlacesByTypes(
       console.error('Error fetching text search places:', error);
       return [];
     }
+  }
+
+  getStandardizedType(primaryType: string): POIType {
+    if (primaryType === 'cafe' || primaryType === 'coffee_shop' || primaryType === 'bakery') {
+      return 'cafe';
+    }
+    else if ((primaryType.includes('_restaurant') || primaryType.includes('food')) && !primaryType.includes('convenience_store')) {
+      return 'restaurant';
+    }
+
+    else if (primaryType.includes('hotel') || primaryType.includes('lodging') || primaryType.includes('motel')) {
+      return 'hotel';
+    }
+    
+    return 'attraction';
   }
 
 }

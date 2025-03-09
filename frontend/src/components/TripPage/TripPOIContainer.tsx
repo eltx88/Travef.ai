@@ -372,6 +372,17 @@ const TripPOIContainer = ({
             ? apiClient.getBatchPlaceDetails(uniqueUnusedPOIs, tripData.city, tripData.country)
             : []
         ]);
+        
+        // Ensure no duplicated place_ids in fetchedItineraryPOIs
+        const uniqueFetchedItineraryPOIs = Array.from(
+          new Map(fetchedItineraryPOIs.map(poi => [poi.place_id, poi])).values()
+        );
+        
+        // Similarly ensure uniqueness for unused POIs
+        const uniqueFetchedUnusedPOIs = Array.from(
+          new Map(fetchedUnusedPOIs.map(poi => [poi.place_id, poi])).values()
+        );
+        
         // Create a mapping of fetched POIs by place_id
         // const fetchedItineraryMap = new Map(fetchedItineraryPOIs.map(poi => [poi.place_id, poi]));
         // const fetchedUnusedMap = new Map(fetchedUnusedPOIs.map(poi => [poi.place_id, poi]));
@@ -388,8 +399,8 @@ const TripPOIContainer = ({
 
       navigate('/edit-trip', {
         state: {
-          itineraryPOIs: fetchedItineraryPOIs,
-          unusedPOIs: fetchedUnusedPOIs,
+          itineraryPOIs: uniqueFetchedItineraryPOIs,
+          unusedPOIs: uniqueFetchedUnusedPOIs,
           tripData: tripData,
           trip_doc_id: ""
         }
