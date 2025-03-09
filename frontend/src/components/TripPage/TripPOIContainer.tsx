@@ -18,6 +18,7 @@ import { Landmark, UtensilsCrossed, Coffee } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Switch } from "@/components/ui/switch";
 
 interface TripPOIContainerProps {
   tripData: TripData;
@@ -490,22 +491,34 @@ const TripPOIContainer = ({
     </div>
   );
 
+  // Add a separate function for the sort by rating switch
+  const renderSortByRatingSwitch = () => (
+    <div className="mb-4 flex items-center space-x-2">
+      <Switch 
+        id="sort-rating"
+        checked={sortByRating}
+        onCheckedChange={setSortByRating}
+        className="data-[state=checked]:bg-blue-600"
+      />
+      <Label htmlFor="sort-rating" className="text-sm text-gray-700">
+        Sort by highest rating
+      </Label>
+    </div>
+  );
+
   // Render the rating filter UI
   const renderRatingFilter = () => (
     <div className="mb-4">
-      <Popover>
-        <PopoverTrigger asChild>
-          <Button 
-            variant="outline" 
-            className="w-full justify-between bg-white border-gray-200 text-gray-800 hover:bg-gray-50"
-          >
-            <span>
-              {minRatingFilter ? `${minRatingFilter}+ Stars` : "Rating"} 
-              {sortByRating && " (Sorted)"}
-            </span>
-            <div className="flex items-center">
-              {minRatingFilter && (
-                <div className="flex mr-2">
+      <div className="flex items-center gap-3 justify-end">
+        <h2 className="text-lg font-semibold text-gray-700">Rating:</h2>
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button 
+              variant="outline" 
+              className="w-[160px] justify-between bg-white border-gray-200 text-gray-800 hover:bg-gray-50"
+            >
+              {minRatingFilter ? (
+                <div className="flex items-center">
                   {[...Array(Math.floor(minRatingFilter))].map((_, i) => (
                     <Star key={i} className="h-3.5 w-3.5 fill-yellow-500 text-yellow-500" />
                   ))}
@@ -521,128 +534,117 @@ const TripPOIContainer = ({
                     </div>
                   )}
                 </div>
+              ) : (
+                <span className="truncate">Any rating</span>
               )}
-              <ChevronRight className="h-4 w-4" />
-            </div>
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-80">
-          <div className="space-y-4">
-            <h4 className="font-medium text-sm">Filter by Minimum Rating</h4>
-            <div className="space-y-2">
-              <RadioGroup 
-                value={minRatingFilter === null ? "none" : minRatingFilter.toString()} 
-                onValueChange={(value) => {
-                  if (value === "none") {
+              <ChevronRight className="h-4 w-4 ml-1" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-80" align="end">
+            <div className="space-y-4">
+              <h4 className="font-medium text-sm">Filter by Minimum Rating</h4>
+              <div className="space-y-2">
+                <RadioGroup 
+                  value={minRatingFilter === null ? "none" : minRatingFilter.toString()} 
+                  onValueChange={(value) => {
+                    if (value === "none") {
+                      setMinRatingFilter(null);
+                    } else {
+                      setMinRatingFilter(parseFloat(value));
+                    }
+                  }}
+                >
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="none" id="r-none" />
+                    <Label htmlFor="r-none">No minimum</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="4.7" id="r-4.7" />
+                    <Label htmlFor="r-4.7" className="flex items-center">
+                      <span className="flex">
+                        {[...Array(4)].map((_, i) => (
+                          <Star key={i} className="h-3.5 w-3.5 fill-yellow-500 text-yellow-500" />
+                        ))}
+                        <div className="relative">
+                          <Star className="h-3.5 w-3.5 text-yellow-500" />
+                          <Star 
+                            className="absolute top-0 left-0 h-3.5 w-3.5 text-yellow-500 fill-yellow-500 overflow-hidden" 
+                            style={{ clipPath: 'polygon(0 0, 70% 0, 70% 100%, 0 100%)' }} 
+                          />
+                        </div>
+                      </span>
+                      <span className="ml-2">4.7+ stars</span>
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="4.5" id="r-4.5" />
+                    <Label htmlFor="r-4.5" className="flex items-center">
+                      <span className="flex">
+                        {[...Array(4)].map((_, i) => (
+                          <Star key={i} className="h-3.5 w-3.5 fill-yellow-500 text-yellow-500" />
+                        ))}
+                        <div className="relative">
+                          <Star className="h-3.5 w-3.5 text-yellow-500" />
+                          <Star 
+                            className="absolute top-0 left-0 h-3.5 w-3.5 text-yellow-500 fill-yellow-500 overflow-hidden" 
+                            style={{ clipPath: 'polygon(0 0, 50% 0, 50% 100%, 0 100%)' }} 
+                          />
+                        </div>
+                      </span>
+                      <span className="ml-2">4.5+ stars</span>
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="4" id="r-4" />
+                    <Label htmlFor="r-4" className="flex items-center">
+                      <span className="flex">
+                        {[...Array(4)].map((_, i) => (
+                          <Star key={i} className="h-3.5 w-3.5 fill-yellow-500 text-yellow-500" />
+                        ))}
+                        <Star className="h-3.5 w-3.5 text-gray-300" />
+                      </span>
+                      <span className="ml-2">4.0+ stars</span>
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="3.5" id="r-3.5" />
+                    <Label htmlFor="r-3.5" className="flex items-center">
+                      <span className="flex">
+                        {[...Array(3)].map((_, i) => (
+                          <Star key={i} className="h-3.5 w-3.5 fill-yellow-500 text-yellow-500" />
+                        ))}
+                        <div className="relative">
+                          <Star className="h-3.5 w-3.5 text-yellow-500" />
+                          <Star 
+                            className="absolute top-0 left-0 h-3.5 w-3.5 text-yellow-500 fill-yellow-500 overflow-hidden" 
+                            style={{ clipPath: 'polygon(0 0, 50% 0, 50% 100%, 0 100%)' }} 
+                          />
+                        </div>
+                        <Star className="h-3.5 w-3.5 text-gray-300" />
+                      </span>
+                      <span className="ml-2">3.5+ stars</span>
+                    </Label>
+                  </div>
+                </RadioGroup>
+              </div>
+              
+              <div className="pt-2 flex justify-end">
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => {
                     setMinRatingFilter(null);
-                  } else {
-                    setMinRatingFilter(parseFloat(value));
-                  }
-                }}
-              >
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="none" id="r-none" />
-                  <Label htmlFor="r-none">No minimum</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="4.7" id="r-4.7" />
-                  <Label htmlFor="r-4.7" className="flex items-center">
-                    <span className="flex">
-                      {[...Array(4)].map((_, i) => (
-                        <Star key={i} className="h-3.5 w-3.5 fill-yellow-500 text-yellow-500" />
-                      ))}
-                      <div className="relative">
-                        <Star className="h-3.5 w-3.5 text-yellow-500" />
-                        <Star 
-                          className="absolute top-0 left-0 h-3.5 w-3.5 text-yellow-500 fill-yellow-500 overflow-hidden" 
-                          style={{ clipPath: 'polygon(0 0, 70% 0, 70% 100%, 0 100%)' }} 
-                        />
-                      </div>
-                    </span>
-                    <span className="ml-2">4.7+ stars</span>
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="4.5" id="r-4.5" />
-                  <Label htmlFor="r-4.5" className="flex items-center">
-                    <span className="flex">
-                      {[...Array(4)].map((_, i) => (
-                        <Star key={i} className="h-3.5 w-3.5 fill-yellow-500 text-yellow-500" />
-                      ))}
-                      <div className="relative">
-                        <Star className="h-3.5 w-3.5 text-yellow-500" />
-                        <Star 
-                          className="absolute top-0 left-0 h-3.5 w-3.5 text-yellow-500 fill-yellow-500 overflow-hidden" 
-                          style={{ clipPath: 'polygon(0 0, 50% 0, 50% 100%, 0 100%)' }} 
-                        />
-                      </div>
-                    </span>
-                    <span className="ml-2">4.5+ stars</span>
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="4" id="r-4" />
-                  <Label htmlFor="r-4" className="flex items-center">
-                    <span className="flex">
-                      {[...Array(4)].map((_, i) => (
-                        <Star key={i} className="h-3.5 w-3.5 fill-yellow-500 text-yellow-500" />
-                      ))}
-                      <Star className="h-3.5 w-3.5 text-gray-300" />
-                    </span>
-                    <span className="ml-2">4.0+ stars</span>
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="3.5" id="r-3.5" />
-                  <Label htmlFor="r-3.5" className="flex items-center">
-                    <span className="flex">
-                      {[...Array(3)].map((_, i) => (
-                        <Star key={i} className="h-3.5 w-3.5 fill-yellow-500 text-yellow-500" />
-                      ))}
-                      <div className="relative">
-                        <Star className="h-3.5 w-3.5 text-yellow-500" />
-                        <Star 
-                          className="absolute top-0 left-0 h-3.5 w-3.5 text-yellow-500 fill-yellow-500 overflow-hidden" 
-                          style={{ clipPath: 'polygon(0 0, 50% 0, 50% 100%, 0 100%)' }} 
-                        />
-                      </div>
-                      <Star className="h-3.5 w-3.5 text-gray-300" />
-                    </span>
-                    <span className="ml-2">3.5+ stars</span>
-                  </Label>
-                </div>
-              </RadioGroup>
-            </div>
-            
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="sort-rating">Sort by highest rating</Label>
-                <input 
-                  type="checkbox" 
-                  id="sort-rating"
-                  checked={sortByRating}
-                  onChange={(e) => setSortByRating(e.target.checked)}
-                  className="h-4 w-4 text-blue-600 focus:ring-blue-500"
-                />
+                    setSortByRating(false);
+                  }}
+                  className="text-red-600 hover:text-red-800 hover:bg-red-50"
+                >
+                  Reset filters
+                </Button>
               </div>
             </div>
-            
-            <div className="pt-2 flex justify-end">
-              <Button 
-                variant="ghost" 
-                size="sm"
-                onClick={() => {
-                  setMinRatingFilter(null);
-                  setSortByRating(false);
-                }}
-                className="text-red-600 hover:text-red-800 hover:bg-red-50"
-              >
-                Reset filters
-              </Button>
-            </div>
-          </div>
-        </PopoverContent>
-      </Popover>
+          </PopoverContent>
+        </Popover>
+      </div>
     </div>
   );
 
@@ -681,14 +683,17 @@ const TripPOIContainer = ({
       </div>
 
       <div className="mt-4 px-6">
-        {/* Filters - add rating filter */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
-          <div>
+        {/* Filters with updated layout */}
+        <div className="flex flex-wrap justify-between items-center gap-3 mb-4">
+          <div className="flex-shrink-0">
             {renderCategorySelector()}
           </div>
-          <div>
+          <div className="flex-shrink-0">
             {renderRatingFilter()}
           </div>
+        </div>
+        <div className="mb-4">
+          {renderSortByRatingSwitch()}
         </div>
         {renderNameFilter()}
 

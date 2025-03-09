@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Plus, Check, Info, MapPin, Coffee, Utensils, Star } from "lucide-react";
+import { Plus, Check, Info, MapPin, Coffee, Utensils, Star, ExternalLink } from "lucide-react";
 import { useLocation } from '@/contexts/LocationContext';
 import type { POI } from '@/Types/InterfaceTypes';
 
@@ -167,24 +167,44 @@ const TripPOICard = ({
               {getTypeIcon(poi.type || 'attraction')}
               <span className="capitalize">{poi.type || 'attraction'}</span>
             </div>
+            
+            {/* Add the select button on the image for minimized view */}
+            {showAddButton && onSelect && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className={`absolute bottom-2 right-2 rounded-full h-8 w-8 p-0
+                  ${isSelected 
+                    ? 'bg-green-100 text-green-600 hover:bg-green-200' 
+                    : 'bg-white bg-opacity-90 hover:bg-opacity-100'
+                  }`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onSelect(poi);
+                }}
+                title={isSelected ? "Remove from itinerary" : "Add to itinerary"}
+              >
+                {isSelected ? <Check className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+              </Button>
+            )}
           </div>
           
           {/* Content Section */}
           <div className="flex flex-col flex-grow p-3">
-            {/* POI Name - removed Google Maps icon and Add button from here */}
-            <div className="min-w-0 mb-1">
-              {poi.website ? (
+            {/* POI Name - now with website icon instead of clickable name */}
+            <div className="flex items-center gap-1 mb-1">
+              <h4 className="font-semibold text-sm truncate flex-1">{poi.name}</h4>
+              {poi.website && (
                 <a 
                   href={poi.website}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="font-semibold text-sm truncate hover:text-blue-600 hover:underline"
+                  className="text-blue-600 hover:text-blue-800 flex-shrink-0"
                   onClick={(e) => e.stopPropagation()}
+                  title="Visit website"
                 >
-                  {poi.name}
+                  <ExternalLink className="h-3.5 w-3.5" />
                 </a>
-              ) : (
-                <h4 className="font-semibold text-sm truncate">{poi.name}</h4>
               )}
             </div>
             
@@ -192,11 +212,11 @@ const TripPOICard = ({
 
             {/* Address */}
             <div className="flex items-center gap-1 text-gray-600 text-xs mt-1">
-              <MapPin className="h-3 w-3" />
+              <MapPin className="h-3 w-3 flex-shrink-0" />
               <p className="truncate">{poi.address}</p>
             </div>
             
-            {/* Action Buttons - Now all aligned together */}
+            {/* Action Buttons */}
             <div className="mt-auto pt-2 flex justify-between items-center gap-2">
               <Button 
                 variant="ghost" 
@@ -208,11 +228,10 @@ const TripPOICard = ({
                 }}
               >
                 <Info className="h-3.5 w-3.5 mr-1" />
-                More details
               </Button>
               
               <div className="flex items-center gap-2 ml-auto">
-                {/* Google Maps Link moved here */}
+                {/* Google Maps Link */}
                 {poi.place_id && (
                   <a 
                     href={getGoogleMapsUrl(poi.place_id)}
@@ -226,24 +245,6 @@ const TripPOICard = ({
                       <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" />
                     </svg>
                   </a>
-                )}
-
-                {/* Add Button moved here */}
-                {showAddButton && onSelect && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className={`rounded-full h-7 w-7 flex-shrink-0 p-0 ${
-                      isSelected ? 'bg-green-100 text-green-600 hover:bg-green-200' : 'hover:bg-gray-100'
-                    }`}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onSelect(poi);
-                    }}
-                    title={isSelected ? "Remove from itinerary" : "Add to itinerary"}
-                  >
-                    {isSelected ? <Check className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
-                  </Button>
                 )}
               </div>
             </div>

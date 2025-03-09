@@ -56,11 +56,11 @@ const TripCard: FC<TripCardsProps> = ({ trip, onDelete, setGlobalLoading }) => {
   };
 
   return (
-    <Card className="w-[300px] flex-shrink-0 bg-white shadow-lg hover:shadow-xl transition-all duration-300 items-center hover:bg-gray-200 overflow-hidden">
+    <Card className="w-[300px] flex-shrink-0 bg-white shadow-lg hover:shadow-2xl transition-all duration-300 items-center hover:bg-gray-200 overflow-hidden dark:bg-gray-800 dark:border-gray-700">
       <CardContent className="p-4 w-full">
         <div className="space-y-4 group">
           {/* City image */}
-          <div className="w-full h-40 overflow-hidden rounded-md">
+          <div className="w-full h-40 overflow-hidden rounded-md shadow-md">
             <img 
               src={getCityImage(trip.city)} 
               alt={`${trip.city}, ${trip.country}`}
@@ -80,7 +80,7 @@ const TripCard: FC<TripCardsProps> = ({ trip, onDelete, setGlobalLoading }) => {
           </div>
 
           <Button 
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white transition-transform duration-300 group-hover:scale-105"
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white transition-transform duration-300 group-hover:scale-105 shadow-md hover:shadow-lg"
             onClick={async () => {
                 try {
                     setIsLoading(true);
@@ -166,7 +166,7 @@ const TripCard: FC<TripCardsProps> = ({ trip, onDelete, setGlobalLoading }) => {
           
           <AlertDialog>
             <AlertDialogTrigger asChild>
-              <Button className="w-full bg-red-600 hover:bg-red-700 text-white transition-transform duration-300 group-hover:scale-105">
+              <Button className="w-full bg-white  hover:bg-red-600 hover:text-white text-red-600 transition-transform duration-300 group-hover:scale-105 shadow-sm hover:shadow-md">
                 <Trash2 className="h-6 w-6" />
               </Button>
             </AlertDialogTrigger>
