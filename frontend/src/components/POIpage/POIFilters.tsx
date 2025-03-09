@@ -13,8 +13,8 @@ import { useDebounce } from '../hooks/debounce';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 
-type TabType = 'saved' | 'explore';
-type CategoryType = POIType;
+type TabType = 'saved' | 'explore' | 'search';
+type CategoryType = POIType | 'all';
 
 interface POIFiltersProps {
     nameFilter: string;
@@ -139,6 +139,7 @@ const POIFilters = ({
                     )}
                 </div>
                 <div className="flex gap-2">
+                {(tabType === 'saved' || tabType === 'explore') && (
                     <div className="relative z-40">
                         <Select
                             value={categoryFilter}
@@ -175,34 +176,35 @@ const POIFilters = ({
                             </SelectContent>
                         </Select>
                     </div>
+                )}
                     
-                    <div className="relative z-30">
-                        <Select
-                            value={ratingFilter?.toString() || "null"}
-                            onValueChange={(value) => {
-                                const numValue = value === "null" ? null : parseFloat(value);
-                                onRatingFilterChange(numValue);
-                            }}
-                            disabled={loading}
-                        >
-                            <SelectTrigger className="w-[140px] bg-white border-gray-200">
-                                <SelectValue placeholder="Rating" />
-                            </SelectTrigger>
-                            <SelectContent className="bg-white">
-                                {ratingOptions.map(({ value }) => (
-                                    <SelectItem 
-                                        key={value === null ? "null" : value.toString()} 
-                                        value={value === null ? "null" : value.toString()}
-                                        className="cursor-pointer"
-                                    >
-                                        <span className="flex items-center gap-2">
-                                            {value !== null ? renderRatingStars(value) : "Any Rating"}
-                                        </span>
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </div>
+                <div className="relative z-30">
+                    <Select
+                        value={ratingFilter?.toString() || "null"}
+                        onValueChange={(value) => {
+                            const numValue = value === "null" ? null : parseFloat(value);
+                            onRatingFilterChange(numValue);
+                        }}
+                        disabled={loading}
+                    >
+                        <SelectTrigger className="w-[140px] bg-white border-gray-200">
+                            <SelectValue placeholder="Rating" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-white">
+                            {ratingOptions.map(({ value }) => (
+                                <SelectItem 
+                                    key={value === null ? "null" : value.toString()} 
+                                    value={value === null ? "null" : value.toString()}
+                                    className="cursor-pointer"
+                                >
+                                    <span className="flex items-center gap-2">
+                                        {value !== null ? renderRatingStars(value) : "Any Rating"}
+                                    </span>
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
                 </div>
             </div>
 

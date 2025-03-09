@@ -31,6 +31,15 @@ export interface POIDataHookReturn {
   savedPoiIds: Set<string>;
   refreshSaved: boolean;
   setRefreshSaved: (refresh: boolean) => void;
+  searchPOIs: (
+    searchText: string,
+    categoryFilter: POIType | 'all',
+    lat: number,
+    lng: number,
+    city: string,
+    country: string
+  ) => Promise<POI[]>;
+  searchPois: POI[];
 }
 
 export const usePOIData = (user: any, currentCity: string, currentCountry: string): POIDataHookReturn => {
@@ -51,6 +60,7 @@ export const usePOIData = (user: any, currentCity: string, currentCountry: strin
     const savedPagination = usePagination(savedPois);
     const [savedPoiIds, setSavedPoiIds] = useState<Set<string>>(new Set());
     const [refreshSaved, setRefreshSaved] = useState(false);
+    const [searchPois, setSearchPois] = useState<POI[]>([]);
     const apiClient = new ApiClient({
       getIdToken: async () => {
           if (!user) throw new Error('Not authenticated');
@@ -229,6 +239,53 @@ const filteredExplorePois = useMemo(() => {
   return categoryPois.filter(poi => !savedPoiIds.has(poi.id) && !savedPoiIds.has(poi.place_id));
 }, [explorePoisMap, currentCategory, savedPoiIds]);
 
+const searchPOIs = useCallback(async (
+  searchText: string,
+  categoryFilter: POIType | 'all',
+  lat: number,
+  lng: number,
+  city: string,
+  country: string
+) => {
+  if (!user) {
+    setError('User not authenticated');
+    return [];
+  }
+
+  setLoading(true);
+  setError(null);
+
+  try {
+    // Convert 'all' category to undefined to search all types
+    // const typeFilter = categoryFilter === 'all' ? undefined : categoryFilter;
+    
+    // Make the API call
+    const results = await apiClient.getTextSearchPlaces(
+      searchText,
+      lat,
+      lng,
+      2000, // radius in meters
+      city,
+      country
+    );
+
+    // Filter out POIs that are already saved
+    const savedIds = new Set(savedPois.map(poi => poi.id || poi.place_id));
+    const filteredResults = results.filter(poi => !savedIds.has(poi.id) && !savedIds.has(poi.place_id));
+    console.log(filteredResults);
+    // Update search results state
+    setSearchPois(filteredResults);
+    
+    return filteredResults;
+  } catch (error) {
+    console.error('Error searching POIs:', error);
+    setError('Failed to search for places. Please try again.');
+    return [];
+  } finally {
+    setLoading(false);
+  }
+}, [user, savedPois, apiClient]);
+
     return {
       savedPois,
       explorePois: filteredExplorePois,
@@ -246,7 +303,9 @@ const filteredExplorePois = useMemo(() => {
       isPoiSaved,
       savedPoiIds,
       refreshSaved,
-      setRefreshSaved
+      setRefreshSaved,
+      searchPOIs,
+      searchPois
     };
 };
 

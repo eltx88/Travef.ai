@@ -14,8 +14,8 @@ interface POIListProps {
     onUnsavePOI: (poiId: string) => Promise<void>;
     onLoadResults?: () => void;
     isPoiSaved: (poiId: string) => boolean;
-    tabType: 'saved' | 'explore';
-    onTabChange?: (tab: 'saved' | 'explore') => void;
+    tabType: 'saved' | 'explore' | 'search';
+    onTabChange?: (tab: 'saved' | 'explore' | 'search') => void;
 }
 const POIList = ({ 
     loading, 
@@ -86,6 +86,13 @@ const POIList = ({
                     Explore Places
                 </Button>
             </div>
+            );
+        }
+        if(tabType === 'search') {
+            return (
+                <div className="text-gray-500 text-center p-4">
+                    {loading ? 'Searching...' : 'No search results found. Try adjusting your search terms.'}
+                </div>
             );
         }
         if(tabType === 'explore') {

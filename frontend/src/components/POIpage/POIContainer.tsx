@@ -9,6 +9,7 @@ import POITabs from '@/components/POIpage/POITabs';
 import CitySearch from '../CitySearchBar';
 import { poiCacheService } from '../hooks/poiCacheService';
 import { Pen } from 'lucide-react';
+import { toast } from 'react-hot-toast';
 
 interface POIContainerProps {
     onPOIsUpdate: (pois: POI[]) => void;
@@ -17,7 +18,7 @@ interface POIContainerProps {
     searchTerm?: string;
 }
 
-type TabType = 'saved' | 'explore';
+type TabType = 'saved' | 'explore' | 'search';
 type CategoryType = POIType | 'all';
 
 const citiesData: SearchCity[] = searchCitiesData as SearchCity[];
@@ -36,12 +37,22 @@ const POIContainer = ({ onPOIsUpdate, onAllPOIsUpdate, onTabChange, searchTerm =
     const [isNewCity, setIsNewCity] = useState(false);
     const [savedCategoryFilter, setSavedCategoryFilter] = useState<CategoryType>('all');
     const [exploreCategoryFilter, setExploreCategoryFilter] = useState<POIType>('attraction');
-    const categoryFilter = activeTab === 'saved' ? savedCategoryFilter : exploreCategoryFilter;
+    const [searchText, setSearchText] = useState('');
+    const [searchNameFilter, setSearchNameFilter] = useState('');
+    const [searchCategoryFilter, setSearchCategoryFilter] = useState<CategoryType>('all');
+    const [searchRatingFilter, setSearchRatingFilter] = useState<number | null>(null);
+    const [searchSortByRating, setSearchSortByRating] = useState(false);
+    const [isSearching, setIsSearching] = useState(false);
+    const categoryFilter = 
+        activeTab === 'saved' ? savedCategoryFilter : 
+        activeTab === 'explore' ? exploreCategoryFilter : 
+        searchCategoryFilter;
     const {
         loading,
         error,
         fetchSavedPOIs,
         fetchExplorePOIs,
+        searchPOIs,
         setLoading,
         savePOI,
         unsavePOI,
@@ -49,7 +60,8 @@ const POIContainer = ({ onPOIsUpdate, onAllPOIsUpdate, onTabChange, searchTerm =
         refreshSaved,
         setRefreshSaved,
         savedPois,
-        explorePois
+        explorePois,
+        searchPois,
     } = usePOIData(user, currentCity, currentCountry);
 
     useEffect(() => {
@@ -124,9 +136,18 @@ const POIContainer = ({ onPOIsUpdate, onAllPOIsUpdate, onTabChange, searchTerm =
         
         setActiveTab(newTab);
         onTabChange(newTab);
-        setNameFilter('');
-        setRatingFilter(null);
-        setSortByRating(false);
+        
+        // Reset filters when changing tabs
+        if (newTab !== 'search') {
+            setSearchNameFilter('');
+            setSearchRatingFilter(null);
+            setSearchSortByRating(false);
+        }
+        
+        // Reset name filter for other tabs
+        if (newTab !== 'saved') {
+            setNameFilter('');
+        }
         
         const fetchData = async () => {
             try {
@@ -149,7 +170,7 @@ const POIContainer = ({ onPOIsUpdate, onAllPOIsUpdate, onTabChange, searchTerm =
                     if (!validCache) {
                         await fetchSavedPOIs();
                     }
-                    setRefreshSaved(false); // Reset the flag after fetching
+                    setRefreshSaved(false);
                 }
             } finally {
                 fetchInProgressRef.current = false;
@@ -157,7 +178,7 @@ const POIContainer = ({ onPOIsUpdate, onAllPOIsUpdate, onTabChange, searchTerm =
         };
 
         fetchData();
-    }, [fetchExplorePOIs, fetchSavedPOIs, isNewCity, currentCity, exploreCategoryFilter, refreshSaved, setRefreshSaved]);
+    }, [fetchExplorePOIs, fetchSavedPOIs, isNewCity, currentCity, exploreCategoryFilter, refreshSaved, setRefreshSaved, onTabChange]);
 
 
     const handleCategoryChange = useCallback((newCategory: CategoryType) => {
@@ -270,55 +291,130 @@ const POIContainer = ({ onPOIsUpdate, onAllPOIsUpdate, onTabChange, searchTerm =
         }
     }, [activeTab, categoryFilter, fetchExplorePOIs, fetchSavedPOIs, currentCity]);
 
+    // Handle search submission
+    const handleSearch = useCallback(async () => {
+        if (!searchText.trim()) {
+            toast.error("Please enter a search term");
+            return;
+        }
+        
+        if (!coordinates || !coordinates.lat || !coordinates.lng) {
+            toast.error("Location coordinates are missing");
+            return;
+        }
+        
+        try {
+            setIsSearching(true);
+            
+            // Call search function without filtering by category - we'll filter results later
+            await searchPOIs(
+                searchText,
+                'all', // Always search for all types
+                coordinates.lat,
+                coordinates.lng,
+                currentCity,
+                currentCountry
+            );
+            
+        } catch (error) {
+            console.error("Search error:", error);
+            toast.error("Failed to search places. Please try again.");
+        } finally {
+            setIsSearching(false);
+        }
+    }, [searchText, coordinates, currentCity, currentCountry, searchPOIs]);
+
     // Filter and sort POIs based on all filters
     const filteredPOIs = useMemo(() => {
-        let result = [];
+        let result: POI[] = [];
         
+        // Select base POIs based on active tab
         if (activeTab === 'saved') {
             // Apply category filter for saved POIs
             result = categoryFilter === 'all' 
                 ? savedPois 
                 : savedPois.filter(poi => poi.type === categoryFilter);
-        } else {
-            // For explore tab, always filtered by category
+        } else if (activeTab === 'explore') {
+            // For explore tab
             result = explorePois;
             
-            // For explore tab, filter out POIs that are already saved
+            // Filter out POIs that are already saved
+            const savedPoiIds = new Set(savedPois.map(poi => poi.place_id || poi.id));
+            result = result.filter(poi => !savedPoiIds.has(poi.place_id) && !savedPoiIds.has(poi.id));
+        } else if (activeTab === 'search') {
+            // For search tab
+            result = searchPois;
+            
+            // No category filtering for search tab
+            
+            // Filter out POIs that are already saved
             const savedPoiIds = new Set(savedPois.map(poi => poi.place_id || poi.id));
             result = result.filter(poi => !savedPoiIds.has(poi.place_id) && !savedPoiIds.has(poi.id));
         }
 
-        // Apply name filter
-        if (nameFilter.trim()) {
+        // Apply name filter based on active tab
+        if ((activeTab === 'saved' || activeTab === 'explore') && nameFilter.trim()) {
             const lowerFilter = nameFilter.toLowerCase().trim();
+            const filteredResult = result.filter((poi: POI) => 
+                poi.name.toLowerCase().includes(lowerFilter)
+            );
+            result = filteredResult;
+        } else if (activeTab === 'search' && searchNameFilter.trim()) {
+            const lowerFilter = searchNameFilter.toLowerCase().trim();
             result = result.filter(poi => 
                 poi.name.toLowerCase().includes(lowerFilter)
             );
         }
 
-        // Apply rating filter
-        if (ratingFilter !== null) {
+        // Apply rating filter based on active tab
+        if ((activeTab === 'saved' || activeTab === 'explore') && ratingFilter !== null) {
             result = result.filter(poi => 
-                (poi.rating !== undefined && poi.rating !== null && poi.rating >= ratingFilter)
+                 (poi.rating !== undefined && poi.rating !== null && poi.rating >= ratingFilter)
+            );
+        } else if (activeTab === 'search' && searchRatingFilter !== null) {
+            result = result.filter(poi => 
+                (poi.rating !== undefined && poi.rating !== null && poi.rating >= searchRatingFilter)
             );
         }
 
         // Apply sorting by rating if enabled
-        if (sortByRating) {
+        if ((activeTab === 'saved' || activeTab === 'explore') && sortByRating) {
             result = [...result].sort((a, b) => {
                 const ratingA = a.rating ?? 0;
                 const ratingB = b.rating ?? 0;
-                return ratingB - ratingA; // Descending order (highest first)
+                return ratingB - ratingA;
+            });
+        } else if (activeTab === 'search' && searchSortByRating) {
+            result = [...result].sort((a, b) => {
+                const ratingA = a.rating ?? 0;
+                const ratingB = b.rating ?? 0;
+                return ratingB - ratingA;
             });
         }
         
         return result;
-    }, [activeTab, categoryFilter, savedPois, explorePois, nameFilter, ratingFilter, sortByRating]);
+    }, [
+        activeTab, 
+        categoryFilter, 
+        savedPois, 
+        explorePois, 
+        searchPois, 
+        nameFilter,
+        searchNameFilter,
+        ratingFilter, 
+        searchRatingFilter,
+        sortByRating,
+        searchSortByRating,
+        searchCategoryFilter
+    ]);
 
     // Get all POIs regardless of pagination or filtering
     const allPOIs = useMemo(() => {
-        return activeTab === 'saved' ? savedPois : explorePois;
-    }, [activeTab, savedPois, explorePois]);
+        if (activeTab === 'saved') return savedPois;
+        if (activeTab === 'explore') return explorePois;
+        if (activeTab === 'search') return searchPois;
+        return [];
+    }, [activeTab, savedPois, explorePois, searchPois]);
 
     // Update displayed (filtered) POIs
     const filteredPOIsForUpdate = useMemo(() => {
@@ -415,14 +511,17 @@ const POIContainer = ({ onPOIsUpdate, onAllPOIsUpdate, onTabChange, searchTerm =
                 <POITabs
                     activeTab={activeTab}
                     onTabChange={handleTabChange}
-                    nameFilter={nameFilter}
+                    nameFilter={activeTab === 'search' ? searchNameFilter : nameFilter}
                     categoryFilter={categoryFilter}
-                    ratingFilter={ratingFilter}
-                    onNameFilterChange={setNameFilter}
-                    onCategoryFilterChange={handleCategoryChange}
-                    onRatingFilterChange={handleRatingFilterChange}
-                    sortByRating={sortByRating}
-                    onSortByRatingChange={handleSortByRatingChange}
+                    ratingFilter={activeTab === 'search' ? searchRatingFilter : ratingFilter}
+                    onNameFilterChange={activeTab === 'search' ? setSearchNameFilter : setNameFilter}
+                    onCategoryFilterChange={activeTab === 'search' ? 
+                        (value) => setSearchCategoryFilter(value as CategoryType) : 
+                        handleCategoryChange
+                    }
+                    onRatingFilterChange={activeTab === 'search' ? setSearchRatingFilter : handleRatingFilterChange}
+                    sortByRating={activeTab === 'search' ? searchSortByRating : sortByRating}
+                    onSortByRatingChange={activeTab === 'search' ? setSearchSortByRating : handleSortByRatingChange}
                     loading={loading}
                     error={error}
                     pois={filteredPOIs}
@@ -431,6 +530,10 @@ const POIContainer = ({ onPOIsUpdate, onAllPOIsUpdate, onTabChange, searchTerm =
                     onSavePOI={savePOI}
                     onUnsavePOI={unsavePOI}
                     isPoiSaved={isPoiSaved}
+                    searchText={searchText}
+                    onSearchTextChange={setSearchText}
+                    onSearch={handleSearch}
+                    isSearching={isSearching}
                 />
             </div>
         </div>

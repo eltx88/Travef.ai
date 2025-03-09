@@ -682,9 +682,9 @@ async getNearbyPlacesByTypes(
         // Determine standardized type based on primary_type
         let standardizedType = 'attraction';
         if (place.primary_type) {
-          if (place.primary_type.includes('_restaurant')) {
+          if ((place.primary_type.includes('_restaurant') || place.types.includes('food')) && !place.types.includes('convenience_store')) {
             standardizedType = 'restaurant';
-          } else if (place.primary_type === 'cafe' || place.primary_type === 'coffee_shop') {
+          } else if (place.primary_type === 'cafe' || place.primary_type === 'coffee_shop' || place.primary_type === 'bakery') {
             standardizedType = 'cafe';
           }
         }
