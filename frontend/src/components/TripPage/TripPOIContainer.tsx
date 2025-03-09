@@ -251,7 +251,7 @@ const TripPOIContainer = ({
     const selectedAttractionPOIs = allAttractionPOIs.filter(poi => selectedPOIs.has(poi.place_id));
     const selectedFoodPOIs = allFoodPOIs.filter(poi => selectedPOIs.has(poi.place_id));
     const selectedCafePOIs = allCafePOIs.filter(poi => selectedPOIs.has(poi.place_id));
-    
+
     // Create shortened POIs for each category
     const shortenedSelectedAttractionPOIs = selectedAttractionPOIs.map(poi => ({
       place_id: poi.place_id,
@@ -297,7 +297,6 @@ const TripPOIContainer = ({
         shortenedSelectedFoodPOIs,
         shortenedSelectedCafePOIs
       );
-      
       // Process the generated json itinerary and return itineraryPOIs and unusedPOIs
       const processedItinerary = processItinerary(
         generatedTrip.itinerary, 
@@ -337,53 +336,60 @@ const TripPOIContainer = ({
       }
 
       // Create a comprehensive map of all POIs we already have details for
-      const knownPOIsMap = new Map<string, POI | ItineraryPOI>();
+      // const knownPOIsMap = new Map<string, POI | ItineraryPOI>();
 
       // Add selected POIs to the known POIs map
-      allSelectedPOIs.forEach(poi => knownPOIsMap.set(poi.place_id, poi));
+      // allSelectedPOIs.forEach(poi => knownPOIsMap.set(poi.place_id, poi));
 
-      // Filter newly suggested POIs from the Trip Generation Service(ones we don't already have details for)
-      const itineraryPOIsToFetch = uniqueItineraryPOIs.filter(poi => !knownPOIsMap.has(poi.place_id));
-      const unusedPOIsToFetch = uniqueUnusedPOIs.filter(poi => !knownPOIsMap.has(poi.place_id));
+      // // Filter newly suggested POIs from the Trip Generation Service(ones we don't already have details for)
+      // const itineraryPOIsToFetch = uniqueItineraryPOIs.filter(poi => !knownPOIsMap.has(poi.place_id));
+      // const unusedPOIsToFetch = uniqueUnusedPOIs.filter(poi => !knownPOIsMap.has(poi.place_id));
 
-      // Get enhanced details only for POIs we don't already have
-      let enhancedItineraryPOIs = uniqueItineraryPOIs.map(poi => 
-        knownPOIsMap.has(poi.place_id) ? { ...knownPOIsMap.get(poi.place_id), ...poi } : poi
-      );
-      let enhancedUnusedPOIs = uniqueUnusedPOIs.map(poi => 
-        knownPOIsMap.has(poi.place_id) ? { ...knownPOIsMap.get(poi.place_id), ...poi } : poi
-      );
+      // // Get enhanced details only for POIs we don't already have
+      // let enhancedItineraryPOIs = uniqueItineraryPOIs.map(poi => 
+      //   knownPOIsMap.has(poi.place_id) ? { ...knownPOIsMap.get(poi.place_id), ...poi } : poi
+      // );
+      // let enhancedUnusedPOIs = uniqueUnusedPOIs.map(poi => 
+      //   knownPOIsMap.has(poi.place_id) ? { ...knownPOIsMap.get(poi.place_id), ...poi } : poi
+      // );
 
       // Only fetch if there are new POIs to get details for
-      if (itineraryPOIsToFetch.length > 0 || unusedPOIsToFetch.length > 0) {
+      // if (itineraryPOIsToFetch.length > 0 || unusedPOIsToFetch.length > 0) {
+      //   const [fetchedItineraryPOIs, fetchedUnusedPOIs] = await Promise.all([
+      //     itineraryPOIsToFetch.length > 0 
+      //       ? apiClient.getBatchPlaceDetails(itineraryPOIsToFetch, tripData.city, tripData.country) 
+      //       : [],
+      //     unusedPOIsToFetch.length > 0
+      //       ? apiClient.getBatchPlaceDetails(unusedPOIsToFetch, tripData.city, tripData.country)
+      //       : []
+      //   ]);
+
         const [fetchedItineraryPOIs, fetchedUnusedPOIs] = await Promise.all([
-          itineraryPOIsToFetch.length > 0 
-            ? apiClient.getBatchPlaceDetails(itineraryPOIsToFetch, tripData.city, tripData.country) 
+          uniqueItineraryPOIs.length > 0 
+            ? apiClient.getBatchPlaceDetails(uniqueItineraryPOIs, tripData.city, tripData.country) 
             : [],
-          unusedPOIsToFetch.length > 0
-            ? apiClient.getBatchPlaceDetails(unusedPOIsToFetch, tripData.city, tripData.country)
+          uniqueUnusedPOIs.length > 0
+            ? apiClient.getBatchPlaceDetails(uniqueUnusedPOIs, tripData.city, tripData.country)
             : []
         ]);
-        
         // Create a mapping of fetched POIs by place_id
-        const fetchedItineraryMap = new Map(fetchedItineraryPOIs.map(poi => [poi.place_id, poi]));
-        const fetchedUnusedMap = new Map(fetchedUnusedPOIs.map(poi => [poi.place_id, poi]));
+        // const fetchedItineraryMap = new Map(fetchedItineraryPOIs.map(poi => [poi.place_id, poi]));
+        // const fetchedUnusedMap = new Map(fetchedUnusedPOIs.map(poi => [poi.place_id, poi]));
         
         // Update final POI lists with fetched data when available
-        enhancedItineraryPOIs = enhancedItineraryPOIs.map(poi => 
-          fetchedItineraryMap.has(poi.place_id) ? { ...poi, ...fetchedItineraryMap.get(poi.place_id) } : poi
-        );
+        // enhancedItineraryPOIs = enhancedItineraryPOIs.map(poi => 
+        //   fetchedItineraryMap.has(poi.place_id && poi.address) ? { ...poi, ...fetchedItineraryMap.get(poi.place_id) } : poi
+        // );
         
-        enhancedUnusedPOIs = enhancedUnusedPOIs.map(poi => 
-          fetchedUnusedMap.has(poi.place_id) ? { ...poi, ...fetchedUnusedMap.get(poi.place_id) } : poi
-        );
-      }
+        // enhancedUnusedPOIs = enhancedUnusedPOIs.map(poi => 
+        //   fetchedUnusedMap.has(poi.place_id && poi.address) ? { ...poi, ...fetchedUnusedMap.get(poi.place_id) } : poi
+        // );
+      // }
 
-      // Navigate to edit trip with enhanced data
       navigate('/edit-trip', {
         state: {
-          itineraryPOIs: enhancedItineraryPOIs,
-          unusedPOIs: enhancedUnusedPOIs,
+          itineraryPOIs: fetchedItineraryPOIs,
+          unusedPOIs: fetchedUnusedPOIs,
           tripData: tripData,
           trip_doc_id: ""
         }
@@ -435,7 +441,6 @@ const TripPOIContainer = ({
       )}
     </div>
   );
-
   // Category dropdown options
   const categoryOptions = [
     { value: 'attraction' as POIType, label: 'Attractions', icon: Landmark },
@@ -680,8 +685,8 @@ const TripPOIContainer = ({
         {explorePOIs.length > 0 && (
           <div className="mb-8">
             <h3 className="text-xl font-semibold mb-4">
-              {selectedCategory === 'attraction' ? 'Attractions' : 
-               selectedCategory === 'restaurant' ? 'Restaurants' : 'Cafes'}
+              {selectedCategory === 'attraction' ? 'Suggested Attractions for you' : 
+               selectedCategory === 'restaurant' ? 'Suggested Restaurants for you' : 'Suggested Cafes for you'}
             </h3>
             <POIGrid 
               items={explorePOIs} 

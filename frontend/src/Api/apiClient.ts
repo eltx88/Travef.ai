@@ -99,19 +99,19 @@ class ApiClient {
     coordinates,
     poitype,
     city,
-    country
+    country,
+    radius = '2000'
   }: ExploreGoogleParams): Promise<POI[]> {
     const queryParams = new URLSearchParams({
       type: type.join(','),
       latitude: coordinates.lat.toString(),
       longitude: coordinates.lng.toString(),
-      radius: '2000',
+      radius: radius,
       max_results: '20'
     });
     
     try {
       const pois = await this.fetchWithAuth(`/googleplaces/explore?${queryParams.toString()}`);
-      
       // Make sure pois is an array before proceeding
       if (!Array.isArray(pois)) {
         console.error('Expected pois to be an array but got:', typeof pois);
@@ -312,7 +312,16 @@ async getNearbyPlacesByTypes(
               city: poi.city,
               country: poi.country,
               type: poi.type,
-              id: poi.id
+              id: poi.id,
+              image_url: poi.image_url,
+              website: poi.website,
+              phone: poi.phone,
+              opening_hours: poi.opening_hours,
+              price_level: poi.price_level,
+              user_ratings_total: poi.user_ratings_total,
+              rating: poi.rating,
+              description: poi.description,
+              categories: poi.categories
             });
             return {
               PointID: poiDocId,
@@ -339,7 +348,16 @@ async getNearbyPlacesByTypes(
               city: poi.city,
               country: poi.country,
               type: poi.type,
-              id: poi.id
+              id: poi.id,
+              image_url: poi.image_url,
+              website: poi.website,
+              phone: poi.phone,
+              opening_hours: poi.opening_hours,
+              price_level: poi.price_level,
+              user_ratings_total: poi.user_ratings_total,
+              rating: poi.rating,
+              description: poi.description,
+              categories: poi.categories
             });
             return {
               PointID: poiDocId,
@@ -578,11 +596,20 @@ async getNearbyPlacesByTypes(
         body: JSON.stringify(googlePlaceIds),
       });
       
-      // Filter to include only POIs that have address not equal to ""
+      // If response is null or undefined, return original POIs
+      if (!response) {
+        console.error('Received null response from batch details API');
+        return pois;
+      }
+      
+      // Handle the updated response format that includes failed place IDs
+      const detailsResults = response.results || response;
+      
+      // Filter to exclude failed place IDs and include only valid results
       return pois
-        .filter(poi => response[poi.place_id])
+        .filter(poi => poi.place_id && detailsResults[poi.place_id])
         .map(poi => {
-          const details = response[poi.place_id];
+          const details = detailsResults[poi.place_id];
           
           return {
             ...poi,
@@ -599,7 +626,8 @@ async getNearbyPlacesByTypes(
             website: details.website || poi.website,
             phone: details.phone || poi.phone,
             opening_hours: details.opening_hours || poi.opening_hours,
-            price_level: details.price_level || poi.price_level
+            price_level: details.price_level || poi.price_level,
+            user_ratings_total: details.user_ratings_total || poi.user_ratings_total
           };
         });
       

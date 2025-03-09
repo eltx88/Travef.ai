@@ -18,11 +18,11 @@ class TripData(BaseModel):
     coordinates: Coordinates
     fromDT: datetime
     toDT: datetime
-    monthly_days: Optional[int] = None
-    interests: List[str]
-    food_preferences: List[str]
-    custom_interests: List[str]
-    custom_food_preferences: List[str]
+    monthly_days: int
+    interests: List[str] = []
+    food_preferences: List[str] = []
+    custom_interests: List[str] = []
+    custom_food_preferences: List[str] = []
 
 class TripGenerationRequest(BaseModel):
     trip_data: TripData

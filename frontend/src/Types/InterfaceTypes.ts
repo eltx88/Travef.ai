@@ -105,6 +105,7 @@ export interface ExploreGoogleParams {
   poitype: POIType;
   city: string;
   country: string;
+  radius?: string;
 }
 
 //Groq Query interfaces

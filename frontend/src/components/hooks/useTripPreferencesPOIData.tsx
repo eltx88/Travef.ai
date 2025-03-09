@@ -57,6 +57,20 @@ export const useTripPreferencesPOIData = (
       country: tripData.country,      
     });
 
+    if (fetchedPOIs.length < 21) {
+      const additionalPOIs = await apiClient.getGoogleExplorePOIs({
+        type: [category],
+        coordinates: tripData.coordinates,
+        poitype: type === 'food' ? 'restaurant' : 'attraction',
+        city: tripData.city,
+        country: tripData.country,
+        radius: '4000',
+      });
+      const existingPlaceIds = new Set(fetchedPOIs.map(poi => poi.place_id));
+      const uniqueAdditionalPOIs = additionalPOIs.filter(poi => !existingPlaceIds.has(poi.place_id));
+      fetchedPOIs.push(...uniqueAdditionalPOIs);
+    }
+
     poiCacheService.set(cacheKey, fetchedPOIs, tripData.city, tripData.country);
     return filterUniquePOIs(fetchedPOIs, savedPoisData);
   };
