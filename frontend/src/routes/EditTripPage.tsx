@@ -303,6 +303,30 @@ function EditTripPage() {
   const leftContainerWidth = isLeftExpanded ? 85 : isRightExpanded ? 15 : 40;
   const rightContainerWidth = isRightExpanded ? 85 : isLeftExpanded ? 15 : 60;
 
+  // Clear all POIs from itinerary
+  const handleClearItinerary = useCallback(() => {
+    if (!itineraryState) return;
+    
+    const modifiedUnusedPOIs = [...itineraryState.unusedPOIs];
+    
+    // Move all itinerary POIs to unusedPOIs with reset properties
+    itineraryState.itineraryPOIs.forEach(poi => {
+      const modifiedPOI = {
+        ...poi,
+        day: -1,
+        timeSlot: "unused",
+        StartTime: -1,
+        EndTime: -1,
+        duration: -1,
+      };
+      modifiedUnusedPOIs.push(modifiedPOI);
+    });
+    
+    // Update state with empty itinerary and all POIs in unused
+    updateState([], modifiedUnusedPOIs);
+    toast.success('Itinerary cleared successfully');
+  }, [itineraryState, updateState]);
+
   // Show loading state
   if (isLoading || !itineraryState || !tripData) {
     return (
@@ -334,6 +358,7 @@ function EditTripPage() {
                 onAddToItinerary={handleAddToItinerary}
                 onDeleteSavedPOI={deleteSavedPOI}
                 onDeleteItineraryPOI={deleteItineraryPOI}
+                onClearItinerary={handleClearItinerary}
                 isRightExpanded={isRightExpanded}
               />
             </div>

@@ -57,14 +57,14 @@ export const useTripPreferencesPOIData = (
       country: tripData.country,      
     });
 
-    if (fetchedPOIs.length < 21) {
+    if (fetchedPOIs.length < 24) {
       const additionalPOIs = await apiClient.getGoogleExplorePOIs({
         type: [category],
         coordinates: tripData.coordinates,
         poitype: type === 'food' ? 'restaurant' : 'attraction',
         city: tripData.city,
         country: tripData.country,
-        radius: '4000',
+        radius: '5000',
       });
       const existingPlaceIds = new Set(fetchedPOIs.map(poi => poi.place_id));
       const uniqueAdditionalPOIs = additionalPOIs.filter(poi => !existingPlaceIds.has(poi.place_id));

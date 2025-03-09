@@ -52,7 +52,8 @@ async def batch_get_place_details(place_ids: List[str]):
         return enriched_details
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-
+    
+#Used by trip poi suggestion hook
 @router.get("/explore")
 async def get_explore_places(latitude: float, longitude: float, radius: int = 2000, type: Optional[str] = None, max_results: int = 20):
     """

@@ -4,8 +4,19 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import type { TripData, ItineraryPOI } from '@/Types/InterfaceTypes';
 import { cn } from "@/lib/utils";
 import ItineraryPOICard from './ItineraryPOICard';
-import { Calendar, Star, Landmark, UtensilsCrossed, Search, Loader2 } from 'lucide-react';
+import { Calendar, Star, Landmark, UtensilsCrossed, Search, Loader2, Trash2, AlertCircle } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import ApiClient from '@/Api/apiClient';
 import { useAuthStore } from '@/firebase/firebase';
 import { toast } from 'react-hot-toast';
@@ -19,6 +30,7 @@ interface ItineraryPointsProps {
   onAddToItinerary: (poi: ItineraryPOI, day: number) => void;
   onDeleteSavedPOI: (poi: ItineraryPOI) => void;
   onDeleteItineraryPOI: (poi: ItineraryPOI) => void;
+  onClearItinerary: () => void;
   isRightExpanded?: boolean;
 }
 
@@ -29,6 +41,7 @@ const ItineraryPoints = ({
   onAddToItinerary,
   onDeleteSavedPOI,
   onDeleteItineraryPOI,
+  onClearItinerary,
   isRightExpanded = false,
 }: ItineraryPointsProps) => {
   const [activeTab, setActiveTab] = useState<TabType>('itinerary');
@@ -391,42 +404,87 @@ const ItineraryPoints = ({
     onAddToItinerary(poi, day);
   }, [activeTab, onAddToItinerary]);
 
+  // Add state for alert dialog
+  const [isAlertOpen, setIsAlertOpen] = useState(false);
+
   const renderTabContent = () => {
     switch (activeTab) {
       case 'itinerary':
         return (
           <div className="space-y-4">
             <div className="space-y-4 bg-white z-50">
-              <div className="flex gap-4">
-                <Select 
-                  value={filterDay}
-                  onValueChange={setFilterDay}
-                >
-                  <SelectTrigger className="w-40 bg-white">
-                    <SelectValue placeholder="Filter by Day" />
-                  </SelectTrigger>
-                  <SelectContent className="z-[100] bg-white">
-                    <SelectItem value="all">All Days</SelectItem>
-                    {dayOptions.map((day) => (
-                      <SelectItem key={day} value={day.toString()}>{`Day ${day}`}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              <div className="flex justify-between gap-4">
+                <div className="flex gap-4">
+                  <Select 
+                    value={filterDay}
+                    onValueChange={setFilterDay}
+                  >
+                    <SelectTrigger className="w-40 bg-white">
+                      <SelectValue placeholder="Filter by Day" />
+                    </SelectTrigger>
+                    <SelectContent className="z-[100] bg-white">
+                      <SelectItem value="all">All Days</SelectItem>
+                      {dayOptions.map((day) => (
+                        <SelectItem key={day} value={day.toString()}>{`Day ${day}`}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
 
-                <Select 
-                  value={filterTimeSlot}
-                  onValueChange={setFilterTimeSlot}
-                >
-                  <SelectTrigger className="w-40">
-                    <SelectValue placeholder="Filter by Time" />
-                  </SelectTrigger>
-                  <SelectContent className="z-[100] bg-white">
-                    <SelectItem value="all">All Times</SelectItem>
-                    <SelectItem value="morning">Morning</SelectItem>
-                    <SelectItem value="afternoon">Afternoon</SelectItem>
-                    <SelectItem value="evening">Evening</SelectItem>
-                  </SelectContent>
-                </Select>
+                  <Select 
+                    value={filterTimeSlot}
+                    onValueChange={setFilterTimeSlot}
+                  >
+                    <SelectTrigger className="w-40">
+                      <SelectValue placeholder="Filter by Time" />
+                    </SelectTrigger>
+                    <SelectContent className="z-[100] bg-white">
+                      <SelectItem value="all">All Times</SelectItem>
+                      <SelectItem value="morning">Morning</SelectItem>
+                      <SelectItem value="afternoon">Afternoon</SelectItem>
+                      <SelectItem value="evening">Evening</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Add Clear Itinerary Button with Alert Dialog */}
+                <AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
+                  <AlertDialogTrigger asChild>
+                    <button 
+                      className={`px-3 py-2 rounded-md text-sm font-medium flex items-center gap-1 
+                        ${itineraryPOIs.length === 0 
+                          ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
+                          : 'bg-red-50 text-red-600 hover:bg-red-100'}`}
+                      disabled={itineraryPOIs.length === 0}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      Clear Itinerary
+                    </button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle className="flex items-center gap-2">
+                        <AlertCircle className="h-5 w-5 text-red-500" />
+                        Clear Entire Itinerary
+                      </AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This will remove all places from your itinerary and move them to your saved places.
+                        This action cannot be undone.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction 
+                        className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
+                        onClick={() => {
+                          onClearItinerary();
+                          setIsAlertOpen(false);
+                        }}
+                      >
+                        Clear Itinerary
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               </div>
               
               {/* Name filter for Itinerary tab */}
