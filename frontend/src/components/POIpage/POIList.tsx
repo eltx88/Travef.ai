@@ -76,7 +76,7 @@ const POIList = ({
         return (
             <div className="flex flex-col items-center justify-center h-48 space-y-4">
                 <div className="text-gray-500 text-center p-4">
-                    No saved places found.
+                    No saved places yet!
                 </div>
                 <Button 
                     className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-medium px-3 rounded-lg transition-colors" 

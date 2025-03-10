@@ -71,7 +71,7 @@ function HomePage() {
 
   return (
     <LocationProvider>
-      <div className="flex flex-col min-h-screen bg-blue-600">
+      <div className="flex flex-col min-h-screen bg-blue-500">
         {isLoading && <LoadingOverlay message={loadingMessage} />}
         <NavigationMenuBar />
         
