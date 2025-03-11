@@ -1,4 +1,3 @@
-
 import AnimatedMountains from "@/animations/mountains.tsx";
 import { motion } from 'framer-motion';
 import LearnMore from "@/components/learnmore";
@@ -9,7 +8,10 @@ import Footer from "@/components/Footer";
 import { useAuthStore } from "@/firebase/firebase";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect, useRef } from 'react';
-import { House } from "lucide-react";
+import { House, MapPin, Calendar, Star, Users, PlaneTakeoff, Search, Map, Bot } from "lucide-react";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 function LandingPage() {
   const { user } = useAuthStore();
@@ -90,24 +92,133 @@ function LandingPage() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.3 }}
             >
-              Planning your dream holiday? At Travef.ai, we simplify travel by helping you create personalized itineraries tailored to your preferences.
+              Planning your dream holiday? We simplify travel by helping you create personalized itineraries tailored to your preferences.
             </motion.p>
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.6 }}
             >
-              <Button 
+              
+            </motion.div>
+          </div>
+          
+          {/* New Feature Cards */}
+          <motion.div 
+            className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-13 max-w-6xl mx-auto px-4"
+            initial={{ opacity: 0, y: 40 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.9 }}
+          >
+            <Card className="bg-white/90 backdrop-blur border-blue-200 shadow-md hover:shadow-lg transition-shadow">
+              <CardHeader className="pb-2">
+                <CardTitle className="flex items-center gap-2">
+                  <Bot className="h-5 w-5 text-blue-500" />
+                  AI-Powered Planning
+                </CardTitle>
+              </CardHeader>
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.6, delay: 1.3 }}
+              >
+                <CardContent>
+                  <p className="text-gray-600">Our AI engine creates custom itineraries based on your preferences, saving hours of research time.</p>
+                </CardContent>
+              </motion.div>
+              <CardFooter>
+                <Badge variant="outline" className="bg-blue-50">Smart Recommendations</Badge>
+              </CardFooter>
+            </Card>
+            
+            <Card className="bg-white/90 backdrop-blur border-blue-200 shadow-md hover:shadow-lg transition-shadow">
+              <CardHeader className="pb-2">
+                <CardTitle className="flex items-center gap-2">
+                  <Map className="h-5 w-5 text-blue-500" />
+                  Interactive Maps
+                </CardTitle>
+              </CardHeader>
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.6, delay: 1.5 }}
+              >
+                <CardContent>
+                  <p className="text-gray-600">Visualize your entire journey with interactive maps showing attractions, restaurants, and transportation options.</p>
+                </CardContent>
+              </motion.div>
+              <CardFooter>
+                <Badge variant="outline" className="bg-blue-50">Distance Optimized</Badge>
+              </CardFooter>
+            </Card>
+            
+            <Card className="bg-white/90 backdrop-blur border-blue-200 shadow-md hover:shadow-lg transition-shadow">
+              <CardHeader className="pb-2">
+                <CardTitle className="flex items-center gap-2">
+                  <Calendar className="h-5 w-5 text-blue-500" />
+                  Flexible Scheduling
+                </CardTitle>
+              </CardHeader>
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.6, delay: 1.7 }}
+              >
+                <CardContent>
+                  <p className="text-gray-600">Adjust your itinerary on the fly with our dynamic scheduling system that adapts to changes instantly.</p>
+                </CardContent>
+              </motion.div>
+              <CardFooter>
+                <Badge variant="outline" className="bg-blue-50">Real-time Updates</Badge>
+              </CardFooter>
+            </Card>
+          </motion.div>
+          <Button 
                 onClick={() => {
                   learnMoreSectionRef.current?.scrollIntoView({ behavior: 'smooth' });
                 }}
-                className="bg-blue-600 hover:bg-blue-700 text-white text-lg px-8 py-2 mt-4"
+                className="bg-blue-600 hover:bg-blue-700 text-white text-lg px-8 py-2 mt-9"
               >
                 Discover How
               </Button>
-            </motion.div>
-          </div>
+          
+          {/* Destination Tabs */}
+          <motion.div 
+            className="mt-16 max-w-4xl mx-auto w-full px-4"
+            initial={{ opacity: 0, y: 40 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 1.2 }}
+          >
+            
+          </motion.div>
         </main>
+        
+        {/* Stats section above mountains */}
+        <motion.div 
+          className="relative z-10 max-w-6xl mx-auto w-full px-4 mb-16 top-8"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.8, delay: 1.5 }}
+        >
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 bg-white/80 backdrop-blur rounded-xl p-6 shadow-lg">
+            <div className="text-center">
+              <h4 className="text-3xl font-bold text-blue-600">30k+</h4>
+              <p className="text-gray-600">Happy Travelers</p>
+            </div>
+            <div className="text-center">
+              <h4 className="text-3xl font-bold text-blue-600">100+</h4>
+              <p className="text-gray-600">Countries Covered</p>
+            </div>
+            <div className="text-center">
+              <h4 className="text-3xl font-bold text-blue-600">10k+</h4>
+              <p className="text-gray-600">Itineraries Created</p>
+            </div>
+            <div className="text-center">
+              <h4 className="text-3xl font-bold text-blue-600">4.9</h4>
+              <p className="text-gray-600">Average Rating</p>
+            </div>
+          </div>
+        </motion.div>
         
         {/* Mountains positioned at the bottom of the first section */}
         <div className="absolute bottom-0 w-full z-0 h-80">
@@ -130,6 +241,59 @@ function LandingPage() {
         </motion.h2>
         
         <LearnMore isVisible={showLearnMore} />
+        
+        {/* Testimonials Section */}
+        <motion.div
+          className="max-w-6xl mx-auto mt-20 px-4"
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ 
+            opacity: showLearnMore ? 1 : 0,
+            y: showLearnMore ? 0 : 30 
+          }}
+          transition={{ duration: 0.8, delay: 1.2 }}
+        >
+          <h3 className="text-3xl font-bold text-white text-center mb-12">What Our Users Say</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {[
+              {
+                name: "Sarah M.",
+                location: "London, UK",
+                text: "Travefai made planning our honeymoon to Italy so simple. The AI suggestions were spot on!"
+              },
+              {
+                name: "David L.",
+                location: "Toronto, Canada",
+                text: "I was skeptical about AI-planned trips, but this exceeded my expectations for our Asia tour."
+              },
+              {
+                name: "Mia K.",
+                location: "Sydney, Australia",
+                text: "As a solo traveler, safety was important. Travefai's recommendations gave me peace of mind."
+              }
+            ].map((testimonial, i) => (
+              <Card key={i} className="bg-white/90 backdrop-blur">
+                <CardHeader>
+                  <div className="flex items-center gap-2">
+                    <Star className="h-5 w-5 text-yellow-500 fill-yellow-500" />
+                    <Star className="h-5 w-5 text-yellow-500 fill-yellow-500" />
+                    <Star className="h-5 w-5 text-yellow-500 fill-yellow-500" />
+                    <Star className="h-5 w-5 text-yellow-500 fill-yellow-500" />
+                    <Star className="h-5 w-5 text-yellow-500 fill-yellow-500" />
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <p className="italic text-gray-700">"{testimonial.text}"</p>
+                </CardContent>
+                <CardFooter className="flex justify-between">
+                  <div>
+                    <p className="font-semibold">{testimonial.name}</p>
+                    <p className="text-sm text-gray-500">{testimonial.location}</p>
+                  </div>
+                </CardFooter>
+              </Card>
+            ))}
+          </div>
+        </motion.div>
         
         {/* Sign Up Now button - only shown to non-authenticated users */}
         {!user && (

@@ -52,15 +52,15 @@ const TripCard: FC<TripCardsProps> = ({ trip, onDelete, setGlobalLoading }) => {
     );
     
     return matchedCity?.image_link || 
-      "https://images.unsplash.com/photo-1548800687-96dc03940478?q=80&w=1974&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D";
+      "https://images.unsplash.com/photo-1508939546992-1252a12b4299?q=80&w=1974&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D";
   };
 
   return (
-    <Card className="w-[300px] flex-shrink-0 bg-white shadow-lg hover:shadow-xl transition-all duration-300 items-center hover:bg-gray-200 overflow-hidden">
+    <Card className="w-[300px] flex-shrink-0 bg-white shadow-lg hover:shadow-2xl transition-all duration-300 items-center hover:bg-gray-200 overflow-hidden dark:bg-gray-800 dark:border-gray-700">
       <CardContent className="p-4 w-full">
         <div className="space-y-4 group">
           {/* City image */}
-          <div className="w-full h-40 overflow-hidden rounded-md">
+          <div className="w-full h-40 overflow-hidden rounded-md shadow-md">
             <img 
               src={getCityImage(trip.city)} 
               alt={`${trip.city}, ${trip.country}`}
@@ -80,7 +80,7 @@ const TripCard: FC<TripCardsProps> = ({ trip, onDelete, setGlobalLoading }) => {
           </div>
 
           <Button 
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white transition-transform duration-300 group-hover:scale-105"
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white transition-transform duration-300 group-hover:scale-105 shadow-md hover:shadow-lg"
             onClick={async () => {
                 try {
                     setIsLoading(true);
@@ -94,17 +94,17 @@ const TripCard: FC<TripCardsProps> = ({ trip, onDelete, setGlobalLoading }) => {
                       apiClient.getSavedPOIDetails(tripDetails.itineraryPOIs.map(poi => poi.PointID)),
                       apiClient.getSavedPOIDetails(tripDetails.unusedPOIs.map(poi => poi.PointID))
                     ]);
-                    
-                    // Fetch Google details
-                    const [enhancedItineraryPOIs, enhancedUnusedPOIs] = await Promise.all([
-                      apiClient.getBatchPlaceDetails(savedItineraryPOIs, trip.city, trip.country),
-                      apiClient.getBatchPlaceDetails(savedUnusedPOIs, trip.city, trip.country)
-                    ]);
+
+                    // Fetch Google details (removed for performance reasons now)
+                    // const [enhancedItineraryPOIs, enhancedUnusedPOIs] = await Promise.all([
+                    //   apiClient.getBatchPlaceDetails(savedItineraryPOIs, trip.city, trip.country),
+                    //   apiClient.getBatchPlaceDetails(savedUnusedPOIs, trip.city, trip.country)
+                    // ]);
                 
                     // Merge scheduling information from original itineraryPOIs with enhanced POI content
                     const finalItineraryPOIs = tripDetails.itineraryPOIs.map(schedulingInfo => {
                       // Find the matching enhanced POI
-                      const matchingPOI = enhancedItineraryPOIs.find(poi => poi.id === schedulingInfo.PointID);
+                      const matchingPOI = savedItineraryPOIs.find((poi: ItineraryPOI) => poi.id === schedulingInfo.PointID);
                       
                       if (matchingPOI) {
                         return {
@@ -122,7 +122,7 @@ const TripCard: FC<TripCardsProps> = ({ trip, onDelete, setGlobalLoading }) => {
                     }).filter(Boolean) as ItineraryPOI[];
                     
                     // For unused POIs, add the necessary properties to match ItineraryPOI interface
-                    const finalUnusedPOIs = enhancedUnusedPOIs.map(poi => {
+                    const finalUnusedPOIs = savedUnusedPOIs.map((poi: ItineraryPOI) => {
                       return {
                         ...poi,
                         PointID: poi.id,
@@ -166,7 +166,7 @@ const TripCard: FC<TripCardsProps> = ({ trip, onDelete, setGlobalLoading }) => {
           
           <AlertDialog>
             <AlertDialogTrigger asChild>
-              <Button className="w-full bg-red-600 hover:bg-red-700 text-white transition-transform duration-300 group-hover:scale-105">
+              <Button className="w-full bg-white  hover:bg-red-600 hover:text-white text-red-600 transition-transform duration-300 group-hover:scale-105 shadow-sm hover:shadow-md">
                 <Trash2 className="h-6 w-6" />
               </Button>
             </AlertDialogTrigger>

@@ -67,7 +67,7 @@ const Searchbar: React.FC = () => {
                           whileHover="hover"
                       >
                           <Card 
-                              className="h-[210px] w-[250px] cursor-pointer bg-white" 
+                              className="h-[210px] w-[250px] cursor-pointer bg-white overflow-hidden rounded-xl shadow-md group" 
                               onClick={() => handleCitySubmit({ 
                                   name: city.city,
                                   country: city.country,
@@ -75,12 +75,20 @@ const Searchbar: React.FC = () => {
                                   lng: city.lng.toString()
                               })}
                           >
-                              <CardContent className="p-0">
-                                  <img src={city.image_link} alt={city.city} className="w-full h-[180px] object-cover rounded-t-lg" />
-                              </CardContent>
-                              <CardFooter className="flex flex-col justify-center items-center py-1">
-                                  <h3 className="font-semibold">{city.city}</h3>
-                              </CardFooter>
+                              <div className="relative h-full w-full">
+                                  <div className="absolute inset-0 p-[3px] rounded-xl overflow-hidden group-hover:p-0 transition-all duration-300">
+                                      <img 
+                                          src={city.image_link} 
+                                          alt={city.city} 
+                                          className="w-full h-[210px] object-cover rounded-t-lg group-hover:h-full group-hover:rounded-xl transition-all duration-300 p-0" 
+                                      />
+                                  </div>
+                                  <div 
+                                      className="absolute bottom-0 w-full bg-white py-1 flex justify-center items-center group-hover:opacity-0 transition-opacity duration-300"
+                                  >
+                                      <h3 className="font-semibold">{city.city}</h3>
+                                  </div>
+                              </div>
                           </Card>
                       </motion.div>
                   ))}

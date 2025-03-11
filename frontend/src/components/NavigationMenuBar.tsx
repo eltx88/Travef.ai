@@ -13,7 +13,7 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { auth } from '../firebase/firebase';
 import { signOut } from 'firebase/auth';
 import { LogOut } from 'lucide-react';
@@ -25,6 +25,8 @@ interface NavigationMenuBarProps {
 
 export function NavigationMenuBar({ hasUnsavedChanges = false, clearUnsavedChanges = () => {} }: NavigationMenuBarProps) {
     const navigate = useNavigate();
+    const location = useLocation();
+    
     const handleLogout = async () => {
         try {
             await signOut(auth);
@@ -47,6 +49,15 @@ export function NavigationMenuBar({ hasUnsavedChanges = false, clearUnsavedChang
             navigate(path);
         }
     };
+
+    // Function to determine if a nav item is active
+    const isActive = (path: string): boolean => {
+        if (path === '/home') {
+            return location.pathname === '/home' || location.pathname === '/';
+        }
+        return location.pathname === path;
+    };
+    const activeNavClass = "text-blue-700";
 
     return(
         <header className="relative z-50 flex items-center justify-between m-0 pt-0 px-7 bg-slate-100">
@@ -74,7 +85,7 @@ export function NavigationMenuBar({ hasUnsavedChanges = false, clearUnsavedChang
 
                         <NavigationMenuItem>
                             <NavigationMenuTrigger 
-                                className="text-lg bg-transparent hover:bg-slate-200 cursor-pointer"
+                                className={`text-lg bg-transparent hover:bg-slate-200 cursor-pointer ${isActive('/home') ? activeNavClass : ''}`}
                                 onClick={(e) => handleNavigation(e, '/home')}
                             >
                                 Home
@@ -110,7 +121,7 @@ export function NavigationMenuBar({ hasUnsavedChanges = false, clearUnsavedChang
 
                         <NavigationMenuItem>
                             <NavigationMenuTrigger 
-                                className="text-lg bg-transparent hover:bg-slate-200 cursor-pointer"
+                                className={`text-lg bg-transparent hover:bg-slate-200 cursor-pointer ${isActive('/createtrip') ? activeNavClass : ''}`}
                                 onClick={(e) => handleNavigation(e, '/createtrip')}
                             >
                                 Plan  
@@ -147,7 +158,9 @@ export function NavigationMenuBar({ hasUnsavedChanges = false, clearUnsavedChang
 
                         <NavigationMenuItem>
                             <NavigationMenuTrigger 
-                                className="text-lg bg-transparent hover:bg-slate-200"
+                                className={`text-lg bg-transparent hover:bg-slate-200 ${
+                                    location.pathname === '/home' && sessionStorage.getItem('scrollToTrips') === 'true' ? activeNavClass : ''
+                                }`}
                                 onClick={(e) => {
                                     e.preventDefault();
                                     

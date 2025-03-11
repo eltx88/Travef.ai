@@ -65,125 +65,288 @@ class TripGenerationService:
                 'pub' : ['pub'],
                 'wine' :['wine_bar']
             }
-            matching_preferences = []
-            suggested_places = []
-            additional_places = []
 
-            if preferences:
-                if place_type == "tourist_attraction":
-                    for pref in preferences:
-                        if pref in attraction_type_mapping:
-                            matching_preferences.append(attraction_type_mapping[pref])
-                
-                elif place_type == "restaurant":
-                    for pref in preferences:
-                        if pref in restaurant_type_mapping:
-                            matching_preferences.append(restaurant_type_mapping[pref])
-
-            # Pre-compute rounded coordinates (3 decimal places) for current places
+            # Pre-compute sets for deduplication
             existing_locations = {
                 (round(poi.coordinates.lat, 3), round(poi.coordinates.lng, 3))
                 for poi in current_places
             }
-
-            # Pre-compute normalized names
             existing_names = {
                 poi.name.strip().lower()
                 for poi in current_places
             }
+            
+            additional_places = []
+            
+            # Step 1: Try to get places based on preferences if available
+            matching_preferences = []
+            if preferences and additional_places_needed > 0:
+                # Get relevant mapping based on place type
+                type_mapping = None
+                if place_type == "tourist_attraction":
+                    type_mapping = attraction_type_mapping
+                elif place_type == "restaurant" or place_type == "cafe":
+                    type_mapping = restaurant_type_mapping
+                    
+                # Find matching preferences
+                if type_mapping:
+                    for pref in preferences:
+                        if pref in type_mapping:
+                            matching_preferences.append(type_mapping[pref])
 
-            if matching_preferences:
-                for types in matching_preferences:
-                    if len(additional_places) >= additional_places_needed:
-                        break
-
-                    suggested_places = self.places_service.nearby_search(
-                        latitude=city_lat,
-                        longitude=city_lng,
-                        radius=3000,
-                        type=types,
-                        max_results=20
+                # Try to get places based on preferences
+                if matching_preferences:
+                    additional_places = await self._search_places_by_types(
+                        matching_preferences,
+                        city_lat,
+                        city_lng,
+                        place_type,
+                        existing_names,
+                        existing_locations,
+                        additional_places_needed
                     )
-
-                    for place in suggested_places:
-                        # Check for duplicate names
-                        normalized_name = place.name.strip().lower()
-                        if normalized_name in existing_names:
-                            continue
-
-                        # Check for places at same location using pre-computed set (3 decimal places)
-                        rounded_location = (round(place.location.latitude, 3), round(place.location.longitude, 3))
-                        if rounded_location in existing_locations:
-                            continue
-
-                        # Check primary type matches
-                        if place_type == "cafe" and place.primary_type not in ["cafe", "coffee_shop", "bakery"]:
-                            continue
-                        elif place_type == "restaurant" and not re.search(r'restaurant$', place.primary_type):
-                            continue
-
-                        # Add new place
-                        new_poi = {
-                            'place_id': place.place_id,
-                            'name': place.name.strip(),
-                            'type': 'attraction' if place_type == "tourist_attraction" else place_type,
-                            'coordinates': {
-                                'lat': place.location.latitude,
-                                'lng': place.location.longitude
-                            }
-                        }
-                        additional_places.append(new_poi)
-                        
-                        # Update tracking sets
-                        existing_locations.add(rounded_location)
-                        existing_names.add(normalized_name)
-
-                        if len(additional_places) >= additional_places_needed:
-                            break
-            else:
-                suggested_places = self.places_service.nearby_search(
-                    latitude=city_lat,
-                    longitude=city_lng,
-                    radius=3000,
-                    type=place_type,
-                    max_results=20  
+            
+            # Step 2: Fall back to generic search if needed
+            remaining_places_needed = additional_places_needed - len(additional_places)
+            if remaining_places_needed > 0:
+                generic_places = await self._generic_place_search(
+                    city_lat,
+                    city_lng,
+                    place_type,
+                    existing_names,
+                    existing_locations,
+                    remaining_places_needed
                 )
-
-                for place in suggested_places:
-                    rounded_location = (round(place.location.latitude, 3), round(place.location.longitude, 3))
-                    normalized_name = place.name.strip().lower()
-
-                    if normalized_name in existing_names:
-                        continue
-                    if rounded_location in existing_locations:
-                        continue
-                    elif place_type == "cafe" and place.primary_type not in ["cafe", "coffee_shop", "bakery"]:
-                        continue
-                    elif place_type == "restaurant" and not re.search(r'restaurant$', place.primary_type):
-                        continue
-
-                    # Add new place
-                    new_poi = {
-                        'place_id': place.place_id,
-                        'name': place.name.strip(),
-                        'type': 'attraction' if place_type == "tourist_attraction" else place_type,
-                        'coordinates': {
-                            'lat': place.location.latitude,
-                            'lng': place.location.longitude
-                        }
-                    }
-                    additional_places.append(new_poi)
-                    existing_locations.add(rounded_location)
-                    existing_names.add(normalized_name)
-
-                    if len(additional_places) >= additional_places_needed:
-                        break
-
+                additional_places.extend(generic_places)
+            
             return additional_places
 
         except Exception as e:
             logger.error(f"Error getting additional places: {str(e)}")
             return []
+
+    async def _search_places_by_types(
+        self,
+        type_lists,
+        city_lat,
+        city_lng,
+        place_type,
+        existing_names,
+        existing_locations,
+        max_places_needed
+    ):
+        """Helper method to search places by specific types."""
+        additional_places = []
+        
+        # Define types to exclude based on place_type
+        excluded_types = self._get_excluded_types_for_place_type(place_type)
+        
+        for types in type_lists:
+            if len(additional_places) >= max_places_needed:
+                break
+            
+            suggested_places = self.places_service.nearby_search(
+                latitude=city_lat,
+                longitude=city_lng,
+                radius=3000,
+                type=types,
+                excluded_types=excluded_types,
+                max_results=20
+            )
+            
+            for place in suggested_places:
+                if len(additional_places) >= max_places_needed:
+                    break
+                
+                if self._is_valid_place(place, place_type, existing_names, existing_locations):
+                    new_poi = self._create_poi_dict(place, place_type)
+                    additional_places.append(new_poi)
+                    
+                    # Update tracking sets
+                    existing_locations.add((round(place.location.latitude, 3), round(place.location.longitude, 3)))
+                    existing_names.add(place.name.strip().lower())
+        
+        return additional_places
+
+    async def _generic_place_search(
+        self,
+        city_lat,
+        city_lng,
+        place_type,
+        existing_names,
+        existing_locations,
+        max_places_needed
+    ):
+        """Helper method for generic place search by place_type."""
+        additional_places = []
+        
+        # Define types to exclude based on place_type
+        excluded_types = self._get_excluded_types_for_place_type(place_type)
+        
+        # Define backup types based on place_type
+        backup_types = []
+        if place_type == "restaurant":
+            backup_types = [
+                "meal_takeaway", "meal_delivery", "food", 
+                "fast_food_restaurant", "fine_dining_restaurant",
+                "breakfast_restaurant", "brunch_restaurant"
+            ]
+        elif place_type == "cafe":
+            backup_types = [
+                "bakery", "coffee_shop", "tea_house", 
+                "breakfast_restaurant", "juice_shop"
+            ]
+        
+        # Initial search with provided place_type
+        suggested_places = self.places_service.nearby_search(
+            latitude=city_lat,
+            longitude=city_lng,
+            radius=3000,
+            type=place_type,
+            excluded_types=excluded_types,
+            max_results=20  
+        )
+        
+        for place in suggested_places:
+            if len(additional_places) >= max_places_needed:
+                break
+            
+            if self._is_valid_place(place, place_type, existing_names, existing_locations):
+                new_poi = self._create_poi_dict(place, place_type)
+                additional_places.append(new_poi)
+                
+                # Update tracking sets
+                existing_locations.add((round(place.location.latitude, 3), round(place.location.longitude, 3)))
+                existing_names.add(place.name.strip().lower())
+        
+        # If we didn't get enough places, try backup types
+        if len(additional_places) < max_places_needed and backup_types:
+            remaining_needed = max_places_needed - len(additional_places)
+            
+            for backup_type in backup_types:
+                if len(additional_places) >= max_places_needed:
+                    break
+                    
+                backup_places = self.places_service.nearby_search(
+                    latitude=city_lat,
+                    longitude=city_lng,
+                    radius=3000,
+                    type=backup_type,
+                    excluded_types=excluded_types,
+                    max_results=20
+                )
+                
+                for place in backup_places:
+                    if len(additional_places) >= max_places_needed:
+                        break
+                    
+                    if self._is_valid_place(place, place_type, existing_names, existing_locations):
+                        new_poi = self._create_poi_dict(place, place_type)
+                        additional_places.append(new_poi)
+                        
+                        # Update tracking sets
+                        existing_locations.add((round(place.location.latitude, 3), round(place.location.longitude, 3)))
+                        existing_names.add(place.name.strip().lower())
+        
+        # Last resort: try a more generic text search if we still don't have enough places
+        if len(additional_places) < max_places_needed:
+            remaining_needed = max_places_needed - len(additional_places)
+            
+            # Use a text search with general terms
+            search_term = "restaurant" if place_type == "restaurant" else "cafe"
+            try:
+                text_results = self.places_service.text_search(
+                    query=search_term,
+                    latitude=city_lat,
+                    longitude=city_lng,
+                    radius=3000,
+                    max_results=remaining_needed
+                )
+                
+                for place in text_results:
+                    if len(additional_places) >= max_places_needed:
+                        break
+                    
+                    if self._is_valid_place(place, place_type, existing_names, existing_locations):
+                        new_poi = self._create_poi_dict(place, place_type)
+                        additional_places.append(new_poi)
+                        
+                        # Update tracking sets
+                        existing_locations.add((round(place.location.latitude, 3), round(place.location.longitude, 3)))
+                        existing_names.add(place.name.strip().lower())
+            except:
+                # If text search fails, just continue
+                pass
+        
+        return additional_places
+
+    def _is_valid_place(self, place, place_type, existing_names, existing_locations):
+        """Check if a place is valid based on duplication and type criteria."""
+        # Check for duplicate name
+        normalized_name = place.name.strip().lower()
+        if normalized_name in existing_names:
+            return False
+        
+        # Check for places at same location
+        rounded_location = (round(place.location.latitude, 3), round(place.location.longitude, 3))
+        if rounded_location in existing_locations:
+            return False
+        
+        # STRICT FILTERING FOR CAFES - only accept places with specific primary_types
+        if place_type == "cafe":
+            # For cafes, ONLY accept if primary_type is one of these specific types
+            cafe_specific_types = ["cafe", "coffee_shop", "bakery"]
+            
+            # If primary_type is None or not in our specific list, reject
+            if not place.primary_type or place.primary_type not in cafe_specific_types:
+                return False
+            
+            return True
+        
+        # For restaurants, more flexible type checking
+        elif place_type == "restaurant":
+            restaurant_types = [
+                "restaurant", "american_restaurant", "asian_restaurant", "barbecue_restaurant",
+                "brazilian_restaurant", "chinese_restaurant", "dessert_restaurant", 
+                "fast_food_restaurant", "fine_dining_restaurant", "french_restaurant", 
+                "greek_restaurant", "hamburger_restaurant", "indian_restaurant", 
+                "indonesian_restaurant", "italian_restaurant", "japanese_restaurant", 
+                "korean_restaurant", "lebanese_restaurant", "mediterranean_restaurant", 
+                "mexican_restaurant", "middle_eastern_restaurant", "pizza_restaurant", 
+                "ramen_restaurant", "seafood_restaurant", "spanish_restaurant", 
+                "steak_house", "sushi_restaurant", "thai_restaurant", "turkish_restaurant", 
+                "vegan_restaurant", "vegetarian_restaurant", "vietnamese_restaurant"
+            ]
+            
+            # First check primary_type if available
+            if place.primary_type:
+                if place.primary_type in restaurant_types or place.primary_type.endswith("restaurant"):
+                    # Explicitly exclude places that could be cafes
+                    cafe_specific_types = ["cafe", "coffee_shop", "bakery"]
+                    if place.primary_type in cafe_specific_types:
+                        return False
+                    return True
+            
+            # If we get here, the primary type wasn't clearly a restaurant, reject
+            return False
+        
+        # For attraction or other types, always return true (no filtering)
+        elif place_type == "tourist_attraction":
+            return True
+        
+        return False
+
+    def _create_poi_dict(self, place, place_type):
+        """Create a standardized POI dictionary from a place object."""
+        return {
+            'place_id': place.place_id,
+            'name': place.name.strip(),
+            'type': 'attraction' if place_type == "tourist_attraction" else place_type,
+            'coordinates': {
+                'lat': place.location.latitude,
+                'lng': place.location.longitude
+            }
+        }
 
     async def generate_trip(self, request: TripGenerationRequest) -> str:
         try:
@@ -212,6 +375,7 @@ class TripGenerationService:
             additional_breakfast_needed = max(0, required_breakfast_places - len(existing_breakfast_places))
             additional_restaurant_needed = max(0, required_restaurant_places - len(existing_restaurant_places))
             additional_attractions_needed = max(0, required_attraction_places - len(existing_attraction_places))
+            
             # Get additional breakfast places if needed
             if additional_breakfast_needed > 0:
                 suggested_breakfast_places = await self._ensure_sufficient_places(
@@ -222,8 +386,8 @@ class TripGenerationService:
                     place_type="cafe",
                     additional_places_needed=additional_breakfast_needed
                 )
-
-            # # Get additional restaurant places if needed
+            
+            # Get additional restaurant places if needed
             if additional_restaurant_needed > 0:
                 suggested_restaurant_places = await self._ensure_sufficient_places(
                     current_places=existing_restaurant_places,
@@ -243,9 +407,10 @@ class TripGenerationService:
                     place_type="tourist_attraction",
                     additional_places_needed=additional_attractions_needed  
                 )
- 
+            
             # Create prompt with updated request data
             prompt = self._create_prompt(request, existing_breakfast_places, existing_restaurant_places, existing_attraction_places, suggested_breakfast_places, suggested_restaurant_places, suggested_attraction_places)
+            
             # Create ChatRequest
             chat_request = ChatRequest(
                 messages=[
@@ -331,7 +496,6 @@ class TripGenerationService:
             attractions_section = "Available attraction list:\n" + "\n".join(all_attractions) if all_attractions else "No attractions available"
             restaurants_section = "Available restaurant list:\n" + "\n".join(all_restaurants) if all_restaurants else "No restaurants available"
             cafes_section = "Available cafe list:\n" + "\n".join(all_cafes) if all_cafes else "No cafes available"
-            print(attractions_section)
             return f"""Create a detailed {num_days}-day itinerary for {request.trip_data.city}, {request.trip_data.country} {date_info}.
 
     {attractions_section}
@@ -463,3 +627,27 @@ class TripGenerationService:
         except Exception as e:
             logger.error(f"Error creating prompt: {str(e)}")
             raise HTTPException(status_code=500, detail="Failed to create prompt")
+
+    def _get_excluded_types_for_place_type(self, place_type):
+        """Get a list of excluded types based on the place type being searched."""
+        # Common excluded types for all food establishments
+        common_excluded_types = [
+            "hotel", "lodging", "motel", "resort_hotel", "bed_and_breakfast", 
+            "inn", "guest_house", "department_store", "shopping_mall"
+        ]
+        
+        if place_type == "cafe":
+            # Additional exclusions specific to cafes
+            return common_excluded_types + [
+                "art_gallery", "art_studio", "auditorium", "cultural_landmark",
+                "historical_place", "monument", "museum", "performing_arts_theater",
+                "sculpture", "restaurant"  # Exclude restaurants from cafe results
+            ]
+        elif place_type == "restaurant":
+            # Additional exclusions for restaurants
+            return common_excluded_types + [
+                "cafe", "coffee_shop", "bakery"  # Exclude cafes from restaurant results
+            ]
+        else:
+            # For attractions or other types, use a different set of exclusions if needed
+            return [] if place_type == "tourist_attraction" else common_excluded_types

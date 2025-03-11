@@ -171,30 +171,76 @@ const ItineraryDynamicPOI = memo(({ poi, timeMap, onDelete, isDragging = false }
 
       {/* Dialog for displaying POI information */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="bg-white">
+        <DialogContent className="bg-white max-w-md">
           <DialogHeader>
-            <DialogTitle>{poi.name}</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-2 mt-4">
-            <p>
-              <strong>Time:</strong> {displayStartTime} - {displayEndTime} (Day {timeMap.day})
-            </p>
-            {poi.address && <p><strong>Address:</strong> {poi.address}</p>}
-            {poi.description && <p><strong>Description:</strong> {poi.description}</p>}
-            {poi.opening_hours && <p><strong>Hours:</strong> {poi.opening_hours}</p>}
-            {poi.website && (
-              <p>
-                <strong>Website:</strong>{' '}
-                <a
-                  href={poi.website}
+            <DialogTitle className="flex items-center">
+              <span className="mr-2">{poi.name}</span>
+              {poi.place_id && (
+                <a 
+                  href={`https://www.google.com/maps/place/?q=place_id:${poi.place_id}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-blue-600 hover:underline"
+                  className="text-gray-500 hover:text-blue-600 flex items-center"
+                  onClick={(e) => e.stopPropagation()}
+                  title="View on Google Maps"
                 >
-                  {poi.website}
+                  <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" />
+                  </svg>
                 </a>
-              </p>
+              )}
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4 mt-2">
+            {/* Image section */}
+            {poi.image_url && (
+              <div className="relative overflow-hidden aspect-[4/3] rounded-md">
+                <img
+                  src={poi.image_url}
+                  alt={poi.name}
+                  className="w-full h-full object-cover"
+                />
+              </div>
             )}
+
+            <div className="space-y-2">
+              <p className="flex flex-wrap gap-1">
+                <strong className="whitespace-nowrap">Time:</strong> 
+                <span className="break-normal">{displayStartTime} - {displayEndTime} (Day {timeMap.day})</span>
+              </p>
+              {poi.address && (
+                <p className="flex flex-wrap gap-1">
+                  <strong className="whitespace-nowrap">Address:</strong> 
+                  <span className="break-normal">{poi.address}</span>
+                </p>
+              )}
+              {poi.description && (
+                <p className="flex flex-wrap gap-1">
+                  <strong className="whitespace-nowrap">Description:</strong> 
+                  <span className="break-normal">{poi.description}</span>
+                </p>
+              )}
+              {poi.opening_hours && (
+                <p className="flex flex-wrap gap-1">
+                  <strong className="whitespace-nowrap">Hours:</strong> 
+                  <span className="break-normal whitespace-pre-wrap">{poi.opening_hours}</span>
+                </p>
+              )}
+              {poi.website && (
+                <p className="flex flex-wrap gap-1">
+                  <strong className="whitespace-nowrap">Website:</strong>
+                  <a
+                    href={poi.website}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 hover:underline break-all"
+                  >
+                    {poi.website}
+                  </a>
+                </p>
+              )}
+            </div>
           </div>
         </DialogContent>
       </Dialog>

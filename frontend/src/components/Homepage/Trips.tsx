@@ -153,10 +153,10 @@ export const Itineraries: FC<ItinerariesProps> = ({ setGlobalLoading }) => {
                     </Button>
 
                     <Select value={filterOption} onValueChange={(value: FilterOption) => setFilterOption(value)}>
-                        <SelectTrigger className="w-[180px] z-8 bg-blue-200">
+                        <SelectTrigger className="w-[180px] z-8 bg-blue-100">
                             <SelectValue placeholder="Filter by" />
                         </SelectTrigger>
-                        <SelectContent className="bg-blue-300">
+                        <SelectContent className="bg-blue-100">
                             <SelectItem className="hover:bg-blue-400" value="alphabetical">Alphabetical</SelectItem>
                             <SelectItem className="hover:bg-blue-400" value="date-latest">Date (Latest)</SelectItem>
                             <SelectItem className="hover:bg-blue-400" value="date-earliest">Date (Earliest)</SelectItem>

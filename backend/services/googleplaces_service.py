@@ -20,33 +20,44 @@ class GooglePlacesService:
         """
         Perform an Explore Search for the Search Query using the Places API.
         """
+        if not type:
+            return []
+        
         types = type.split(',')
         places = []
         existing_place_ids = set() 
         
-        for type in types:
+        for current_type in types:
             if len(places) >= 30:
                 break
             
-            suggested_places = self.nearby_search(
-                            latitude=latitude,
-                            longitude=longitude,
-                            radius=radius,
-                            type=type,
-                            max_results=20
-                        )
+            try:
+                suggested_places = self.nearby_search(
+                    latitude=latitude,
+                    longitude=longitude,
+                    radius=radius,
+                    type=current_type.strip(),  # Ensure we strip any whitespace
+                    max_results=max_results
+                )
 
-            for place in suggested_places:
-                if place.place_id in existing_place_ids:
-                    continue
-                # Check primary type matches
-                if type == "cafe" and place.primary_type not in ["cafe", "coffee_shop", "bakery"]:
-                    continue
-                elif type == "restaurant" and not re.search(r'restaurant$', place.primary_type):
-                    continue
-                
-                places.append(place)
-                existing_place_ids.add(place.place_id)
+                for place in suggested_places:
+                    if place.place_id in existing_place_ids:
+                        continue
+                    
+                    # Check primary type matches - be less strict here since we want results
+                    if current_type == "cafe" and place.primary_type and place.primary_type not in ["cafe", "coffee_shop", "bakery"]:
+                        continue
+                    elif current_type == "restaurant" and place.primary_type and not (place.primary_type.endswith("restaurant") or place.primary_type in ["meal_takeaway", "meal_delivery"]):
+                        continue
+                    
+                    places.append(place)
+                    existing_place_ids.add(place.place_id)
+                    
+                    if len(places) >= max_results:
+                        break
+            except Exception as e:
+                print(f"Error searching for type {current_type}: {str(e)}")
+                continue  # Try the next type even if this one fails
         
         return places
 
@@ -55,7 +66,8 @@ class GooglePlacesService:
         latitude: float,
         longitude: float,
         radius: float = 1000,
-        type: Optional[str] = None,
+        type: Optional[str] = "tourist_attraction",
+        excluded_types: Optional[List[str]] = None,
         max_results: int = 10
     ) -> List[Place]:
         """
@@ -65,7 +77,7 @@ class GooglePlacesService:
         
         # Construct the request body according to new API format
         request_body = {
-            "includedTypes": [type] if type else ["restaurant"],  
+            "includedTypes": [type],
             "maxResultCount": max_results,
             "locationRestriction": {
                 "circle": {
@@ -77,6 +89,10 @@ class GooglePlacesService:
                 }
             }
         }
+        
+        # Add excluded types if provided
+        if excluded_types and len(excluded_types) > 0:
+            request_body["excludedTypes"] = excluded_types
 
         headers = {
             "Content-Type": "application/json",
@@ -232,17 +248,14 @@ class GooglePlacesService:
         Returns a dictionary of place_id -> place_details
         """
         import concurrent.futures
-        
-        # Filter out non-Google Place IDs
-        valid_place_ids = [pid for pid in place_ids if pid.startswith("ChI")]
-        
         results = {}
+        failed_place_ids = []
         
         # Process in batches to avoid too many concurrent requests
         with concurrent.futures.ThreadPoolExecutor(max_workers=max_concurrent) as executor:
             future_to_place_id = {
                 executor.submit(self.get_place_details, place_id): place_id 
-                for place_id in valid_place_ids
+                for place_id in place_ids
             }
             
             for future in concurrent.futures.as_completed(future_to_place_id):
@@ -251,9 +264,13 @@ class GooglePlacesService:
                     place_details = future.result()
                     if place_details:
                         results[place_id] = place_details
+                    else:
+                        failed_place_ids.append(place_id)
                 except Exception as e:
                     print(f"Error processing place_id {place_id}: {str(e)}")
+                    failed_place_ids.append(place_id)
         
+        # For backward compatibility, return just the results dictionary
         return results
 
     def batch_get_photos(self, place_details_dict: Dict[str, Dict]) -> Dict[str, Dict]:

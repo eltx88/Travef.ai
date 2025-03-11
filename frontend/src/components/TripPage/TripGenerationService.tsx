@@ -41,7 +41,6 @@ async generateTrip(tripData: TripData, attractionpois: MinimalPOI[], foodpois: M
           attractionpois: attractionpois,
           cafepois: cafePOIs
       };
-      console.log(payload);
       const response = await this.apiClient.postTripGeneration(payload);
       return { itinerary: response.itinerary };
   } catch (error) {

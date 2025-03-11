@@ -63,12 +63,29 @@ function EditTripPage() {
   // Use the custom hook
   useUnsavedChangesWarning(hasUnsavedChanges);
   
+  const [originalState, setOriginalState] = useState<LocationState | null>(null);
+  
   // Update the hasUnsavedChanges state whenever itinerary changes
   useEffect(() => {
-    if (itineraryState && itineraryState.lastModified > 0) {
-      setHasUnsavedChanges(true);
+    if (itineraryState && originalState) {
+      // Compare current state with original state
+      const originalItinerary = originalState.itineraryPOIs;
+      const originalUnused = originalState.unusedPOIs;
+      const currentItinerary = itineraryState.itineraryPOIs;
+      const currentUnused = itineraryState.unusedPOIs;
+      
+      // Check if POIs have changed (different length or different content)
+      const itineraryChanged = 
+        currentItinerary.length !== originalItinerary.length ||
+        JSON.stringify(currentItinerary) !== JSON.stringify(originalItinerary);
+      
+      const unusedChanged = 
+        currentUnused.length !== originalUnused.length ||
+        JSON.stringify(currentUnused) !== JSON.stringify(originalUnused);
+      
+      setHasUnsavedChanges(itineraryChanged || unusedChanged);
     }
-  }, [itineraryState]);
+  }, [itineraryState, originalState]);
 
   // Initialize data from location state or URL params
   useEffect(() => {
@@ -83,6 +100,10 @@ function EditTripPage() {
         unusedPOIs: locationState.unusedPOIs,
         lastModified: Date.now()
       });
+      
+      // Store the original state for comparison
+      setOriginalState(locationState);
+      
       return true;
     }
 
@@ -303,6 +324,30 @@ function EditTripPage() {
   const leftContainerWidth = isLeftExpanded ? 85 : isRightExpanded ? 15 : 40;
   const rightContainerWidth = isRightExpanded ? 85 : isLeftExpanded ? 15 : 60;
 
+  // Clear all POIs from itinerary
+  const handleClearItinerary = useCallback(() => {
+    if (!itineraryState) return;
+    
+    const modifiedUnusedPOIs = [...itineraryState.unusedPOIs];
+    
+    // Move all itinerary POIs to unusedPOIs with reset properties
+    itineraryState.itineraryPOIs.forEach(poi => {
+      const modifiedPOI = {
+        ...poi,
+        day: -1,
+        timeSlot: "unused",
+        StartTime: -1,
+        EndTime: -1,
+        duration: -1,
+      };
+      modifiedUnusedPOIs.push(modifiedPOI);
+    });
+    
+    // Update state with empty itinerary and all POIs in unused
+    updateState([], modifiedUnusedPOIs);
+    toast.success('Itinerary cleared successfully');
+  }, [itineraryState, updateState]);
+
   // Show loading state
   if (isLoading || !itineraryState || !tripData) {
     return (
@@ -334,6 +379,7 @@ function EditTripPage() {
                 onAddToItinerary={handleAddToItinerary}
                 onDeleteSavedPOI={deleteSavedPOI}
                 onDeleteItineraryPOI={deleteItineraryPOI}
+                onClearItinerary={handleClearItinerary}
                 isRightExpanded={isRightExpanded}
               />
             </div>

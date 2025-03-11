@@ -17,14 +17,14 @@
       },
       {
           "city": "Tokyo",
-          "image_link": "https://images.unsplash.com/photo-1503899036084-c55cdd92da26?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8dG9reW98ZW58MHx8MHx8fDA%3D",
+          "image_link": "https://images.unsplash.com/photo-1536098561742-ca998e48cbcc?q=80&w=2036&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
           "country": "JP",
           "lat": 35.6895,
           "lng": 139.6917
       },
       {
           "city": "London",
-          "image_link": "https://images.unsplash.com/photo-1526129318478-62ed807ebdf9?q=80&w=1974&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+          "image_link": "https://images.unsplash.com/photo-1500380804539-4e1e8c1e7118?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
           "country": "GB",
           "lat": 51.5074,
           "lng": -0.1278
@@ -58,13 +58,6 @@
           "lng": 13.4050
       },
       {
-          "city": "Moscow",
-          "image_link": "https://images.unsplash.com/photo-1520106212299-d99c443e4568?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8M3x8bW9zY293fGVufDB8fDB8fHww",
-          "country": "RU",
-          "lat": 55.7558,
-          "lng": 37.6176
-      },
-      {
           "city": "Beijing",
           "image_link": "https://plus.unsplash.com/premium_photo-1676469292218-95d6c3a036bc?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MXx8YmVpamluZ3xlbnwwfHwwfHx8MA%3D%3D",
           "country": "CN",
@@ -91,7 +84,58 @@
         "country": "GB",
         "lat": 53.4808,
         "lng": -2.2426
+     },
+     {
+        "city": "Rio de Janeiro",
+        "image_link": "https://images.unsplash.com/photo-1516306580123-e6e52b1b7b5f?q=80&w=2126&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+        "country": "BR",
+        "lat": -22.9068,
+        "lng": -43.1729
+     },
+     {
+        "city": "Ho Chi Minh City",
+        "image_link": "https://plus.unsplash.com/premium_photo-1690960644830-487c569ca6fa?q=80&w=1974&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+        "country": "VN",
+        "lat": 10.7626,
+        "lng": 106.6601
+     },
+     {
+        "city": "Lisbon",
+        "image_link": "https://images.unsplash.com/photo-1585208798174-6cedd86e019a?q=80&w=2073&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+        "country": "PT",
+        "lat": 38.7166,
+        "lng": -9.1332
+     },
+     {
+        "city": "Barcelona",
+        "image_link": "https://images.unsplash.com/photo-1630219694734-fe47ab76b15e?q=80&w=1952&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+        "country": "ES",
+        "lat": 41.3888,
+        "lng": 2.1589
+     },
+     {
+        "city": "Seoul",
+        "image_link": "https://images.unsplash.com/photo-1540998145333-e2eef1a9822d?q=80&w=1983&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+        "country": "KR",
+        "lat": 37.5665,
+        "lng": 126.9780
+     },
+     {
+        "city": "Zurich",
+        "image_link": "https://images.unsplash.com/photo-1620563092215-0fbc6b55cfc5?q=80&w=2071&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+        "country": "CH",
+        "lat": 47.3769,
+        "lng": 8.5417
+     },
+     {
+        "city": "Kuala Lumpur",
+        "image_link": "https://images.unsplash.com/photo-1592723905426-1181bf431d3a?q=80&w=1975&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+        "country": "MY",
+        "lat": 3.1390,
+        "lng": 101.6869
      }
+     
+
 
   ]
 }
