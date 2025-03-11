@@ -179,6 +179,8 @@ export class CategoryMapper {
           matches.forEach(match => mappedFood.add(match));
         } else {
           unmapped.food.push(food);
+          mappedFood.add('restaurant');
+          mappedFood.add('bar_and_grill');
         }
       }
     }
@@ -204,6 +206,8 @@ export class CategoryMapper {
           matches.forEach(match => mappedAttractions.add(match));
         } else {
           unmapped.interests.push(interest);
+          mappedAttractions.add('tourist_attraction');
+          mappedAttractions.add('historical_landmark');
         }
       }
     }
