@@ -36,7 +36,7 @@ class UserHistoryService(FirebaseService):
                 status=poi.get('status'),
                 createdDT=poi.get('createdDT'),
                 city=poi.get('city')
-            ).dict() for poi in saved_pois]
+            ).model_dump() for poi in saved_pois]
 
         except Exception as e:
             print(f"Error in get_saved_pois: {str(e)}")

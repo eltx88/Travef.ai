@@ -1,7 +1,6 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, field_serializer, ConfigDict
 from typing import List, Optional
 from datetime import datetime
-from fastapi.encoders import jsonable_encoder
 
 class SavedPOI(BaseModel):
     id: str
@@ -14,13 +13,11 @@ class SavedPOI(BaseModel):
     # visit_date: Optional[datetime] = None  # Date of visit
     # personal_rating: Optional[float] = Field(None, ge=0, le=5)  # Personal rating
 
-    class Config:
-        json_encoders = {
-            datetime: lambda dt: dt.isoformat()
+    model_config = ConfigDict(
+        json_encoders={
+            datetime: lambda v: v.isoformat() if v else None
         }
-        
-    def dict(self, *args, **kwargs):
-        return jsonable_encoder(self)
+    )
     
 class SavedTrip(BaseModel):
     id: str
@@ -34,7 +31,12 @@ class UserHistory(BaseModel):
     saved_pois: List[SavedPOI] = []
     saved_trips: List[SavedTrip] = []
 
-    class Config:
-        json_encoders = {
-            datetime: lambda v: v.isoformat() if v else None
-        }
+    @field_serializer('saved_pois', 'saved_trips')
+    def serialize_collections(self, items: List) -> List:
+        return items
+        
+    @field_serializer('*', when_used='json')
+    def serialize_datetime_fields(self, v, _info):
+        if isinstance(v, datetime):
+            return v.isoformat()
+        return v

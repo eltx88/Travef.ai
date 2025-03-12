@@ -1,5 +1,5 @@
-from pydantic import BaseModel, Field
-from typing import List, Optional
+from pydantic import BaseModel, ConfigDict
+from typing import List
 from datetime import datetime
 
 class Coordinates(BaseModel):
@@ -30,6 +30,4 @@ class TripGenerationRequest(BaseModel):
     foodpois: List[POI] = []
     cafepois: List[POI] = []
 
-    class Config:
-        populate_by_name = True
-        arbitrary_types_allowed = True
+    model_config = ConfigDict(populate_by_name=True, arbitrary_types_allowed=True)

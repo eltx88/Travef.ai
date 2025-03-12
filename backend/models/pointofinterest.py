@@ -1,8 +1,6 @@
-from cmath import isnan
-from typing import List, Optional, Dict
+from typing import List, Optional
 from datetime import datetime
-from pydantic import BaseModel, Field, field_validator, model_validator,validator
-from firebase_admin.firestore import GeoPoint
+from pydantic import BaseModel, Field, field_validator, field_serializer
 
 class Coordinates(BaseModel):
     lat: float = Field(..., ge=-90, le=90)
@@ -10,14 +8,10 @@ class Coordinates(BaseModel):
 
     @field_validator("lat")
     def validate_latitude(cls, v: float) -> float:
-        if not isinstance(v, (int, float)):
-            raise ValueError("Latitude must be a number")
         return v
 
     @field_validator("lng")
     def validate_longitude(cls, v: float) -> float:
-        if not isinstance(v, (int, float)):
-            raise ValueError("Longitude must be a number")
         return v
 
 class ImageMetadata(BaseModel):
@@ -49,7 +43,6 @@ class PointOfInterestResponse(BaseModel):
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
 
-    class Config:
-        json_encoders = {
-            datetime: lambda v: v.isoformat() if v else None
-        }
+    @field_serializer('created_at', 'updated_at')
+    def serialize_datetime(self, dt: Optional[datetime]) -> Optional[str]:
+        return dt.isoformat() if dt else None

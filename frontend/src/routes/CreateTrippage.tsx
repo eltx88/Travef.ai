@@ -21,7 +21,7 @@ function CreateTripPage() {
 
   return (
     <LocationProvider>
-    <div className="flex flex-col min-h-screen bg-gray-100">
+    <div className="flex flex-col min-h-screen bg-blue-50">
       <NavigationMenuBar />
       
       <main className="flex-grow p-4">
