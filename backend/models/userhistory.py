@@ -13,11 +13,13 @@ class SavedPOI(BaseModel):
     # visit_date: Optional[datetime] = None  # Date of visit
     # personal_rating: Optional[float] = Field(None, ge=0, le=5)  # Personal rating
 
-    model_config = ConfigDict(
-        json_encoders={
-            datetime: lambda v: v.isoformat() if v else None
-        }
-    )
+    model_config = ConfigDict()
+    
+    @field_serializer('*', when_used='json')
+    def serialize_datetime_fields(self, v, _info):
+        if isinstance(v, datetime):
+            return v.isoformat()
+        return v
     
 class SavedTrip(BaseModel):
     id: str
