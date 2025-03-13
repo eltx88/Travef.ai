@@ -4,13 +4,16 @@
     "lib": ["ES2023"],
     "module": "ESNext",
     "skipLibCheck": true,
-
+    "composite": true,
     /* Bundler mode */
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,
     "isolatedModules": true,
     "moduleDetection": "force",
-    "noEmit": true,
+    // "noEmit": true,
+    "outDir": "./dist/out-tsc/node",
+    "emitDeclarationOnly": true,
+    "resolveJsonModule": true,
 
     /* Linting */
     "strict": true,
