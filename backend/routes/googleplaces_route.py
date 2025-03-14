@@ -55,12 +55,12 @@ async def batch_get_place_details(place_ids: List[str]):
     
 #Used by trip poi suggestion hook
 @router.get("/explore")
-async def get_explore_places(latitude: float, longitude: float, radius: int = 2000, type: Optional[str] = None, max_results: int = 20):
+async def get_explore_places(latitude: float, longitude: float, radius: int, poitype : Optional[str] = None, type: Optional[str] = None, max_results: int = 20):
     """
     Endpoint to retrieve explore places for a given location and type.
     """
     try:
-        places = google_places_service.getExplorePOIs(latitude, longitude, radius, type, max_results)
+        places = google_places_service.getExplorePOIs(latitude, longitude, radius, poitype, type, max_results)
          # Transform places to include photo URLs
         places_with_photos = []
         for place in places:

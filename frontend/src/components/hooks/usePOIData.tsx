@@ -8,9 +8,9 @@ import { usePagination } from './usePagination';
 import ApiClient from '@/Api/apiClient';
 const categoryMapping: Record<POIType, string[]> = {
     hotel: ['hotel', 'lodging','inn'],
-    restaurant: ['restaurant', "fast_food_restaurant","bar"],
-    attraction: ['tourist_attraction',"historical_landmark", "cultural_landmark", "shopping_mall"],
-    cafe: ['cafe',"coffee_shop","bakery",],
+    restaurant: ['restaurant', "bar"],
+    attraction: ['tourist_attraction',"historical_landmark", "cultural_landmark"],
+    cafe: ['cafe',"coffee_shop","bakery"]
 };
 
 export interface POIDataHookReturn {
@@ -147,7 +147,8 @@ export const usePOIData = (user: any, currentCity: string, currentCountry: strin
             },
             poitype: selectedCategory,
             city: currentCity,
-            country: currentCountry
+            country: currentCountry,
+            radius: '4000'
         });
         
         poiCacheService.set(cacheKey, pois, currentCity, currentCountry);
@@ -155,6 +156,24 @@ export const usePOIData = (user: any, currentCity: string, currentCountry: strin
             ...prev,
             [selectedCategory]: pois
         }));
+
+        if (pois.length < 30) {
+          const additionalPOIs = await apiClient.getGoogleExplorePOIs({
+            type: categoryMapping[selectedCategory],
+            coordinates: {
+              lat: debouncedCoordinates.lat,
+              lng: debouncedCoordinates.lng
+            },
+            poitype: selectedCategory,
+            city: currentCity,
+            country: currentCountry,
+            radius: '5000'
+          });
+          const existingPlaceIds = new Set(pois.map(poi => poi.place_id));
+          const uniqueAdditionalPOIs = additionalPOIs.filter(poi => !existingPlaceIds.has(poi.place_id));
+          pois.push(...uniqueAdditionalPOIs);
+        }
+        
         return pois;
     } catch (error) {
         console.error('Error fetching explore POIs:', error);

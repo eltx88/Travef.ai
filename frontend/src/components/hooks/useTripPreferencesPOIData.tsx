@@ -54,10 +54,11 @@ export const useTripPreferencesPOIData = (
       coordinates: tripData.coordinates,
       poitype: type === 'food' ? 'restaurant' : 'attraction',
       city: tripData.city,
-      country: tripData.country,      
+      country: tripData.country,
+      radius: '3000',
     });
 
-    if (fetchedPOIs.length < 24) {
+    if (fetchedPOIs.length < 40) {
       const additionalPOIs = await apiClient.getGoogleExplorePOIs({
         type: [category],
         coordinates: tripData.coordinates,

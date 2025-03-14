@@ -93,16 +93,17 @@ class ApiClient {
     return pois;
   }
 
-  //Called by search bar
+  //Called by explore tab and trip poi suggestions
   async getGoogleExplorePOIs({
     type,
     coordinates,
     poitype,
     city,
     country,
-    radius = '2000'
+    radius
   }: ExploreGoogleParams): Promise<POI[]> {
     const queryParams = new URLSearchParams({
+      poitype: poitype,
       type: type.join(','),
       latitude: coordinates.lat.toString(),
       longitude: coordinates.lng.toString(),

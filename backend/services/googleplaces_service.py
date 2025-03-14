@@ -1,5 +1,4 @@
 import os
-import re
 import requests
 from typing import List, Optional, Dict
 from models.googleplaces import Place
@@ -13,51 +12,55 @@ class GooglePlacesService:
         self,
         latitude: float,
         longitude: float,
-        radius: float = 2000,
+        radius: float,
+        poitype: Optional[str] = None,
         type: Optional[str] = None,
         max_results: int = 20
     ) -> List[Place]:
         """
         Perform an Explore Search for the Search Query using the Places API.
         """
-        if not type:
-            return []
-        
-        types = type.split(',')
         places = []
         existing_place_ids = set() 
-        
-        for current_type in types:
-            if len(places) >= 30:
-                break
-            
-            try:
-                suggested_places = self.nearby_search(
-                    latitude=latitude,
-                    longitude=longitude,
-                    radius=radius,
-                    type=current_type.strip(),  # Ensure we strip any whitespace
-                    max_results=max_results
-                )
+        type_list = [t.strip() for t in type.split(',')] if type else []
+        excluded_types = []
 
-                for place in suggested_places:
-                    if place.place_id in existing_place_ids:
-                        continue
-                    
-                    # Check primary type matches - be less strict here since we want results
-                    if current_type == "cafe" and place.primary_type and place.primary_type not in ["cafe", "coffee_shop", "bakery"]:
-                        continue
-                    elif current_type == "restaurant" and place.primary_type and not (place.primary_type.endswith("restaurant") or place.primary_type in ["meal_takeaway", "meal_delivery"]):
-                        continue
-                    
-                    places.append(place)
-                    existing_place_ids.add(place.place_id)
-                    
-                    if len(places) >= max_results:
-                        break
-            except Exception as e:
-                print(f"Error searching for type {current_type}: {str(e)}")
-                continue  # Try the next type even if this one fails
+        if not poitype:
+            return []
+
+        if poitype == "restaurant":
+            excluded_types = ["department_store", "amusement_center", "shopping_mall", "tourist_attraction", "cafe", "hotel", "inn"]
+        
+        if poitype == "cafe":
+            excluded_types = ["department_store", "amusement_center", "shopping_mall", "tourist_attraction", "hotel", "inn"]
+        
+        try:
+            suggested_places = self.nearby_search(
+                latitude=latitude,
+                longitude=longitude,
+                radius=radius,
+                type=type_list,
+                max_results=20,
+                excluded_types= excluded_types
+            )
+        
+            for place in suggested_places:
+                if place.place_id in existing_place_ids:
+                    continue
+
+                if poitype == "cafe" and place.primary_type not in ["cafe", "coffee_shop", "bakery"]:
+                    continue
+
+                elif poitype == "restaurant" and ("restaurant" not in place.types):
+                    continue
+                
+                places.append(place)
+                existing_place_ids.add(place.place_id)
+
+            return places
+        
+        except Exception as e:
+            print(f"Error searching for type {poitype}: {str(e)}")
         
         return places
 
@@ -91,7 +94,7 @@ class GooglePlacesService:
         }
         
         # Add excluded types if provided
-        if excluded_types and len(excluded_types) > 0:
+        if excluded_types:
             request_body["excludedTypes"] = excluded_types
 
         headers = {

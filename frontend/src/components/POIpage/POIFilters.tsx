@@ -140,13 +140,13 @@ const POIFilters = ({
                 </div>
                 <div className="flex gap-2">
                 {(tabType === 'saved' || tabType === 'explore') && (
-                    <div className="relative z-40">
+                    <div className="relative">
                         <Select
                             value={categoryFilter}
                             onValueChange={onCategoryFilterChange}
                             disabled={loading}
                         >
-                            <SelectTrigger className="w-[160px] bg-white border-gray-200">
+                            <SelectTrigger className="w-[160px] bg-white border-gray-200 z-10">
                                 <SelectValue placeholder="Select category" />
                             </SelectTrigger>
                             <SelectContent className="bg-white">
