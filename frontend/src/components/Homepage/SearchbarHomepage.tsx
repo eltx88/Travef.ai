@@ -1,11 +1,11 @@
 import React, { useRef } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { Card, CardContent, CardFooter } from "@/components/ui/card";
-import { useCarouselAnimation, cardVariants } from '@/animations/cards.tsx';
+import { Card } from "@/components/ui/card";
+import { useCarouselAnimation, cardVariants } from '@/animations/cards';
 import { SearchCity } from '../../Types/InterfaceTypes';
 import CitySearch from '../CitySearchBar';
-import citiesAnimationData from "@/data/cities.json";
+import citiesAnimationData from '@/data/cities.json';
 
 interface CityImage {
   city: string;

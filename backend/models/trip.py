@@ -1,7 +1,7 @@
 from dataclasses import Field
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, model_validator, ConfigDict
 from datetime import datetime
-from typing import Dict, List, Optional, Union
+from typing import List, Optional
 
 # Save Trip Request Models
 class Coordinates(BaseModel):
@@ -14,13 +14,19 @@ class TripData(BaseModel):
     coordinates: Coordinates
     fromDT: datetime
     toDT: datetime
-    monthlyDays: int
+    monthlyDays: int = Field(..., ge=1, le=7, description="Number of days must be between 1 and 7")
     interests: List[str]
     customInterests: List[str]
     foodPreferences: List[str]
     customFoodPreferences: List[str]
     createdDT: datetime
     userId: str
+    
+    @model_validator(mode='after')
+    def validate_dates(self):
+        if self.fromDT >= self.toDT:
+            raise ValueError("End date (toDT) must be after start date (fromDT)")
+        return self
 
 class ItineraryPOI(BaseModel):
     PointID: str
@@ -38,8 +44,7 @@ class SaveTripRequest(BaseModel):
     itineraryPOIs: List[ItineraryPOI]
     unusedPOIs: List[UnusedPOI]
 
-    class Config:
-        populate_by_name = True
+    model_config = ConfigDict(populate_by_name=True)
 
 # Database Models
 class TripDB(BaseModel):
@@ -67,7 +72,14 @@ class TripDetails(BaseModel):
 class TripDataUpdate(BaseModel):
     fromDT: Optional[datetime]
     toDT: Optional[datetime]
-    monthlyDays: Optional[int]
+    monthlyDays: Optional[int] = Field(None, ge=1, le=7)
+    
+    @model_validator(mode='after')
+    def validate_dates(self):
+        if self.fromDT is not None and self.toDT is not None:
+            if self.fromDT >= self.toDT:
+                raise ValueError("End date (toDT) must be after start date (fromDT)")
+        return self
 
 class ItineraryPOIUpdate(BaseModel):
     PointID: str
@@ -88,8 +100,7 @@ class TripUpdateRequest(BaseModel):
     unusedPOIsState: Optional[List[UnusedPOIUpdate]]
     newlyAddedPOIs: Optional[List[ItineraryPOIUpdate]]
 
-    class Config:
-        populate_by_name = True
+    model_config = ConfigDict(populate_by_name=True)
 
 # User Trip Model used for the query on the homepage to display the trips
 class UserTrip(BaseModel):

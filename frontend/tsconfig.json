@@ -8,9 +8,14 @@
     "baseUrl": ".",
     "resolveJsonModule": true,
     "esModuleInterop": true,
-    "types": ["node", "vite/client"],
+    "types": ["jest", "node", "@testing-library/jest-dom", "vite/client"],
     "paths": {
       "@/*": ["./src/*"]
     }
-  }
+  },
+  "include": [
+    "src/**/*",
+    "src/**/*.json",
+    "src/types/*.d.ts"
+  ]
 }
