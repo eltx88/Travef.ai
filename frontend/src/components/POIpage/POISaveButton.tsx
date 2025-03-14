@@ -83,7 +83,7 @@ const POISaveButton = ({ isSaved, onSave, onUnsave, name }: SaveButtonProps) => 
         variant="default"
         size="sm"
         onClick={handleSave}
-        className="min-w-[70px] shrink-0"
+        className="min-w-[70px] shrink-0 bg-white text-gray-700 hover:bg-gray-200"
       >
         Save
       </Button>

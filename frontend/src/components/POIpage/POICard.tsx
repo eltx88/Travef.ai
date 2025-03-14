@@ -1,7 +1,7 @@
 import POISaveButton from "./POISaveButton";
 import { POI } from "@/Types/InterfaceTypes";
 import { useLocation } from '@/contexts/LocationContext';
-import { MapPin, Coffee, Utensils, Info, Star } from 'lucide-react';
+import { MapPin, Coffee, Utensils, Info, Star, ExternalLink } from 'lucide-react';
 import { Card, CardContent } from "@/components/ui/card";
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
@@ -213,20 +213,29 @@ const POICard = ({
           
           {/* Content Section */}
           <div className="flex flex-col flex-grow p-3">
-            {/* POI Name with Google Maps Icon */}
+            {/* POI Name with Website Icon */}
             <div className="min-w-0 mb-1 flex items-center">
-              {website ? (
+              <div className="overflow-hidden" style={{ maxWidth: "calc(100% - 40px)" }}>
+                <h4 
+                  className="font-semibold text-sm truncate cursor-default" 
+                  title={name}
+                >
+                  {name}
+                </h4>
+              </div>
+              
+              {/* Website Icon */}
+              {website && (
                 <a 
                   href={website}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="font-semibold text-sm truncate hover:text-blue-600 hover:underline"
+                  className="ml-1.5 text-gray-500 hover:text-blue-600"
                   onClick={(e) => e.stopPropagation()}
+                  title="Visit website"
                 >
-                  {name}
+                  <ExternalLink className="h-3.5 w-3.5" />
                 </a>
-              ) : (
-                <h4 className="font-semibold text-sm truncate">{name}</h4>
               )}
               
               {/* Google Maps Icon */}
@@ -263,9 +272,7 @@ const POICard = ({
                 }}
               >
                 <Info className="h-3.5 w-3.5 mr-1" />
-                More details
               </Button>
-              
               <POISaveButton
                 isSaved={isSaved}
                 onSave={() => onSave(id, !isSaved)}
