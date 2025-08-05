@@ -215,7 +215,7 @@ uvicorn main:app --reload --port 8000
    ```
 
 The React development server will start at `http://localhost:5173`.
-```
+
 
 ## Features
 
@@ -244,3 +244,4 @@ The POI explorer allows users to:
 
 ## Notes
 - Make sure to keep your API keys and Firebase credentials secure.
+ ```
